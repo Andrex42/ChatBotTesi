@@ -29,6 +29,7 @@ class Worker(QtCore.QObject):
     questions_ready_event = QtCore.pyqtSignal(object)
     question_added_event = QtCore.pyqtSignal(object)
     answer_ready_event = QtCore.pyqtSignal(object)
+    students_answers_ready_event = QtCore.pyqtSignal(object)
 
     @QtCore.pyqtSlot()
     def start_ml(self):
@@ -99,6 +100,31 @@ class Worker(QtCore.QObject):
         )
 
         self.answer_ready_event.emit(query_result)
+        # print(query_result)
+        print(f'Execution time = {time.time() - start} seconds.')
+
+    @QtCore.pyqtSlot()
+    def get_students_answers(self, question_id, question_text):
+        start = time.time()
+
+        # init_chroma_client()
+
+        student_answers_collection = get_student_answers_collection()
+
+        print("getting students answers for", question_id)
+
+        similarity_query_result = student_answers_collection.query(
+            query_texts=question_text,
+            where={"question_id": question_id}
+        )
+
+        print("similarity", similarity_query_result)
+
+        query_result = student_answers_collection.get(
+            where={"question_id": question_id}
+        )
+
+        self.students_answers_ready_event.emit(query_result)
         # print(query_result)
         print(f'Execution time = {time.time() - start} seconds.')
 
@@ -204,9 +230,14 @@ class TeacherWindow(QWidget):
         def load_callback():
             print("ok, view question riuscito", question)
 
-        self.dialog = QuestionDialog(question, self.db_worker.answer_ready_event, load_callback)
+        self.dialog = QuestionDialog(
+            question,
+            self.db_worker.answer_ready_event,
+            self.db_worker.students_answers_ready_event,
+            load_callback)
 
         self.db_worker.get_teacher_answer(question["id"])
+        self.db_worker.get_students_answers(question["id"], question["document"])
 
         self.dialog.show()
 
