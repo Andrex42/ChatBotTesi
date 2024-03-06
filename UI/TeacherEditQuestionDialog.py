@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QLineEdit
 
 
 class EditQuestionDialog(QDialog):
-    def __init__(self, question_text, save_callback):
+    def __init__(self, question, save_callback):
         super().__init__()
         self.setWindowTitle("Modifica Domanda")
         self.resize(300, 100)
@@ -10,7 +10,7 @@ class EditQuestionDialog(QDialog):
         self.save_callback = save_callback
 
         layout = QVBoxLayout()
-        self.questionInput = QLineEdit(question_text)
+        self.questionInput = QLineEdit(question["document"])
         saveButton = QPushButton('Salva')
 
         layout.addWidget(QLabel('Modifica il testo della domanda:'))

@@ -5,7 +5,7 @@ from UI.LoginFormApp import LoginFormApp
 from UI.TeacherEditQuestionDialog import EditQuestionDialog
 from UI.TeacherQuestionDialog import QuestionDialog
 from mock import MOCK_DATA
-from collection import init_chroma_client, get_collections, populate_collections
+from collection import init_chroma_client, get_collections, extract_data, get_question_collection, get_teacher_answers_collection, get_student_answers_collection, populate_collections
 
 import time
 
@@ -26,8 +26,9 @@ class Worker(QtCore.QObject):
     call_start_ml = QtCore.pyqtSignal()
     call_add_question = QtCore.pyqtSignal()
 
-    data_ready_event = QtCore.pyqtSignal(object)
+    questions_ready_event = QtCore.pyqtSignal(object)
     question_added_event = QtCore.pyqtSignal(object)
+    answer_ready_event = QtCore.pyqtSignal(object)
 
     @QtCore.pyqtSlot()
     def start_ml(self):
@@ -41,6 +42,8 @@ class Worker(QtCore.QObject):
 
         question_collection, teacher_answers_collection, student_answers_collection = get_collections()
 
+        print("getting questions of teacher", self.teacher_id)
+
         query_result = question_collection.get(
             where={"teacher_id": self.teacher_id},
         )
@@ -52,7 +55,7 @@ class Worker(QtCore.QObject):
 
         # print("# The most similar sentences computed by chroma")
         # print(query_result)
-        self.data_ready_event.emit(query_result)
+        self.questions_ready_event.emit(query_result)
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
@@ -62,6 +65,8 @@ class Worker(QtCore.QObject):
         # init_chroma_client()
 
         question_collection, teacher_answers_collection, student_answers_collection = get_collections()
+
+        print("adding question", question)
 
         question_collection.add(
             documents=[question],
@@ -76,6 +81,25 @@ class Worker(QtCore.QObject):
         # print("# The most similar sentences computed by chroma")
         # print(query_result)
         self.question_added_event.emit(question)
+        print(f'Execution time = {time.time() - start} seconds.')
+
+    @QtCore.pyqtSlot()
+    def get_teacher_answer(self, question_id):
+        start = time.time()
+
+        # init_chroma_client()
+
+        teacher_answers_collection = get_teacher_answers_collection()
+
+        print("getting answers for", question_id)
+
+        query_result = teacher_answers_collection.get(
+            ids=[question_id],
+            where={"teacher_id": self.teacher_id}
+        )
+
+        self.answer_ready_event.emit(query_result)
+        # print(query_result)
         print(f'Execution time = {time.time() - start} seconds.')
 
 
@@ -98,6 +122,10 @@ class TeacherWindow(QWidget):
 
         self.config = {}
         self.db_worker = Worker("docente.test1", self.config)
+        self.db_worker.call_start_ml.connect(self.db_worker.start_ml)
+        self.db_worker.questions_ready_event.connect(lambda data: self.on_questions_ready(data))
+        self.db_worker.question_added_event.connect(lambda data: self.on_question_added(data))
+
         self.start_db_worker()
 
         self.addButton = QPushButton('Aggiungi Domanda')
@@ -112,18 +140,17 @@ class TeacherWindow(QWidget):
         self.logoutButton.clicked.connect(self.logout)
 
     @QtCore.pyqtSlot()
-    def on_finish(self, data):
-        print("finished")
-        print(data)
+    def on_questions_ready(self, data):
+        print("received", data)
+        data_array = extract_data(data)
+        print("data converted", data_array)
 
-        for question in data["documents"]:
+        for question in data_array:
             self.addQuestionToListWidget(question)
-
-        self.start_db_thread.quit()
 
     @QtCore.pyqtSlot()
     def on_question_added(self, question):
-        print("finished")
+        print("received", question)
         print(question)
 
         self.addQuestionToListWidget(question)
@@ -131,28 +158,20 @@ class TeacherWindow(QWidget):
         self.add_question_thread.quit()
 
     def start_db_worker(self):
-        self.start_db_thread = QtCore.QThread()
-        self.start_db_thread.start()
+        self.db_thread = QtCore.QThread()
+        self.db_thread.start()
 
-        self.db_worker.moveToThread(self.start_db_thread)
-        self.db_worker.call_start_ml.connect(self.db_worker.start_ml)
-        self.db_worker.data_ready_event.connect(lambda data: self.on_finish(data))
+        self.db_worker.moveToThread(self.db_thread)
         self.db_worker.call_start_ml.emit()
 
-    def start_add_question_worker(self, question):
-        self.add_question_thread = QtCore.QThread()
-        self.add_question_thread.start()
-
-        self.db_worker.moveToThread(self.add_question_thread)
-        self.db_worker.call_add_question.connect(lambda: self.db_worker.add_question(question))
-        self.db_worker.question_added_event.connect(lambda data: self.on_question_added(data))
-        self.db_worker.call_add_question.emit()
+    def add_question(self, question_text):
+        self.db_worker.add_question(question_text)
 
     def addQuestionToListWidget(self, question):
         itemWidget = QWidget()
         itemLayout = QHBoxLayout()
 
-        questionLabel = QLabel(question)
+        questionLabel = QLabel(question["document"])
         questionLabel.setWordWrap(True)  # Abilita il wrapping del testo
         questionLabel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
@@ -182,7 +201,13 @@ class TeacherWindow(QWidget):
         self.listWidget.setItemWidget(listItem, itemWidget)
 
     def viewQuestion(self, question):
-        self.dialog = QuestionDialog(question)
+        def load_callback():
+            print("ok, view question riuscito", question)
+
+        self.dialog = QuestionDialog(question, self.db_worker.answer_ready_event, load_callback)
+
+        self.db_worker.get_teacher_answer(question["id"])
+
         self.dialog.show()
 
     def editQuestion(self, question):
