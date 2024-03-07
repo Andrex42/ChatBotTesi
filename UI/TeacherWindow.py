@@ -222,7 +222,8 @@ class TeacherWindow(QWidget):
         itemWidget.setLayout(itemLayout)
 
         listItem = QListWidgetItem(self.listWidget)
-        listItem.setSizeHint(QtCore.QSize(itemWidget.sizeHint().width(), itemWidget.sizeHint().height() - 20))
+        # listItem.setSizeHint(QtCore.QSize(itemWidget.sizeHint().width(), itemWidget.sizeHint().height() - 20))
+        listItem.setSizeHint(QtCore.QSize(itemWidget.sizeHint()))
 
         self.listWidget.setItemWidget(listItem, itemWidget)
 
