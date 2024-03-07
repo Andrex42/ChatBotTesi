@@ -45,5 +45,18 @@ MOCK_DATA = [
                     "value": "Le tecnologie informatiche non pongono sfide etiche significative. Sono strumenti neutrali che possono essere utilizzati per il bene o per il male, a seconda delle intenzioni degli sviluppatori e degli utenti."
                 }
             ]
+        },
+        {
+            "id": "q4",
+            "teacher_id": "docente.test1",
+            "value": "Quindi, sti capelli?",
+            "answer": "Una ragazza si acconcia i capelli.",
+            "student_answers": [
+                {
+                    "id": "a6",
+                    "student_id": "studente.test1",
+                    "value": "Una ragazza si sta spazzolando i capelli."
+                }
+            ]
         }
     ]

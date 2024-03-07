@@ -5,7 +5,7 @@ from UI.LoginFormApp import LoginFormApp
 from UI.TeacherEditQuestionDialog import EditQuestionDialog
 from UI.TeacherQuestionDialog import QuestionDialog
 from mock import MOCK_DATA
-from collection import init_chroma_client, get_collections, extract_data, get_question_collection, get_teacher_answers_collection, get_student_answers_collection, populate_collections
+from collection import init_chroma_client, init_model, encode, get_collections, extract_data, get_question_collection, get_teacher_answers_collection, get_student_answers_collection, populate_collections
 
 import time
 
@@ -36,6 +36,7 @@ class Worker(QtCore.QObject):
         start = time.time()
 
         init_chroma_client()
+        init_model()
 
         if not skip_db_creation:
             populate_collections()
@@ -114,7 +115,7 @@ class Worker(QtCore.QObject):
         print("getting students answers for", question_id)
 
         similarity_query_result = student_answers_collection.query(
-            query_texts=question_text,
+            query_embeddings=encode(question_text),
             where={"question_id": question_id}
         )
 
