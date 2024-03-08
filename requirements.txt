@@ -8,3 +8,7 @@ tqdm~=4.66.2
 datasets~=2.18.0
 scikit-learn~=1.4.1.post1
 scipy~=1.12.0
+cohere~=4.52
+python-dotenv~=1.0.1
+halo~=0.0.31
+colorama~=0.4.6
