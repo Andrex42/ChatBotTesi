@@ -40,7 +40,7 @@ class Worker(QtCore.QObject):
             populate_collections()
             print("Database created")
 
-        question_collection, teacher_answers_collection, student_answers_collection = get_collections()
+        question_collection, q_a_collection = get_collections()
 
         print("getting questions of teacher", self.teacher_id)
 

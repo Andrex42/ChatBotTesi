@@ -396,7 +396,7 @@ risposte = [
     ),
     (
         "Quali erano le funzioni sociali e religiose dell'arte nella società Maya?",
-        "Nella società Maya, l'arte aveva funzioni sociali e religiose significative, servendo come mezzo per documentare eventi storici, esprimere credenze cosmologiche e celebrare l'élite al potere.",
+        "Nella società Maya, l'arte svolgeva molteplici funzioni sociali e religiose. Socialmente, l'arte era utilizzata per rappresentare lo status e il potere delle élite, attraverso monumentali strutture architettoniche e sculture che celebravano governanti e divinità. Religiosamente, l'arte era fondamentale per esprimere le credenze e i rituali della religione Maya, con raffigurazioni di divinità, cerimonie sacre e mitologia incise su monumenti, dipinti murali e ceramiche. Queste opere d'arte servivano anche come mezzo di comunicazione con gli dei e come strumento per garantire la continuità del mondo naturale e cosmico secondo il loro sistema di credenze.",
         "Corretta",
     ),
     (
@@ -526,7 +526,7 @@ risposte = [
     ),
     (
         "Quali erano le principali tecniche di scultura utilizzate nella Grecia antica?",
-        "Le tecniche di scultura nella Grecia antica includevano la lavorazione del marmo e del bronzo, con l'uso della tecnica della cera persa per le sculture in bronzo, che permetteva una maggiore dettagliatezza e realismo.",
+        "Nella Grecia antica, le principali tecniche di scultura includono il marmo, il bronzo e il terracotta. La scultura in marmo era spesso realizzata tramite l'uso di scalpelli e martelli per creare opere di grande dettaglio e precisione, come nel caso dei marmi del Partenone. Il bronzo consentiva una maggiore libertà di movimento e permetteva di creare opere più dinamiche e tridimensionali, attraverso la tecnica della fusione e della cesellatura. La terracotta, invece, permetteva la creazione di opere più piccole e dettagliate, spesso utilizzate per sculture decorative e vasi.",
         "Corretta",
     ),
     (
@@ -586,7 +586,7 @@ risposte = [
     ),
     (
         "Quali sono le tecniche di navigazione e mappatura utilizzate dalle antiche civiltà marinare?",
-        "Le antiche civiltà marinare utilizzavano l'astronomia per la navigazione, identificando stelle e costellazioni per orientarsi in mare, e creavano mappe rudimentali basate su osservazioni costiere e la direzione dei venti.",
+        "Le antiche civiltà marinare utilizzavano diverse tecniche di navigazione e mappatura per esplorare i mari e per orientarsi durante i viaggi. Una delle tecniche più comuni era la navigazione costiera, che si basava sull'osservazione di punti di riferimento sulla costa e sulle stelle per tracciare rotte. Altre metodologie comprendevano l'utilizzo di bussole rudimentali, come l'uso di pietre magnetiche, e la navigazione astrale, che si basava sull'osservazione delle stelle per determinare la direzione. Inoltre, alcune civiltà, come gli antichi Greci, svilupparono mappe rudimentali basate su conoscenze empiriche e sulla memoria orale dei navigatori.",
         "Corretta",
     ),
     (
@@ -639,7 +639,7 @@ risposte = [
 risposte += [
     (
         "Quale innovazione nell'architettura romana ha permesso la costruzione di grandi spazi interni coperti?",
-        "L'introduzione dell'arco e della volta ha permesso ai Romani di costruire grandi spazi interni coperti, come terme, basiliche e anfiteatri.",
+        "Un'importante innovazione nell'architettura romana che ha consentito la costruzione di grandi spazi interni coperti è stata l'introduzione della volta a crociera. Questa tecnica consisteva nell'incrociare due o più archi a tutto sesto per formare una volta che distribuiva il peso in modo uniforme sui pilastri o le pareti circostanti. Le volte a crociera permettevano di coprire ampi spazi senza la necessità di utilizzare colonne o muri interni, consentendo la creazione di edifici monumentali come basiliche, terme e grandi sale pubbliche, caratteristiche dell'architettura romana.",
         "Corretta",
     ),
     (
@@ -709,9 +709,91 @@ risposte += [
     ),
 ]
 
+risposte += [
+    (
+        "Quali erano le principali tecniche di scultura utilizzate nella Grecia antica?",
+        "Le principali tecniche di scultura nella Grecia antica includevano la scultura a tutto tondo (diretta e a sbalzo), il bassorilievo e l'altorilievo, la fusione a cera persa per statue in bronzo, e la policromia per decorare le statue. Le tecniche si sono evolute nel tempo, passando da forme rigide e geometriche del periodo arcaico all'armonia e realismo del periodo classico, fino alla sperimentazione di pose e drammaticità del periodo ellenistico. Materiali come terracotta, avorio, oro e argento completavano il repertorio scultoreo.",
+        "Corretta",
+    ),
+    (
+        "Quale innovazione nell'architettura romana ha permesso la costruzione di grandi spazi interni coperti?",
+        "L'innovazione che permise la costruzione di grandi spazi interni coperti nell'architettura romana fu l'introduzione del calcestruzzo. Questo materiale, composto da una miscela di acqua, calce, aggregati e pozzolana, era molto più resistente del mattone o della pietra e poteva essere gettato in forme complesse. L'utilizzo del calcestruzzo permise la realizzazione di volte a botte, cupole e solai, che coprivano ampie aree senza la necessità di supporti interni. Esempi emblematici di questa innovazione sono il Pantheon, le terme romane e gli edifici basilicali. La volta a botte, in particolare, permise di distribuire il peso su una superficie più ampia, consentendo la costruzione di edifici più alti e spaziosi. Oltre al calcestruzzo, altre innovazioni come l'arco e la cupola contribuirono alla creazione di grandi spazi interni. L'arco, elemento strutturale curvo, permetteva di superare aperture ampie, mentre la cupola, una struttura a forma di calotta emisferica, consentiva di coprire spazi circolari. L'utilizzo combinato di queste innovazioni rivoluzionò l'architettura romana, permettendo la realizzazione di edifici monumentali con ampie e luminose sale interne.",
+        "Corretta",
+    ),
+    (
+        "Quali erano le funzioni sociali e religiose dell'arte nella società Maya?",
+        "L'arte Maya svolgeva un ruolo fondamentale nella vita sociale e religiosa, permeando la cultura Maya e unificando la società. Le sue funzioni principali erano la religione in quanto raffigurava divinità, miti e rituali, rafforzando il legame con il divino, infatti le immagini sacre servivano per comunicare con gli dei e gli antenati e la società, infatti commemorava eventi storici e figure importanti, preservando la memoria collettiva, dichiarava status e potere, rafforzando la gerarchia sociale, narrava storie e leggende, trasmettendo valori morali e la storia del popolo Maya. L'arte Maya era un linguaggio visivo potente che univa il mondo materiale e spirituale.",
+        "Corretta",
+    ),
+    (
+        "In che modo l'arte e l'architettura riflettono il potere e la religione nell'Impero Bizantino?",
+        "Nell'Impero Bizantino, arte e architettura erano strumenti potenti per glorificare il potere imperiale e la religione cristiana ortodossa. Le immense basiliche, come Santa Sofia a Istanbul, con le loro cupole svettanti e mosaici dorati, simboleggiavano la grandiosità dell'Impero e la sua connessione con il divino. L'arte ufficiale, ricca di icone sacre e immagini di imperatori, rafforzava l'autorità imperiale e la centralità della Chiesa ortodossa nella vita pubblica. La raffinatezza artistica e architettonica bizantina, sintesi di influenze ellenistiche e orientali, divenne un simbolo di prestigio e cultura, irradiando la sua influenza in tutto il Mediterraneo.",
+        "Corretta",
+    ),
+    (
+        "Quali sono le principali differenze tra l'arte del Rinascimento e quella del Medioevo?",
+        "L'arte del Rinascimento si differenzia nettamente da quella medievale per diversi aspetti. Il Rinascimento pone l'uomo al centro dell'universo, riscoprendo la classicità e la mitologia, e valorizzando il ritratto realistico. Lo stile rinascimentale si contraddistingue per la prospettiva, l'anatomia realistica, le proporzioni armoniche e l'idealizzazione della bellezza. Le tecniche utilizzate includono la pittura a olio, l'affresco, la scultura a tutto tondo e la fusione a cera persa. Al contrario, l'arte medievale è caratterizzata dal teocentrismo, con figure religiose ieratiche e simboliche. Lo stile è bidimensionale, con forme stilizzate e assenza di prospettiva. Le tecniche più diffuse sono l'affresco, il mosaico, la miniatura, la scultura lignea e l'oreficeria. In sintesi, l'arte rinascimentale celebra l'uomo e la bellezza del mondo naturale, mentre l'arte medievale si concentra sulla spiritualità e la trascendenza.",
+        "Corretta",
+    ),
+    (
+        "Quali sono le principali differenze tra l'arte del Rinascimento e quella del Medioevo?",
+        "Le principali divergenze tra l'arte del Rinascimento e quella del Medioevo risiedono principalmente nei mezzi e nelle tecniche impiegate dagli artisti. Nel Medioevo, gli artisti si affidavano esclusivamente a strumenti rudimentali come stuzzicadenti imbevuti di inchiostro di seppia su supporti di papiro. Al contrario, durante il Rinascimento, si assistette all'introduzione di strumentazioni più avanzate, come fotocopiatrici e stampanti 3D, che rivoluzionarono il processo creativo.",
+        "Sbagliata",
+    ),
+    (
+        "In che modo l'arte e l'architettura riflettono il potere e la religione nell'Impero Bizantino?",
+        "Nell'Impero Bizantino, l'arte e l'architettura erano strumenti potenti per esprimere il potere e la religione, ma in modo differente rispetto ad altre culture. Le opere riflettevano un'estetica distinta, spesso caratterizzata da un utilizzo deliberato di materiali rustici e un design che poteva apparire disordinato agli occhi di chi osservava dall'esterno. Le chiese, ad esempio, potevano essere costruite con legno che mostrava segni di degrado, mentre le icone dipinte potevano presentare colori vivaci e linee disordinate, intese a rappresentare simbolicamente la complessità e il mistero del potere imperiale.",
+        "Sbagliata",
+    ),
+    (
+        "Quali erano le funzioni sociali e religiose dell'arte nella società Maya?",
+        "Nella società Maya, l'arte assumeva molteplici ruoli, servendo non solo come fonte di intrattenimento, ma anche come strumento di comunicazione politica e sociale. Gli artisti Maya erano rinomati per le loro capacità nel dipingere scene vivaci di festività e celebrazioni, che costituivano un importante elemento di svago durante le feste annuali e le cerimonie religiose. Queste opere non solo fornivano un'esperienza estetica piacevole, ma contribuivano anche a rafforzare il senso di comunità e identità tra il popolo Maya.",
+        "Sbagliata",
+    ),
+]
+
+risposte_test = [
+    (
+        "Quali erano le principali tecniche di scultura utilizzate nella Grecia antica?",
+        "Le tecniche di scultura nella Grecia antica includevano la lavorazione del marmo e del bronzo, con l'uso della tecnica della cera persa per le sculture in bronzo, che permetteva una maggiore dettagliatezza e realismo.",
+        "Corretta"
+    ),
+    (
+        "Quale innovazione nell'architettura romana ha permesso la costruzione di grandi spazi interni coperti?",
+        "L'introduzione dell'arco e della volta ha permesso ai Romani di costruire grandi spazi interni coperti, come terme, basiliche e anfiteatri.",
+        "Corretta"
+    ),
+    (
+        "Quali sono le tecniche di navigazione e mappatura utilizzate dalle antiche civiltà marinare?",
+        "Le antiche civiltà marinare utilizzavano l'astronomia per la navigazione, identificando stelle e costellazioni per orientarsi in mare, e creavano mappe rudimentali basate su osservazioni costiere e la direzione dei venti.",
+        "Corretta"
+    ),
+    (
+        "Quali erano le funzioni sociali e religiose dell'arte nella società Maya?",
+        "Nella società Maya, l'arte aveva funzioni sociali e religiose significative, servendo come mezzo per documentare eventi storici, esprimere credenze cosmologiche e celebrare l'élite al potere.",
+        "Corretta"
+    ),
+    (
+        "Quali erano le funzioni sociali e religiose dell'arte nella società Maya?",
+        "Nella società Maya, l'arte svolgeva funzioni principalmente di intrattenimento e pubblicità politica. Gli artisti Maya erano famosi per le loro abilità nel dipingere scene di festa e celebrazioni, che venivano utilizzate per divertire la popolazione durante le feste annuali. Inoltre, le opere d'arte erano spesso commissionate dai governanti come mezzi di propaganda politica per promuovere la loro autorità e legittimità al potere, piuttosto che per scopi religiosi.",
+        "Sbagliata"
+    ),
+    (
+        "In che modo l'arte e l'architettura riflettono il potere e la religione nell'Impero Bizantino?",
+        "Nell'Impero Bizantino, l'arte e l'architettura riflettevano il potere e la religione attraverso l'uso di materiali scadenti e design volutamente disordinati. Le chiese erano spesso costruite con legno marcio e fatiscente, mentre le icone dipinte erano eseguite con colori sgargianti e tratti scomposti per simboleggiare il caos del potere imperiale. Le rappresentazioni dei leader bizantini mostravano spesso deformità e caratteristiche grottesche per comunicare la fragilità del loro dominio.",
+        "Sbagliata"
+    ),
+    (
+        "Quali sono le principali differenze tra l'arte del Rinascimento e quella del Medioevo?",
+        "Le principali differenze tra l'arte del Rinascimento e quella del Medioevo risiedono principalmente nell'uso della tecnologia: nel Medioevo, gli artisti dipingevano esclusivamente con l'ausilio di stuzzicadenti intinti nell'inchiostro di seppia su carta di papiro, mentre nel Rinascimento, gli artisti impiegavano sofisticate macchine per produrre le loro opere, tra cui fotocopiatrici e stampanti 3D. Inoltre, nel Medioevo le opere d'arte erano caratterizzate da una mancanza di prospettiva e realismo, con figure piatte e colori opachi, mentre nel Rinascimento, grazie all'avvento della tecnologia, gli artisti erano in grado di creare opere dettagliate e realistiche, con un uso sapiente della prospettiva e dei chiaroscuri.",
+        "Sbagliata"
+    ),
+]
+
 # Creazione del DataFrame
 df_domande = pd.DataFrame(domande, columns=['text', 'label'])
 df_risposte = pd.DataFrame(risposte, columns=['title', 'text', 'label'])
+df_risposte_test = pd.DataFrame(risposte_test, columns=['title', 'text', 'label'])
 
 # Salvataggio del DataFrame come CSV
 training_data_folder_path = Path("./training_data")
@@ -722,3 +804,6 @@ df_domande.to_csv(csv_domande_file_path, index=False)
 
 csv_risposte_file_path = os.path.join(training_data_folder_path, "risposte_archeologia_storia_arte.csv")
 df_risposte.to_csv(csv_risposte_file_path, index=False)
+
+csv_risposte_test_file_path = os.path.join(training_data_folder_path, "risposte_test_archeologia_storia_arte.csv")
+df_risposte_test.to_csv(csv_risposte_test_file_path, index=False)

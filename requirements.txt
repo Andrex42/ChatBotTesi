@@ -12,3 +12,4 @@ cohere~=4.52
 python-dotenv~=1.0.1
 halo~=0.0.31
 colorama~=0.4.6
+spacy~=3.7.4
