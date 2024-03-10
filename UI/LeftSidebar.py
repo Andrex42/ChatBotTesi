@@ -1,0 +1,93 @@
+from PyQt5 import QtCore
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QListWidgetItem, QPushButton, QHBoxLayout, QSpacerItem, \
+    QSizePolicy, QCheckBox
+
+from UI.QuestionListWidget import QuestionListWidget
+
+
+class LeftSideBar(QWidget):
+
+    added = QtCore.pyqtSignal()
+    changed = QtCore.pyqtSignal(QListWidgetItem)
+    deleted = QtCore.pyqtSignal(list)
+    questionUpdated = QtCore.pyqtSignal(str, str)
+
+    def __init__(self, authorized_user):
+        super().__init__()
+
+        self.authorized_user = authorized_user
+
+        self.__initUi()
+
+    def __initUi(self):
+        self.__addBtn = QPushButton("Aggiungi")
+        self.__deleteBtn = QPushButton("Elimina")
+        self.__saveBtn = QPushButton("Esporta")
+
+        self.__addBtn.clicked.connect(self.__addClicked)
+        self.__deleteBtn.clicked.connect(self.__deleteClicked)
+        # self.__saveBtn.clicked.connect(self.__saveClicked)
+
+        self.__allCheckBox = QCheckBox('Seleziona tutto')
+        self.__allCheckBox.stateChanged.connect(self.__stateChanged)
+
+        lay = QHBoxLayout()
+        lay.addWidget(self.__allCheckBox)
+        lay.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.MinimumExpanding))
+        lay.addWidget(self.__addBtn)
+        lay.addWidget(self.__deleteBtn)
+        lay.addWidget(self.__saveBtn)
+        lay.setContentsMargins(0, 0, 0, 0)
+
+        self.__toggleButton(False)
+
+        navWidget = QWidget()
+        navWidget.setLayout(lay)
+
+        lay = QVBoxLayout()
+        lay.addWidget(navWidget)
+
+        topWidget = QWidget()
+        topWidget.setLayout(lay)
+        lay.setContentsMargins(0, 0, 0, 0)
+
+        self.__questionListWidget = QuestionListWidget()
+        self.__questionListWidget.changed.connect(self.changed)
+        self.__questionListWidget.checked.connect(self.__checked)
+        self.__questionListWidget.questionUpdated.connect(self.questionUpdated)
+
+        lay = QVBoxLayout()
+        lay.addWidget(topWidget)
+        lay.addWidget(self.__questionListWidget)
+
+        self.setLayout(lay)
+
+    def addQuestionToList(self, question):
+        self.__questionListWidget.addQuestion(question)
+
+    def addToList(self, id):
+        self.__questionListWidget.addQuestion('New Chat', id)
+        self.__convListWidget.setCurrentRow(0)
+
+    def __addClicked(self):
+        self.added.emit()
+
+    def __deleteClicked(self):
+        # get the ID of row, not actual index (because list is in a stacked form)
+        rows = self.__questionListWidget.getCheckedRowsIds()
+        self.__questionListWidget.removeCheckedRows()
+        self.deleted.emit(rows)
+        self.__allCheckBox.setChecked(False)
+
+    def __toggleButton(self, f):
+        self.__deleteBtn.setEnabled(f)
+        self.__saveBtn.setEnabled(f)
+
+    def __stateChanged(self, f):
+        self.__questionListWidget.toggleState(f)
+        self.__toggleButton(f)
+
+    def __checked(self, ids):
+        f = len(ids) > 0
+        self.__toggleButton(f)
+

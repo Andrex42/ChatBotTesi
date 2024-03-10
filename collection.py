@@ -1,6 +1,5 @@
 import chromadb
 import os
-import string
 from dotenv import load_dotenv
 import cohere
 from cohere.responses.classify import Example
@@ -11,7 +10,6 @@ import spacy
 from halo import Halo
 from datetime import datetime
 from colorama import Fore, Style, init
-from nltk.corpus import stopwords
 from nltk.metrics import edit_distance
 import chromadb.utils.embedding_functions as embedding_functions
 
@@ -35,10 +33,7 @@ lemmatizer = nlp.get_pipe("lemmatizer")
 # using the Cohere model.
 # These embeddings will be used to add and retrieve examples in the ChromaDB database.
 sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="paraphrase-multilingual-MiniLM-L12-v2")
-cohere_ef = embedding_functions.CohereEmbeddingFunction(api_key=COHERE_KEY,  model_name=os.getenv('COHERE_MODEL_NAME'))
-
-remove_punctuation_map = dict((ord(char), None) for char in string.punctuation)
-ita_stopwords = stopwords.words('italian')
+# cohere_ef = embedding_functions.CohereEmbeddingFunction(api_key=COHERE_KEY,  model_name=os.getenv('COHERE_MODEL_NAME'))
 
 
 def preprocess(text):
@@ -122,11 +117,12 @@ def init_model():
             domande_collection.add(
                 embeddings=sentence_transformer_ef([preprocess(item['text'])]),
                 documents=[item['text']],  # aggiunge la domanda ai documenti
-                metadatas=[{"id_docente": "docente.archeologia",
+                metadatas=[{"id_domanda": item['id'],
+                            "id_docente": item['id_docente'],
                             "categoria": item['label'],
                             "source": "internal__training",
                             "data_creazione": iso_format}],
-                ids=[f"id_{index}"]
+                ids=[item['id']]
             )
 
             if limit_add == idx:
@@ -147,9 +143,12 @@ def init_model():
             q_a_collection.add(
                 embeddings=sentence_transformer_ef([preprocess(item['text'])]),
                 documents=[item['text']],  # aggiunge la risposta ai documenti
-                metadatas=[{"domanda": item['title'],
+                metadatas=[{"id_domanda": item['id_domanda'],
+                            "domanda": item['title'],
+                            "id_docente": item['id_docente'],
                             "id_autore": item['id_docente'],
-                            "risultato": "Corretta",
+                            "voto_docente": 5,
+                            "voto_predetto": -1,
                             "commento": "undefined",
                             "source": "internal__training",
                             "data_creazione": iso_format}],
@@ -177,9 +176,12 @@ def init_model():
             q_a_collection.add(
                 embeddings=sentence_transformer_ef([preprocess(item['text'])]),
                 documents=[item['text']],  # aggiunge la risposta ai documenti
-                metadatas=[{"domanda": item['title'],
+                metadatas=[{"id_domanda": item['id_domanda'],
+                            "domanda": item['title'],
+                            "id_docente": item['id_docente'],
                             "id_autore": "undefined",
-                            "risultato": item['label'],
+                            "voto_docente": item['label'],  # voto del docente che va da 0 a 5
+                            "voto_predetto": -1,  # voto non disponibile per i dati di addestramento, default -1
                             "commento": "undefined",
                             "source": "internal__training",
                             "data_creazione": iso_format}],
@@ -235,35 +237,6 @@ def check_answer_records():
     print("check_answer_records", ok)
 
 
-def generate_response(messages):
-    spinner = Halo(text='Loading...', spinner='dots')  # Creates a loading animation
-    spinner.start()
-
-    co = cohere.Client(COHERE_KEY)  # Initializes the Cohere API client with your API key
-
-    risultato = get_risultato_classification(messages, co)
-    ambito = get_ambito_classification(messages, co)
-
-    spinner.stop()  # Stops the loading animation after receiving the response
-
-    mood_priority = {
-        'Sbagliata': 1,
-        'Corretta': 2
-    }
-
-    # Prints the user's mood, its priority level, and the responsible department
-    print(
-        f"\n{Fore.CYAN}Question Received: {Fore.WHITE}{Style.BRIGHT}{messages}{Style.RESET_ALL}"
-        f"\n{Fore.GREEN}Mood Detected: {Fore.YELLOW}{Style.BRIGHT}{risultato}{Style.RESET_ALL}"
-        f"\n{Fore.GREEN}Priority Level: {Fore.RED if mood_priority[risultato] == 1 else Fore.CYAN}{Style.BRIGHT}{mood_priority[risultato]}{Style.RESET_ALL}"
-        f"\n{Fore.GREEN}Department to handle your request: {Fore.MAGENTA}{Style.BRIGHT}{ambito}{Style.RESET_ALL}"
-    )
-
-    print("_________________________________")
-
-    return messages, risultato, ambito
-
-
 def generate_response_full(data):
     spinner = Halo(text='Loading...', spinner='dots')  # Creates a loading animation
     spinner.start()
@@ -274,11 +247,6 @@ def generate_response_full(data):
     #ambito = get_ambito_classification_full(data, co)
 
     spinner.stop()  # Stops the loading animation after receiving the response
-
-    mood_priority = {
-        'Sbagliata': 1,
-        'Corretta': 2
-    }
 
     # Prints the user's mood, its priority level, and the responsible department
     print(
@@ -295,7 +263,7 @@ def generate_response_full(data):
         f"{Fore.GREEN}Result Detected: {Fore.YELLOW}{Style.BRIGHT}{risultato}{Style.RESET_ALL}"
     )
 
-    if risultato == data['label']:
+    if abs(risultato - data['label']) < 1:
         print(
             f"{Fore.GREEN}Final Result: {Fore.GREEN}{Style.BRIGHT}[PASSED]{Style.RESET_ALL}"
         )
@@ -308,33 +276,6 @@ def generate_response_full(data):
     print("_________________________________")
 
     return data['text'], risultato, "ambito"
-
-
-# Two helper functions to get mood and department classification. They query examples from the ChromaDB collection,
-# send a classification request to the Cohere API, and extract the prediction from the response.
-def get_ambito_classification(messages, co):
-
-    department_examples = []
-
-    example_collection = get_chroma_q_a_collection()
-
-    results = example_collection.query(
-        query_texts=[messages],
-        n_results=90
-    )
-
-    for doc, md in zip(results['documents'][0], results['metadatas'][0]):
-        department_examples.append(Example(doc, md['ambito']))
-
-    department_response = co.classify(
-        model=os.getenv("COHERE_MODEL_NAME"),
-        inputs=[messages],
-        examples=department_examples
-    )  # Sends the classification request to the Cohere model
-
-    # Extracts the prediction from the response
-    ambito = department_response.classifications[0].prediction
-    return ambito
 
 
 # Two helper functions to get mood and department classification. They query examples from the ChromaDB collection,
@@ -365,34 +306,7 @@ def get_ambito_classification_full(data, co):
     return ambito
 
 
-def get_risultato_classification(messages, co):
-
-    mood_examples = []
-
-    example_collection = get_chroma_q_a_collection()
-
-    results = example_collection.query(
-        query_texts=[messages],
-        n_results=90
-    )
-
-    for doc, md in zip(results['documents'][0], results['metadatas'][0]):
-        mood_examples.append(Example(doc, md['risultato']))
-
-    mood_response = co.classify(
-        model=os.getenv("COHERE_MODEL_NAME"),
-        inputs=[messages],
-        examples=mood_examples
-    )  # Sends the classification request to the Cohere model
-
-    # Extracts the prediction from the response
-    risultato = mood_response.classifications[0].prediction
-    return risultato
-
-
 def get_risultato_classification_full(data, co):
-
-    mood_examples = []
 
     example_collection = get_chroma_q_a_collection()
 
@@ -408,11 +322,11 @@ def get_risultato_classification_full(data, co):
     for idx, doc in enumerate(results['documents'][0]):
         it_metadata = results['metadatas'][0][idx]
         it_distances = results['distances'][0][idx]
-        print(f" - Doc {idx}: ({it_metadata['risultato']}) ({it_distances})", doc)
+        print(f" - Doc {idx}: ({it_metadata['voto_docente']}) ({it_distances})", doc)
 
-    correct_answers_results = example_collection.get(
-        where={"$and": [{"domanda": data['title']}, {"risultato": "Corretta"}]}
-    )
+    # Zcorrect_answers_results = example_collection.get(
+    # Z    where={"$and": [{"domanda": data['title']}, {"risultato": "Corretta"}]}
+    # Z)
 
     # for doc, md in zip(results['documents'][0], results['metadatas'][0]):
     #     mood_examples.append(Example(doc, md['risultato']))
@@ -425,48 +339,10 @@ def get_risultato_classification_full(data, co):
     print(f"\n{Fore.CYAN}Best similarity match{Style.RESET_ALL}:\n"
           f"\tCosine Distance: {results['distances'][0][min_distance_index]}"
           f"\tLevenshtein Distance: {levenshtein_distance}"
-          f"\n\tRef. Result: {Fore.GREEN if results['metadatas'][0][min_distance_index]['risultato'] == 'Corretta' else Fore.RED}{results['metadatas'][0][min_distance_index]['risultato']}{Style.RESET_ALL}"
+          f"\n\tRef. Result: {Fore.GREEN if results['metadatas'][0][min_distance_index]['voto_docente'] >= 3 else Fore.RED}{results['metadatas'][0][min_distance_index]['voto_docente']}{Style.RESET_ALL}"
           f"\n\tDocument: {results['documents'][0][min_distance_index]}")
 
-    return results['metadatas'][0][min_distance_index]['risultato']
-
-    # if len(mood_examples) > 1:
-    #     mood_response = co.classify(
-    #         model=os.getenv("COHERE_MODEL_NAME"),
-    #         inputs=[data['text']],
-    #         examples=mood_examples
-    #     )  # Sends the classification request to the Cohere model
-#
-    #     # Extracts the prediction from the response
-    #     risultato = mood_response.classifications[0].prediction
-#
-    #     return risultato
-    # elif len(mood_examples) == 1:
-    #     return mood_examples[0].label
-    # else:
-    #     return "Non lo so"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def encode(answer_text):
-    print("encoding", answer_text)
-    return cohere_ef([answer_text])
+    return results['metadatas'][0][min_distance_index]['voto_docente']
 
 
 def get_collections():
@@ -479,44 +355,35 @@ def get_collections():
     return question_collection, q_a_collection
 
 
-def get_question_collection():
-    if chroma_client is None:
-        raise Exception("Chroma client not initialized")
-
-    question_collection = chroma_client.get_or_create_collection(name="questions")
-
-    return question_collection
-
-
-def get_teacher_answers_collection():
-    if chroma_client is None:
-        raise Exception("Chroma client not initialized")
-
-    teacher_answers_collection = chroma_client.get_or_create_collection(name="teacher_answers", embedding_function=cohere_ef)
-
-    return teacher_answers_collection
-
-
-def get_student_answers_collection():
-    if chroma_client is None:
-        raise Exception("Chroma client not initialized")
-
-    student_answers_collection = chroma_client.get_or_create_collection(name="student_answers", embedding_function=cohere_ef)
-
-    return student_answers_collection
-
-
 def extract_data(query_result):
     result = []
-    for i, metadata in enumerate(query_result['metadatas']):
-        data = {
-            'id': query_result['ids'][i],
-            'document': query_result['documents'][i]
-        }
-        for key, value in metadata.items():
-            data[key] = value
-        result.append(data)
+
+    if query_result is not None:
+        for i, metadata in enumerate(query_result['metadatas']):
+            data = {
+                'id': query_result['ids'][i],
+                'document': query_result['documents'][i]
+            }
+            for key, value in metadata.items():
+                data[key] = value
+            result.append(data)
+
     return result
+
+
+def extract_metadata(data, key):
+    # Inizializza una lista vuota per i valori di status
+    metadata_values = []
+
+    # Itera attraverso i dati per trovare tutte le occorrenze del valore 'key'
+    for item in data:
+        for sub_item in item:
+            # Se la chiave è presente nell'elemento corrente, aggiungi il suo valore alla lista dei valori di status
+            if key in sub_item:
+                metadata_values.append(sub_item[key])
+
+    # Restituisci la lista dei valori di status
+    return metadata_values
 
 
 def test_model():
@@ -533,7 +400,7 @@ def test_model():
 
         response, risultato, ambito = generate_response_full(item)
 
-        if risultato == item['label']:
+        if abs(risultato - item['label']) < 1:
             correct += 1
 
         total += 1

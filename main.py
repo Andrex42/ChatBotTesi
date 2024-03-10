@@ -53,6 +53,8 @@ def main():
         The tfidf vector representation of the text
     """
     app = QApplication(sys.argv)
+    app.setQuitOnLastWindowClosed(False)
+
     window = Application()
     window.show()
 

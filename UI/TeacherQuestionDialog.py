@@ -72,7 +72,7 @@ class QuestionDialog(QDialog):
             else:
                 self.students_answers_layout.addWidget(QLabel(answer["id_autore"]))
                 self.students_answers_layout.addWidget(answer_label)
-                self.students_answers_layout.addWidget(QLabel(answer["risultato"]))
+                self.students_answers_layout.addWidget(QLabel(str(answer["voto_docente"])))
 
         self.load_callback()
 

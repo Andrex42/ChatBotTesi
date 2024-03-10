@@ -5,750 +5,884 @@ import pandas as pd
 
 # Definizione delle domande e delle etichette
 domande = [
-    ("Quali sono le caratteristiche principali dell'arte egizia?", "Arte Egizia"),
-    ("Come si sono evolute le tecniche di costruzione nel periodo romano?", "Architettura Romana"),
-    ("Qual è l'importanza di Pompei per la comprensione della vita quotidiana nell'antica Roma?", "Vita Quotidiana Romana"),
-    ("In che modo l'arte greca ha influenzato quella romana?", "Influenza Greca nell'Arte Romana"),
-    ("Quali scoperte archeologiche hanno cambiato la nostra comprensione della preistoria?", "Scoperte Preistoriche"),
-    ("Come viene utilizzata la datazione al carbonio-14 in archeologia?", "Datazione al Carbonio-14"),
-    ("Quali sono le differenze tra l'arte paleocristiana e quella bizantina?", "Arte Paleocristiana vs Bizantina"),
-    ("Che ruolo ha avuto l'acquedotto nell'antica civiltà romana?", "Acquedotti Romani"),
-    ("Come interpretare le pitture rupestri del Paleolitico?", "Pitture Rupestri Paleolitiche"),
-    ("Quali sono stati gli impatti del Rinascimento sulla società europea?", "Impatti del Rinascimento"),
-    ("Cosa distingue l'architettura gotica da quella romanica?", "Architettura Gotica vs Romanica"),
-    ("In che modo gli scavi di Ercolano hanno contribuito alla nostra conoscenza dell'antichità?", "Scavi di Ercolano"),
-    ("Quali tecniche artistiche sono state utilizzate nell'antico Egitto per la realizzazione dei sarcofagi?", "Tecniche Artistiche Egizie"),
-    ("Come viene definito il periodo dell'arte barocca e quali sono le sue caratteristiche principali?", "Arte Barocca"),
-    ("Qual è il significato dei megaliti di Stonehenge?", "Stonehenge"),
-    ("Quali fattori hanno contribuito al declino dell'Impero Romano?", "Declino dell'Impero Romano"),
-    ("In che modo la ceramica fornisce informazioni sugli antichi popoli?", "Ceramica Antica"),
-    ("Come influenzava la religione l'arte nell'antico Egitto?", "Religione e Arte Egizia"),
-    ("Quali sono le principali differenze tra l'arte del Rinascimento e quella del Medioevo?", "Rinascimento vs Medioevo"),
-    ("Come venivano realizzati i mosaici bizantini e quale era il loro scopo?", "Mosaici Bizantini"),
-    ("In che modo la scoperta di Troia ha influenzato la comprensione dell'Iliade di Omero?", "Scoperta di Troia"),
-    ("Quali erano le principali funzioni dei castelli medievali?", "Castelli Medievali"),
-    ("Come si distinguono le varie fasi dell'arte greca antica?", "Fasi dell'Arte Greca"),
-    ("Quali tecniche venivano utilizzate per la fusione del bronzo nella statuaria greca?", "Fusione del Bronzo nella Statuaria Greca"),
-    ("Quali sono stati i principali centri culturali dell'arte rinascimentale?", "Centri Culturali del Rinascimento"),
-    ("In che modo l'analisi dei pigmenti aiuta a comprendere le tecniche pittoriche antiche?", "Analisi dei Pigmenti"),
-    ("Qual è stata l'importanza degli scavi di Mycenae per la comprensione della civiltà micenea?", "Scavi di Mycenae"),
-    ("Come si differenziano le tombe etrusche da quelle romane?", "Tombe Etrusche vs Romane"),
-    ("In che modo l'arte romana rifletteva la società e i valori dell'epoca?", "Arte Romana e Società"),
-    ("Quali sono le principali caratteristiche dell'architettura mesopotamica?", "Architettura Mesopotamica"),
-    ("Come veniva rappresentata la figura umana nell'arte cicladica?", "Arte Cicladica"),
-    ("Quali sono le principali fonti per lo studio della storia dell'arte dell'antica Grecia?", "Fonti Storiche dell'Arte Greca"),
-    ("Quali erano le funzioni sociali e religiose dell'arte nella società Maya?", "Arte Maya"),
-    ("In che modo le armi e gli strumenti vengono utilizzati per datare i siti archeologici?", "Datazione dei Siti Archeologici"),
-    ("Qual è il significato simbolico dei colori nell'arte egizia?", "Simbolismo dei Colori nell'Arte Egizia"),
-    ("Come l'uso dei materiali influenzava lo stile artistico nell'antichità?", "Materiali e Stile Artistico Antico"),
-    ("Quali sono le principali differenze tra l'architettura classica e quella neoclassica?", "Classica vs Neoclassica"),
-    ("Come venivano selezionati e utilizzati i siti per la costruzione dei templi greci?", "Costruzione dei Templi Greci"),
-    ("Qual è stato l'impatto dell'invenzione della stampa sull'arte e sulla cultura?", "Invenzione della Stampa"),
-    ("Come venivano realizzate e utilizzate le monete nell'antica Roma?", "Monete nell'Antica Roma"),
-    ("Qual è l'importanza dei ritrovamenti di Akrotiri per la comprensione della civiltà minoica?", "Ritrovamenti di Akrotiri"),
-    ("In che modo l'arte e l'architettura riflettono il potere e la religione nell'Impero Bizantino?", "Arte e Architettura Bizantina"),
-    ("Come l'analisi del DNA sta cambiando la nostra comprensione delle migrazioni antiche?", "Analisi del DNA e Migrazioni Antiche"),
-    ("Quali tecniche di conservazione sono utilizzate per preservare le opere d'arte antiche?", "Tecniche di Conservazione"),
-    ("In che modo l'arte dell'antico Egitto è stata influenzata dalla sua geografia?", "Influenza della Geografia sull'Arte Egizia"),
-    ("Quali erano le principali tecniche di scultura utilizzate nella Grecia antica?", "Tecniche di Scultura nella Grecia Antica"),
-    ("Come si sono sviluppate le città-stato nella Grecia antica e quale era il loro ruolo nella società?", "Città-Stato nella Grecia Antica"),
-    ("Quali fattori hanno influenzato lo sviluppo dell'architettura gotica?", "Sviluppo dell'Architettura Gotica"),
-    ("In che modo gli affreschi di Pompei ci forniscono informazioni sulla vita e l'arte dell'epoca?", "Affreschi di Pompei"),
-    ("Quali sono le principali caratteristiche delle sculture dell'arte romanica?", "Sculture dell'Arte Romanica"),
-    ("Come l'arte ha influenzato la politica nell'antica Grecia?", "Arte e Politica nell'Antica Grecia"),
-    ("Quali sono le tecniche di navigazione e mappatura utilizzate dalle antiche civiltà marinare?", "Navigazione e Mappatura Antiche"),
-    ("Come l'arte rupestre può essere interpretata per comprendere le culture preistoriche?", "Interpretazione dell'Arte Rupestre"),
-    ("Quali sono state le influenze culturali sull'arte della Mesopotamia?", "Influenze Culturali sull'Arte Mesopotamica"),
-    ("In che modo le tecniche di restauro moderne possono influenzare la percezione delle opere d'arte antiche?", "Tecniche di Restauro Moderne"),
+    ("Quali sono le caratteristiche principali dell'arte egizia?", "Arte Egizia", "docente.archeologia"),
+    ("Come si sono evolute le tecniche di costruzione nel periodo romano?", "Architettura Romana", "docente.archeologia"),
+    ("Qual è l'importanza di Pompei per la comprensione della vita quotidiana nell'antica Roma?", "Vita Quotidiana Romana", "docente.archeologia"),
+    ("In che modo l'arte greca ha influenzato quella romana?", "Influenza Greca nell'Arte Romana", "docente.archeologia"),
+    ("Quali scoperte archeologiche hanno cambiato la nostra comprensione della preistoria?", "Scoperte Preistoriche", "docente.archeologia"),
+    ("Come viene utilizzata la datazione al carbonio-14 in archeologia?", "Datazione al Carbonio-14", "docente.archeologia"),
+    ("Quali sono le differenze tra l'arte paleocristiana e quella bizantina?", "Arte Paleocristiana vs Bizantina", "docente.archeologia"),
+    ("Che ruolo ha avuto l'acquedotto nell'antica civiltà romana?", "Acquedotti Romani", "docente.archeologia"),
+    ("Come interpretare le pitture rupestri del Paleolitico?", "Pitture Rupestri Paleolitiche", "docente.archeologia"),
+    ("Quali sono stati gli impatti del Rinascimento sulla società europea?", "Impatti del Rinascimento", "docente.archeologia"),
+    ("Cosa distingue l'architettura gotica da quella romanica?", "Architettura Gotica vs Romanica", "docente.archeologia"),
+    ("In che modo gli scavi di Ercolano hanno contribuito alla nostra conoscenza dell'antichità?", "Scavi di Ercolano", "docente.archeologia"),
+    ("Quali tecniche artistiche sono state utilizzate nell'antico Egitto per la realizzazione dei sarcofagi?", "Tecniche Artistiche Egizie", "docente.archeologia"),
+    ("Come viene definito il periodo dell'arte barocca e quali sono le sue caratteristiche principali?", "Arte Barocca", "docente.archeologia"),
+    ("Qual è il significato dei megaliti di Stonehenge?", "Stonehenge", "docente.archeologia"),
+    ("Quali fattori hanno contribuito al declino dell'Impero Romano?", "Declino dell'Impero Romano", "docente.archeologia"),
+    ("In che modo la ceramica fornisce informazioni sugli antichi popoli?", "Ceramica Antica", "docente.archeologia"),
+    ("Come influenzava la religione l'arte nell'antico Egitto?", "Religione e Arte Egizia", "docente.archeologia"),
+    ("Quali sono le principali differenze tra l'arte del Rinascimento e quella del Medioevo?", "Rinascimento vs Medioevo", "docente.archeologia"),
+    ("Come venivano realizzati i mosaici bizantini e quale era il loro scopo?", "Mosaici Bizantini", "docente.archeologia"),
+    ("In che modo la scoperta di Troia ha influenzato la comprensione dell'Iliade di Omero?", "Scoperta di Troia", "docente.archeologia"),
+    ("Quali erano le principali funzioni dei castelli medievali?", "Castelli Medievali", "docente.archeologia"),
+    ("Come si distinguono le varie fasi dell'arte greca antica?", "Fasi dell'Arte Greca", "docente.archeologia"),
+    ("Quali tecniche venivano utilizzate per la fusione del bronzo nella statuaria greca?", "Fusione del Bronzo nella Statuaria Greca", "docente.archeologia"),
+    ("Quali sono stati i principali centri culturali dell'arte rinascimentale?", "Centri Culturali del Rinascimento", "docente.archeologia"),
+    ("In che modo l'analisi dei pigmenti aiuta a comprendere le tecniche pittoriche antiche?", "Analisi dei Pigmenti", "docente.archeologia"),
+    ("Qual è stata l'importanza degli scavi di Mycenae per la comprensione della civiltà micenea?", "Scavi di Mycenae", "docente.archeologia"),
+    ("Come si differenziano le tombe etrusche da quelle romane?", "Tombe Etrusche vs Romane", "docente.archeologia"),
+    ("In che modo l'arte romana rifletteva la società e i valori dell'epoca?", "Arte Romana e Società", "docente.archeologia"),
+    ("Quali sono le principali caratteristiche dell'architettura mesopotamica?", "Architettura Mesopotamica", "docente.archeologia"),
+    ("Come veniva rappresentata la figura umana nell'arte cicladica?", "Arte Cicladica", "docente.archeologia"),
+    ("Quali sono le principali fonti per lo studio della storia dell'arte dell'antica Grecia?", "Fonti Storiche dell'Arte Greca", "docente.archeologia"),
+    ("Quali erano le funzioni sociali e religiose dell'arte nella società Maya?", "Arte Maya", "docente.archeologia"),
+    ("In che modo le armi e gli strumenti vengono utilizzati per datare i siti archeologici?", "Datazione dei Siti Archeologici", "docente.archeologia"),
+    ("Qual è il significato simbolico dei colori nell'arte egizia?", "Simbolismo dei Colori nell'Arte Egizia", "docente.archeologia"),
+    ("Come l'uso dei materiali influenzava lo stile artistico nell'antichità?", "Materiali e Stile Artistico Antico", "docente.archeologia"),
+    ("Quali sono le principali differenze tra l'architettura classica e quella neoclassica?", "Classica vs Neoclassica", "docente.archeologia"),
+    ("Come venivano selezionati e utilizzati i siti per la costruzione dei templi greci?", "Costruzione dei Templi Greci", "docente.archeologia"),
+    ("Qual è stato l'impatto dell'invenzione della stampa sull'arte e sulla cultura?", "Invenzione della Stampa", "docente.archeologia"),
+    ("Come venivano realizzate e utilizzate le monete nell'antica Roma?", "Monete nell'Antica Roma", "docente.archeologia"),
+    ("Qual è l'importanza dei ritrovamenti di Akrotiri per la comprensione della civiltà minoica?", "Ritrovamenti di Akrotiri", "docente.archeologia"),
+    ("In che modo l'arte e l'architettura riflettono il potere e la religione nell'Impero Bizantino?", "Arte e Architettura Bizantina", "docente.archeologia"),
+    ("Come l'analisi del DNA sta cambiando la nostra comprensione delle migrazioni antiche?", "Analisi del DNA e Migrazioni Antiche", "docente.archeologia"),
+    ("Quali tecniche di conservazione sono utilizzate per preservare le opere d'arte antiche?", "Tecniche di Conservazione", "docente.archeologia"),
+    ("In che modo l'arte dell'antico Egitto è stata influenzata dalla sua geografia?", "Influenza della Geografia sull'Arte Egizia", "docente.archeologia"),
+    ("Quali erano le principali tecniche di scultura utilizzate nella Grecia antica?", "Tecniche di Scultura nella Grecia Antica", "docente.archeologia"),
+    ("Come si sono sviluppate le città-stato nella Grecia antica e quale era il loro ruolo nella società?", "Città-Stato nella Grecia Antica", "docente.archeologia"),
+    ("Quali fattori hanno influenzato lo sviluppo dell'architettura gotica?", "Sviluppo dell'Architettura Gotica", "docente.archeologia"),
+    ("In che modo gli affreschi di Pompei ci forniscono informazioni sulla vita e l'arte dell'epoca?", "Affreschi di Pompei", "docente.archeologia"),
+    ("Quali sono le principali caratteristiche delle sculture dell'arte romanica?", "Sculture dell'Arte Romanica", "docente.archeologia"),
+    ("Come l'arte ha influenzato la politica nell'antica Grecia?", "Arte e Politica nell'Antica Grecia", "docente.archeologia"),
+    ("Quali sono le tecniche di navigazione e mappatura utilizzate dalle antiche civiltà marinare?", "Navigazione e Mappatura Antiche", "docente.archeologia"),
+    ("Come l'arte rupestre può essere interpretata per comprendere le culture preistoriche?", "Interpretazione dell'Arte Rupestre", "docente.archeologia"),
+    ("Quali sono state le influenze culturali sull'arte della Mesopotamia?", "Influenze Culturali sull'Arte Mesopotamica", "docente.archeologia"),
+    ("In che modo le tecniche di restauro moderne possono influenzare la percezione delle opere d'arte antiche?", "Tecniche di Restauro Moderne", "docente.archeologia"),
     ("Qual è stata l'importanza della Via della Seta per lo scambio culturale e artistico?", "Importanza della Via della Seta")
 ]
 
 domande += [
-    ("Quale innovazione nell'architettura romana ha permesso la costruzione di grandi spazi interni coperti?", "Architettura Romana"),
-    ("Qual è una differenza principale tra l'arte classica greco-romana e quella neoclassica?", "Classica vs Neoclassica"),
-    ("Quale metodo di datazione è comunemente utilizzato per determinare l'età di siti archeologici antichi?", "Datazione dei Siti Archeologici"),
-    ("Qual è stata una delle cause principali del declino dell'Impero Romano d'Occidente?", "Declino dell'Impero Romano"),
-    ("Qual era la tecnica predominante utilizzata dai Greci antichi per la fusione delle statue in bronzo?", "Fusione del Bronzo nella Statuaria Greca"),
-    ("Qual era la principale funzione delle monete nell'antica Roma?", "Monete nell'Antica Roma"),
-    ("Chi è accreditato per la scoperta del sito archeologico di Troia?", "Scoperta di Troia")
+    ("Quale innovazione nell'architettura romana ha permesso la costruzione di grandi spazi interni coperti?", "Architettura Romana", "docente.archeologia"),
+    ("Qual è una differenza principale tra l'arte classica greco-romana e quella neoclassica?", "Classica vs Neoclassica", "docente.archeologia"),
+    ("Quale metodo di datazione è comunemente utilizzato per determinare l'età di siti archeologici antichi?", "Datazione dei Siti Archeologici", "docente.archeologia"),
+    ("Qual è stata una delle cause principali del declino dell'Impero Romano d'Occidente?", "Declino dell'Impero Romano", "docente.archeologia"),
+    ("Qual era la tecnica predominante utilizzata dai Greci antichi per la fusione delle statue in bronzo?", "Fusione del Bronzo nella Statuaria Greca", "docente.archeologia"),
+    ("Qual era la principale funzione delle monete nell'antica Roma?", "Monete nell'Antica Roma", "docente.archeologia"),
+    ("Chi è accreditato per la scoperta del sito archeologico di Troia?", "Scoperta di Troia", "docente.archeologia")
 ]
 
 risposte = [
     (
         "Quali sono le caratteristiche principali dell'arte egizia?",
+        "docente.archeologia",
         "L'arte egizia è nota per le sue grandi costruzioni come piramidi e templi, l'uso di geroglifici e rappresentazioni stilizzate di figure umane e divinità, spesso con proporzioni canoniche e postura frontale.",
-        "Corretta",
+        4,
     ),
     (
         "Quali sono le caratteristiche principali dell'arte egizia?",
+        "docente.archeologia",
         "L'arte egizia è principalmente famosa per i suoi dipinti astratti e l'uso prevalente del ferro nelle sculture.",
-        "Sbagliata",
+        1,
     ),
     (
         "Come si sono evolute le tecniche di costruzione nel periodo romano?",
+        "docente.archeologia",
         "Le tecniche di costruzione romane hanno visto significativi progressi con l'introduzione del calcestruzzo, permettendo la creazione di strutture innovative come le cupole e gli acquedotti, che hanno migliorato l'architettura e l'ingegneria civile.",
-        "Corretta",
+        4,
     ),
     (
         "Come si sono evolute le tecniche di costruzione nel periodo romano?",
+        "docente.archeologia",
         "Le tecniche di costruzione romane sono rimaste invariate dal periodo greco, focalizzandosi esclusivamente su elementi decorativi piuttosto che su innovazioni strutturali.",
-        "Sbagliata",
+        1,
     ),
     (
         "Qual è l'importanza di Pompei per la comprensione della vita quotidiana nell'antica Roma?",
+        "docente.archeologia",
         "Pompei offre uno sguardo senza precedenti sulla vita quotidiana degli antichi Romani, grazie alla conservazione di edifici, affreschi e artefatti quotidiani, offrendo preziose informazioni sulle abitudini, la cultura e la società dell'epoca.",
-        "Corretta",
+        3,
     ),
     (
         "Qual è l'importanza di Pompei per la comprensione della vita quotidiana nell'antica Roma?",
+        "docente.archeologia",
         "Pompei è rilevante principalmente per le sue rovine architettoniche che dimostrano l'uso avanzato del marmo, ignorando il contesto storico e sociale degli abitanti.",
-        "Sbagliata",
+        1,
     ),
     (
         "In che modo l'arte greca ha influenzato quella romana?",
+        "docente.archeologia",
         "L'arte greca ha fortemente influenzato quella romana attraverso l'adozione di stili, tecniche e temi, come la rappresentazione del corpo umano e la mitologia, che i Romani hanno integrato e adattato alle loro esigenze culturali e politiche.",
-        "Corretta",
+        4,
     ),
     (
         "In che modo l'arte greca ha influenzato quella romana?",
+        "docente.archeologia",
         "L'arte romana ha rigettato completamente l'influenza greca, sviluppando uno stile completamente indipendente focalizzato esclusivamente su temi astratti e geometrici.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali scoperte archeologiche hanno cambiato la nostra comprensione della preistoria?",
+        "docente.archeologia",
         "La scoperta di siti come Lascaux in Francia e Altamira in Spagna, con le loro pitture rupestri, ha rivoluzionato la nostra comprensione dell'espressione artistica e culturale delle società preistoriche.",
-        "Corretta",
+        4,
     ),
     (
         "Quali scoperte archeologiche hanno cambiato la nostra comprensione della preistoria?",
+        "docente.archeologia",
         "La scoperta delle piramidi egizie ha cambiato la nostra comprensione della preistoria, dimostrando che le società antiche erano esclusivamente focalizzate sulla costruzione di monumenti funerari.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come viene utilizzata la datazione al carbonio-14 in archeologia?",
+        "docente.archeologia",
         "La datazione al carbonio-14 è utilizzata per determinare l'età di materiali organici fino a circa 50.000 anni fa, fornendo una cronologia accurata per il sito o l'oggetto studiato.",
-        "Corretta",
+        4,
     ),
     (
         "Come viene utilizzata la datazione al carbonio-14 in archeologia?",
+        "docente.archeologia",
         "La datazione al carbonio-14 viene utilizzata per determinare l'origine geografica degli oggetti antichi, identificando i luoghi esatti da cui provengono.",
-        "Sbagliata",
+        1,
     ),
     (
         "Quali sono le differenze tra l'arte paleocristiana e quella bizantina?",
+        "docente.archeologia",
         "L'arte paleocristiana si concentra su simboli semplici e narrazioni bibliche in catacombe e altri luoghi di culto, mentre l'arte bizantina sviluppa uno stile più raffinato con l'uso di mosaici dorati, icone e una maggiore enfasi sulla spiritualità.",
-        "Corretta",
+        5,
     ),
     (
         "Quali sono le differenze tra l'arte paleocristiana e quella bizantina?",
+        "docente.archeologia",
         "Non esistono differenze significative tra l'arte paleocristiana e quella bizantina; entrambe condividono gli stessi temi e tecniche senza variazioni nel tempo.",
-        "Sbagliata",
+        0,
     ),
     (
         "Che ruolo ha avuto l'acquedotto nell'antica civiltà romana?",
+        "docente.archeologia",
         "Gli acquedotti hanno permesso il trasporto di acqua pulita nelle città, migliorando notevolmente la salute pubblica e sostenendo la crescita urbana.",
-        "Corretta",
+        5,
     ),
     (
         "Che ruolo ha avuto l'acquedotto nell'antica civiltà romana?",
+        "docente.archeologia",
         "Gli acquedotti erano puramente decorativi, utilizzati come simboli di status senza una funzione pratica.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come interpretare le pitture rupestri del Paleolitico?",
+        "docente.archeologia",
         "Le pitture rupestri del Paleolitico sono interpretate come espressioni culturali che rappresentano la vita quotidiana, le credenze religiose e le conoscenze astronomiche delle società preistoriche.",
-        "Corretta",
+        4,
     ),
     (
         "Come interpretare le pitture rupestri del Paleolitico?",
+        "docente.archeologia",
         "Le pitture rupestri del Paleolitico sono semplici decorazioni senza significato, realizzate per passare il tempo.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali sono stati gli impatti del Rinascimento sulla società europea?",
+        "docente.archeologia",
         "Il Rinascimento ha promosso il rinascere dell'interesse per le arti, la scienza e l'umanesimo, influenzando profondamente la cultura, la politica e la religione in Europa.",
-        "Corretta",
+        3,
     ),
     (
         "Quali sono stati gli impatti del Rinascimento sulla società europea?",
+        "docente.archeologia",
         "Il Rinascimento ha avuto poco impatto sulla società europea, rimanendo un fenomeno isolato senza influenze culturali o scientifiche.",
-        "Sbagliata",
+        0,
     ),
     (
         "Cosa distingue l'architettura gotica da quella romanica?",
+        "docente.archeologia",
         "L'architettura gotica si distingue per l'uso di arcate a sesto acuto, volta a crociera e supporti snelli come i contrafforti volanti, rispetto alla massiccia semplicità e alle cupole semicircolari del romanico.",
-        "Corretta",
+        5,
     ),
     (
         "Cosa distingue l'architettura gotica da quella romanica?",
+        "docente.archeologia",
         "L'architettura gotica e quella romanica non presentano differenze significative, condividendo gli stessi elementi stilistici e strutturali.",
-        "Sbagliata",
+        1,
     ),
     (
         "In che modo gli scavi di Ercolano hanno contribuito alla nostra conoscenza dell'antichità?",
+        "docente.archeologia",
         "Gli scavi di Ercolano hanno fornito preziose informazioni sulla vita quotidiana romana, preservando edifici e oggetti coperti dalla cenere vulcanica, simili a Pompei ma meglio conservati.",
-        "Corretta",
+        4,
     ),
     (
         "In che modo gli scavi di Ercolano hanno contribuito alla nostra conoscenza dell'antichità?",
+        "docente.archeologia",
         "Gli scavi di Ercolano non hanno offerto nuove informazioni sull'antichità, essendo una replica moderna di una città antica.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali tecniche artistiche sono state utilizzate nell'antico Egitto per la realizzazione dei sarcofagi?",
+        "docente.archeologia",
         "Nell'antico Egitto, i sarcofagi erano realizzati con legno o pietra e decorati con pitture e incisioni che rappresentavano testi funerari e scene della vita dopo la morte, utilizzando tecniche avanzate di lavorazione.",
-        "Corretta",
+        5,
     ),
     (
         "Quali tecniche artistiche sono state utilizzate nell'antico Egitto per la realizzazione dei sarcofagi?",
+        "docente.archeologia",
         "I sarcofagi egizi erano semplicemente scavati nel terreno senza alcuna decorazione o tecnica artistica, riflettendo pratiche di sepoltura primitive.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come viene definito il periodo dell'arte barocca e quali sono le sue caratteristiche principali?",
+        "docente.archeologia",
         "Il periodo barocco è definito dal dinamismo, dall'esuberanza e dalla ricchezza decorativa, caratterizzato dall'uso di contrasti forti, movimento, espressioni drammatiche e una tendenza verso la grandiosità in tutte le forme d'arte.",
-        "Corretta",
+        5,
     ),
     (
         "Come viene definito il periodo dell'arte barocca e quali sono le sue caratteristiche principali?",
+        "docente.archeologia",
         "Il barocco si concentra principalmente sull'astrazione e la semplicità delle forme, preferendo linee pulite e un approccio minimalista all'arte.",
-        "Sbagliata",
+        0,
     ),
     (
         "Qual è il significato dei megaliti di Stonehenge?",
+        "docente.archeologia",
         "Stonehenge è generalmente interpretato come un complesso preistorico usato per osservazioni astronomiche, cerimonie religiose o pratiche sociali rituali.",
-        "Corretta",
+        3,
     ),
     (
         "Qual è il significato dei megaliti di Stonehenge?",
+        "docente.archeologia",
         "Stonehenge era un antico mercato per il commercio locale, dove le persone si incontravano per scambiare beni e servizi.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali fattori hanno contribuito al declino dell'Impero Romano?",
+        "docente.archeologia",
         "Il declino dell'Impero Romano è stato causato da una combinazione di fattori interni come la corruzione, l'instabilità politica, l'eccessiva espansione e pressioni esterne da parte dei popoli barbarici.",
-        "Corretta",
+        4,
     ),
     (
         "Quali fattori hanno contribuito al declino dell'Impero Romano?",
+        "docente.archeologia",
         "Il declino è stato principalmente il risultato dell'invasione degli alieni, che hanno soverchiato le legioni romane con tecnologia superiore.",
-        "Sbagliata",
+        0,
     ),
     (
         "In che modo la ceramica fornisce informazioni sugli antichi popoli?",
+        "docente.archeologia",
         "La ceramica, con i suoi stili decorativi e le tecniche di produzione, offre preziose informazioni sulla vita quotidiana, le pratiche commerciali e le interazioni culturali degli antichi popoli.",
-        "Corretta",
+        4,
     ),
     (
         "In che modo la ceramica fornisce informazioni sugli antichi popoli?",
+        "docente.archeologia",
         "La ceramica antica è utile esclusivamente per determinare i livelli di consumo di tè e caffè nelle antiche civiltà.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come influenzava la religione l'arte nell'antico Egitto?",
+        "docente.archeologia",
         "Nell'antico Egitto, la religione aveva un profondo impatto sull'arte, che era prevalentemente usata per scopi funerari o di culto, rappresentando divinità, riti religiosi e credenze nell'aldilà.",
-        "Corretta",
+        4,
     ),
     (
         "Come influenzava la religione l'arte nell'antico Egitto?",
+        "docente.archeologia",
         "L'arte egizia era completamente laica e non era influenzata in alcun modo dalle pratiche religiose o spirituali dell'epoca.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali sono le principali differenze tra l'arte del Rinascimento e quella del Medioevo?",
+        "docente.archeologia",
         "L'arte del Rinascimento segna un ritorno all'antichità classica, con un focus su prospettiva, anatomia umana e naturalismo, a differenza dell'arte medievale che era più orientata verso il simbolismo religioso e uno stile più stilizzato e astratto.",
-        "Corretta",
+        4,
     ),
     (
         "Quali sono le principali differenze tra l'arte del Rinascimento e quella del Medioevo?",
+        "docente.archeologia",
         "Non ci sono differenze significative; l'arte del Rinascimento e quella medievale possono essere considerate strettamente intercambiabili in termini di stile e soggetto.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come venivano realizzati i mosaici bizantini e quale era il loro scopo?",
+        "docente.archeologia",
         "I mosaici bizantini erano realizzati con piccoli pezzi di vetro o pietra, detti tessere, per creare immagini elaborate con scopi decorativi e religiosi, spesso utilizzati nelle chiese per raccontare storie bibliche.",
-        "Corretta",
+        4,
     ),
     (
         "Come venivano realizzati i mosaici bizantini e quale era il loro scopo?",
+        "docente.archeologia",
         "I mosaici bizantini erano principalmente disegni astratti usati per pavimentare le strade e non avevano significato o scopo oltre a quello pratico.",
-        "Sbagliata",
+        0,
     ),
     (
         "In che modo la scoperta di Troia ha influenzato la comprensione dell'Iliade di Omero?",
+        "docente.archeologia",
         "La scoperta archeologica di Troia ha fornito una base storica all'Iliade di Omero, suggerendo che gli eventi descritti, sebbene mitologizzati, potrebbero avere un fondamento nella realtà.",
-        "Corretta",
+        4,
     ),
     (
         "In che modo la scoperta di Troia ha influenzato la comprensione dell'Iliade di Omero?",
+        "docente.archeologia",
         "La scoperta di Troia ha dimostrato inequivocabilmente che l'Iliade era un resoconto accurato e dettagliato di eventi storici senza alcuna esagerazione o elemento mitologico.",
-        "Sbagliata",
+        1,
     ),
     (
         "Quali erano le principali funzioni dei castelli medievali?",
+        "docente.archeologia",
         "I castelli medievali servivano come centri di amministrazione locale, residenze nobiliari e soprattutto come strutture difensive durante i periodi di conflitto.",
-        "Corretta",
+        3,
     ),
     (
         "Quali erano le principali funzioni dei castelli medievali?",
+        "docente.archeologia",
         "I castelli medievali erano utilizzati esclusivamente come attrazioni turistiche per intrattenere la nobiltà, senza alcuna funzione pratica o militare.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come si distinguono le varie fasi dell'arte greca antica?",
+        "docente.archeologia",
         "Le fasi dell'arte greca antica si distinguono in arcaica, classica ed ellenistica, ognuna caratterizzata da specifici stili artistici, tecniche scultoree e temi rappresentativi.",
-        "Corretta",
+        4,
     ),
     (
         "Come si distinguono le varie fasi dell'arte greca antica?",
+        "docente.archeologia",
         "L'arte greca antica è stata uniforme nel corso dei secoli, senza distinzioni o sviluppi significativi tra le varie fasi.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali tecniche venivano utilizzate per la fusione del bronzo nella statuaria greca?",
+        "docente.archeologia",
         "La statuaria greca utilizzava la tecnica della fusione a cera persa per creare sculture in bronzo dettagliate e realistiche, permettendo grande precisione nei dettagli.",
-        "Corretta",
+        5,
     ),
     (
         "Quali tecniche venivano utilizzate per la fusione del bronzo nella statuaria greca?",
+        "docente.archeologia",
         "Le sculture in bronzo greche erano create assemblando pezzi prefabbricati senza uso di tecniche di fusione, risultando in opere spesso grezze e poco dettagliate.",
-        "Sbagliata",
+        1,
     ),
     (
         "Quali sono stati i principali centri culturali dell'arte rinascimentale?",
+        "docente.archeologia",
         "Firenze, Roma, e Venezia sono stati tra i principali centri culturali dell'arte rinascimentale, fungendo da fucine per l'innovazione artistica e la rinascita degli ideali classici.",
-        "Corretta",
+        5,
     ),
     (
         "Quali sono stati i principali centri culturali dell'arte rinascimentale?",
+        "docente.archeologia",
         "I principali centri culturali dell'arte rinascimentale erano situati nell'Europa settentrionale, con Londra e Parigi che guidavano il movimento artistico.",
-        "Sbagliata",
+        1,
     ),
     (
         "In che modo l'analisi dei pigmenti aiuta a comprendere le tecniche pittoriche antiche?",
+        "docente.archeologia",
         "L'analisi dei pigmenti permette di identificare i materiali utilizzati dagli artisti, fornendo informazioni sulle tecniche pittoriche, le pratiche di atelier e le rotte commerciali degli antichi.",
-        "Corretta",
+        4,
     ),
     (
         "In che modo l'analisi dei pigmenti aiuta a comprendere le tecniche pittoriche antiche?",
+        "docente.archeologia",
         "L'analisi dei pigmenti è utile esclusivamente per determinare l'età di un'opera d'arte, senza fornire alcuna informazione sulle tecniche pittoriche utilizzate.",
-        "Sbagliata",
+        0,
     ),
     (
         "Qual è stata l'importanza degli scavi di Mycenae per la comprensione della civiltà micenea?",
+        "docente.archeologia",
         "Gli scavi di Mycenae hanno rivelato ricchezze architettoniche e artefatti che illustrano la potenza e la complessità della civiltà micenea, confermando le descrizioni di Omero.",
-        "Corretta",
+        3,
     ),
     (
         "Qual è stata l'importanza degli scavi di Mycenae per la comprensione della civiltà micenea?",
+        "docente.archeologia",
         "Gli scavi di Mycenae hanno dimostrato che la civiltà micenea era principalmente nomade, con scarse prove di insediamenti permanenti o strutture complesse.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come si differenziano le tombe etrusche da quelle romane?",
+        "docente.archeologia",
         "Le tombe etrusche erano spesso elaborate camere sotterranee con affreschi vivaci, mentre le tombe romane tendevano a essere più austere e meno decorate, riflettendo diverse pratiche e credenze funerarie.",
-        "Corretta",
+        4,
     ),
     (
         "Come si differenziano le tombe etrusche da quelle romane?",
+        "docente.archeologia",
         "Le tombe etrusche e romane non differivano significativamente, poiché entrambe le culture preferivano la cremazione alla sepoltura.",
-        "Sbagliata",
+        0,
     ),
     (
         "In che modo l'arte romana rifletteva la società e i valori dell'epoca?",
+        "docente.archeologia",
         "L'arte romana rifletteva la società e i valori dell'epoca attraverso la rappresentazione di temi legati al potere, all'autorità, agli dei e alla vita quotidiana, servendo come mezzo per la propaganda politica e l'espressione religiosa.",
-        "Corretta",
+        5,
     ),
     (
         "In che modo l'arte romana rifletteva la società e i valori dell'epoca?",
+        "docente.archeologia",
         "L'arte romana era completamente astratta, evitando qualsiasi rappresentazione della società o dei valori dell'epoca, concentrata invece su forme geometriche pure.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali sono le principali caratteristiche dell'architettura mesopotamica?",
+        "docente.archeologia",
         "Le principali caratteristiche dell'architettura mesopotamica includono l'uso di mattoni d'argilla, la costruzione di ziggurat come centri religiosi e la creazione di città-stato fortificate.",
-        "Corretta",
+        4,
     ),
     (
         "Quali sono le principali caratteristiche dell'architettura mesopotamica?",
+        "docente.archeologia",
         "L'architettura mesopotamica è nota per l'uso estensivo del marmo e per le sue strutture mobili, che potevano essere facilmente spostate.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come veniva rappresentata la figura umana nell'arte cicladica?",
+        "docente.archeologia",
         "Nell'arte cicladica, la figura umana era rappresentata in forma stilizzata e schematica, con enfasi sulla simmetria e le proporzioni geometriche, spesso con braccia incrociate e volti privi di espressione.",
-        "Corretta",
+        4,
     ),
     (
         "Come veniva rappresentata la figura umana nell'arte cicladica?",
+        "docente.archeologia",
         "La figura umana nell'arte cicladica era estremamente realistica e dettagliata, con un'enfasi sul realismo anatomico simile a quello dell'arte rinascimentale.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali sono le principali fonti per lo studio della storia dell'arte dell'antica Grecia?",
+        "docente.archeologia",
         "Le principali fonti per lo studio dell'arte greca antica includono opere d'arte sopravvissute come sculture, vasi, edifici e affreschi, nonché testi antichi di autori come Pausania e Plinio il Vecchio.",
-        "Corretta",
+        4,
     ),
     (
         "Quali sono le principali fonti per lo studio della storia dell'arte dell'antica Grecia?",
+        "docente.archeologia",
         "Le uniche fonti per lo studio dell'arte greca antica sono le rappresentazioni moderne e le ricostruzioni basate su interpretazioni artistiche contemporanee.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali erano le funzioni sociali e religiose dell'arte nella società Maya?",
+        "docente.archeologia",
         "Nella società Maya, l'arte svolgeva molteplici funzioni sociali e religiose. Socialmente, l'arte era utilizzata per rappresentare lo status e il potere delle élite, attraverso monumentali strutture architettoniche e sculture che celebravano governanti e divinità. Religiosamente, l'arte era fondamentale per esprimere le credenze e i rituali della religione Maya, con raffigurazioni di divinità, cerimonie sacre e mitologia incise su monumenti, dipinti murali e ceramiche. Queste opere d'arte servivano anche come mezzo di comunicazione con gli dei e come strumento per garantire la continuità del mondo naturale e cosmico secondo il loro sistema di credenze.",
-        "Corretta",
+        5,
     ),
     (
         "Quali erano le funzioni sociali e religiose dell'arte nella società Maya?",
+        "docente.archeologia",
         "Nella società Maya, l'arte era puramente decorativa, senza alcuna funzione sociale o religiosa, e veniva usata solo per abbellire gli ambienti abitativi.",
-        "Sbagliata",
+        1,
     ),
     (
         "In che modo le armi e gli strumenti vengono utilizzati per datare i siti archeologici?",
+        "docente.archeologia",
         "Le armi e gli strumenti sono utilizzati per datare i siti archeologici attraverso la tipologia e la tecnologia di produzione, che possono indicare specifici periodi storici e culturali.",
-        "Corretta",
+        3,
     ),
     (
         "In che modo le armi e gli strumenti vengono utilizzati per datare i siti archeologici?",
+        "docente.archeologia",
         "Le armi e gli strumenti antichi sono irrilevanti per la datazione dei siti archeologici, poiché non variano significativamente nel tempo.",
-        "Sbagliata",
+        0,
     ),
     (
         "Qual è il significato simbolico dei colori nell'arte egizia?",
+        "docente.archeologia",
         "Nell'arte egizia, i colori avevano significati simbolici profondi, come il verde per la rinascita, il rosso per il caos o la distruzione, e il nero per la fertilità e la rigenerazione.",
-        "Corretta",
+        4,
     ),
     (
         "Qual è il significato simbolico dei colori nell'arte egizia?",
+        "docente.archeologia",
         "I colori nell'arte egizia erano scelti casualmente, senza alcun significato simbolico o culturale.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come l'uso dei materiali influenzava lo stile artistico nell'antichità?",
+        "docente.archeologia",
         "L'uso di materiali come il marmo, il bronzo o l'argilla influenzava notevolmente lo stile artistico, determinando la tecnica, la forma e la durabilità dell'opera artistica.",
-        "Corretta",
+        4,
     ),
     (
         "Come l'uso dei materiali influenzava lo stile artistico nell'antichità?",
+        "docente.archeologia",
         "L'uso dei materiali aveva un impatto minimo sullo stile artistico nell'antichità, con gli artisti che privilegiavano l'espressione personale rispetto alle proprietà dei materiali.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali sono le principali differenze tra l'architettura classica e quella neoclassica?",
+        "docente.archeologia",
         "L'architettura classica si riferisce all'arte dell'antica Grecia e Roma, con l'uso di colonne doriche, ioniche e corinzie, mentre il neoclassicismo è una rivisitazione di questi stili nell'epoca moderna, enfatizzando la semplicità e la grandiosità.",
-        "Corretta",
+        4,
     ),
     (
         "Quali sono le principali differenze tra l'architettura classica e quella neoclassica?",
+        "docente.archeologia",
         "Non ci sono differenze tra l'architettura classica e quella neoclassica; il termine 'neoclassico' è semplicemente un altro modo per descrivere l'architettura greca e romana.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come venivano selezionati e utilizzati i siti per la costruzione dei templi greci?",
+        "docente.archeologia",
         "I siti per i templi greci erano spesso scelti per il loro significato religioso o per la loro posizione prominente, come le alture, per dominare il paesaggio circostante.",
-        "Corretta",
+        4,
     ),
     (
         "Come venivano selezionati e utilizzati i siti per la costruzione dei templi greci?",
+        "docente.archeologia",
         "I siti per i templi greci erano selezionati casualmente, senza particolare considerazione per la posizione o il significato.",
-        "Sbagliata",
+        0,
     ),
     (
         "Qual è stato l'impatto dell'invenzione della stampa sull'arte e sulla cultura?",
+        "docente.archeologia",
         "L'invenzione della stampa ha rivoluzionato l'arte e la cultura facilitando la diffusione delle conoscenze, rendendo i libri più accessibili e promuovendo l'alfabetizzazione e la diffusione delle idee rinascimentali.",
-        "Corretta",
+        4,
     ),
     (
         "Qual è stato l'impatto dell'invenzione della stampa sull'arte e sulla cultura?",
+        "docente.archeologia",
         "L'invenzione della stampa ha avuto poco impatto sull'arte e sulla cultura, rimanendo una curiosità tecnologica con scarse applicazioni pratiche.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come venivano realizzate e utilizzate le monete nell'antica Roma?",
+        "docente.archeologia",
         "Nell'antica Roma, le monete erano coniate in metallo prezioso e servivano come mezzo di scambio, standard di valore e strumento di propaganda politica, mostrando ritratti di imperatori o divinità.",
-        "Corretta",
+        4,
     ),
     (
         "Come venivano realizzate e utilizzate le monete nell'antica Roma?",
+        "docente.archeologia",
         "Le monete nell'antica Roma erano principalmente di carta e usate solo per giochi e divertimenti, senza valore reale come moneta.",
-        "Sbagliata",
+        0,
     ),
     (
         "Qual è l'importanza dei ritrovamenti di Akrotiri per la comprensione della civiltà minoica?",
+        "docente.archeologia",
         "I ritrovamenti di Akrotiri, con i suoi affreschi ben conservati e avanzate strutture urbane, offrono una visione unica sulla vita quotidiana, l'arte e l'architettura della civiltà minoica.",
-        "Corretta",
+        3,
     ),
     (
         "Qual è l'importanza dei ritrovamenti di Akrotiri per la comprensione della civiltà minoica?",
+        "docente.archeologia",
         "Akrotiri è irrilevante per la comprensione della civiltà minoica, essendo un sito isolato che non riflette la cultura o le pratiche di quel popolo.",
-        "Sbagliata",
+        0,
     ),
     (
         "In che modo l'arte e l'architettura riflettono il potere e la religione nell'Impero Bizantino?",
+        "docente.archeologia",
         "Nell'Impero Bizantino, l'arte e l'architettura riflettevano il potere e la religione attraverso la costruzione di imponenti chiese e mosaici che esprimevano la divinità dell'imperatore e la centralità del cristianesimo.",
-        "Corretta",
+        4,
     ),
     (
         "In che modo l'arte e l'architettura riflettono il potere e la religione nell'Impero Bizantino?",
+        "docente.archeologia",
         "L'arte e l'architettura bizantine erano completamente secolari, evitando qualsiasi riferimento al potere imperiale o alla religione.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come l'analisi del DNA sta cambiando la nostra comprensione delle migrazioni antiche?",
+        "docente.archeologia",
         "L'analisi del DNA sta rivoluzionando la nostra comprensione delle migrazioni antiche, fornendo prove dirette dei movimenti dei popoli preistorici e delle loro interazioni genetiche con le popolazioni moderne.",
-        "Corretta",
+        4,
     ),
     (
         "Come l'analisi del DNA sta cambiando la nostra comprensione delle migrazioni antiche?",
+        "docente.archeologia",
         "L'analisi del DNA non ha contribuito significativamente alla nostra comprensione delle migrazioni antiche, rimanendo una tecnologia troppo imprecisa per fornire informazioni affidabili.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali tecniche di conservazione sono utilizzate per preservare le opere d'arte antiche?",
+        "docente.archeologia",
         "Per preservare le opere d'arte antiche, vengono utilizzate tecniche come la stabilizzazione ambientale, il restauro delicato e la digitalizzazione per prevenire ulteriori danni e perdite.",
-        "Corretta",
+        4,
     ),
     (
         "Quali tecniche di conservazione sono utilizzate per preservare le opere d'arte antiche?",
+        "docente.archeologia",
         "Le opere d'arte antiche sono spesso ricoperte di vernice trasparente per preservarle, una tecnica moderna che garantisce la loro durata nel tempo senza necessità di altri interventi.",
-        "Sbagliata",
+        0,
     ),
     (
         "In che modo l'arte dell'antico Egitto è stata influenzata dalla sua geografia?",
+        "docente.archeologia",
         "L'arte dell'antico Egitto è stata profondamente influenzata dalla geografia, in particolare dal Nilo, che ha portato a una forte enfasi sui temi della fertilità, della rinascita e dell'aldilà, riflettendo l'importanza del fiume per la sopravvivenza e la prosperità.",
-        "Corretta",
+        4,
     ),
     (
         "In che modo l'arte dell'antico Egitto è stata influenzata dalla sua geografia?",
+        "docente.archeologia",
         "La geografia dell'Egitto, essendo principalmente desertica, ha impedito lo sviluppo dell'arte e della cultura, limitando le espressioni artistiche a semplici disegni rupestri.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali erano le principali tecniche di scultura utilizzate nella Grecia antica?",
+        "docente.archeologia",
         "Nella Grecia antica, le principali tecniche di scultura includono il marmo, il bronzo e il terracotta. La scultura in marmo era spesso realizzata tramite l'uso di scalpelli e martelli per creare opere di grande dettaglio e precisione, come nel caso dei marmi del Partenone. Il bronzo consentiva una maggiore libertà di movimento e permetteva di creare opere più dinamiche e tridimensionali, attraverso la tecnica della fusione e della cesellatura. La terracotta, invece, permetteva la creazione di opere più piccole e dettagliate, spesso utilizzate per sculture decorative e vasi.",
-        "Corretta",
+        5,
     ),
     (
         "Quali erano le principali tecniche di scultura utilizzate nella Grecia antica?",
+        "docente.archeologia",
         "Le sculture greche antiche erano principalmente fatte di legno e argilla, senza l'uso di tecniche avanzate, risultando in opere d'arte grossolane e poco dettagliate.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come si sono sviluppate le città-stato nella Grecia antica e quale era il loro ruolo nella società?",
+        "docente.archeologia",
         "Le città-stato della Grecia antica, o polis, erano centri indipendenti di attività politica, economica e culturale, che giocavano un ruolo cruciale nel promuovere lo sviluppo della democrazia, dell'arte e della filosofia.",
-        "Corretta",
+        4,
     ),
     (
         "Come si sono sviluppate le città-stato nella Grecia antica e quale era il loro ruolo nella società?",
+        "docente.archeologia",
         "Le città-stato nella Grecia antica erano meramente simboliche e non avevano alcuna influenza reale sulla società o sullo sviluppo culturale dell'epoca.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali fattori hanno influenzato lo sviluppo dell'architettura gotica?",
+        "docente.archeologia",
         "Lo sviluppo dell'architettura gotica è stato influenzato da un desiderio di maggiore altezza e luce nelle strutture, portando all'introduzione di innovazioni come gli archi a sesto acuto, le volte a crociera e i contrafforti volanti.",
-        "Corretta",
+        4,
     ),
     (
         "Quali fattori hanno influenzato lo sviluppo dell'architettura gotica?",
+        "docente.archeologia",
         "L'architettura gotica è stata influenzata principalmente dall'esigenza di costruire strutture che potessero resistere a condizioni meteorologiche estreme, come neve e ghiaccio.",
-        "Sbagliata",
+        0,
     ),
     (
         "In che modo gli affreschi di Pompei ci forniscono informazioni sulla vita e l'arte dell'epoca?",
+        "docente.archeologia",
         "Gli affreschi di Pompei forniscono una visione preziosa della vita quotidiana, delle mode, dei costumi e delle credenze degli antichi Romani, grazie alla loro straordinaria conservazione dopo l'eruzione del Vesuvio.",
-        "Corretta",
+        4,
     ),
     (
         "In che modo gli affreschi di Pompei ci forniscono informazioni sulla vita e l'arte dell'epoca?",
+        "docente.archeologia",
         "Gli affreschi di Pompei sono considerati irrilevanti per la comprensione della vita e dell'arte dell'epoca, in quanto si ritiene che rappresentino esclusivamente immaginazione artistica senza basi nella realtà.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali sono le principali caratteristiche delle sculture dell'arte romanica?",
+        "docente.archeologia",
         "Le sculture dell'arte romanica sono caratterizzate da un forte simbolismo religioso, forme stilizzate e un'espressione emotiva contenuta, spesso utilizzate come decorazione in chiese e cattedrali.",
-        "Corretta",
+        4,
     ),
     (
         "Quali sono le principali caratteristiche delle sculture dell'arte romanica?",
+        "docente.archeologia",
         "Le sculture dell'arte romanica erano note per la loro estrema fedeltà al realismo naturale e per la rappresentazione dettagliata di scene quotidiane, ignorando temi religiosi o simbolici.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come l'arte ha influenzato la politica nell'antica Grecia?",
+        "docente.archeologia",
         "Nell'antica Grecia, l'arte era strettamente intrecciata con la politica, utilizzata per esaltare le virtù dei leader, celebrare le vittorie militari e esprimere ideali democratici, influenzando l'opinione pubblica e l'identità culturale.",
-        "Corretta",
+        4,
     ),
     (
         "Come l'arte ha influenzato la politica nell'antica Grecia?",
+        "docente.archeologia",
         "L'arte nell'antica Grecia aveva poco o nessun impatto sulla politica, rimanendo una sfera completamente separata senza influenzare le decisioni politiche o la società.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali sono le tecniche di navigazione e mappatura utilizzate dalle antiche civiltà marinare?",
+        "docente.archeologia",
         "Le antiche civiltà marinare utilizzavano diverse tecniche di navigazione e mappatura per esplorare i mari e per orientarsi durante i viaggi. Una delle tecniche più comuni era la navigazione costiera, che si basava sull'osservazione di punti di riferimento sulla costa e sulle stelle per tracciare rotte. Altre metodologie comprendevano l'utilizzo di bussole rudimentali, come l'uso di pietre magnetiche, e la navigazione astrale, che si basava sull'osservazione delle stelle per determinare la direzione. Inoltre, alcune civiltà, come gli antichi Greci, svilupparono mappe rudimentali basate su conoscenze empiriche e sulla memoria orale dei navigatori.",
-        "Corretta",
+        5,
     ),
     (
         "Quali sono le tecniche di navigazione e mappatura utilizzate dalle antiche civiltà marinare?",
+        "docente.archeologia",
         "Le antiche civiltà marinare si affidavano esclusivamente al caso per la navigazione, viaggiando senza mappe o tecniche di orientamento e sperando di raggiungere le loro destinazioni.",
-        "Sbagliata",
+        0,
     ),
     (
         "Come l'arte rupestre può essere interpretata per comprendere le culture preistoriche?",
+        "docente.archeologia",
         "L'arte rupestre è interpretata come una testimonianza diretta delle credenze, delle pratiche quotidiane e della vita spirituale delle culture preistoriche, offrendo indizi sul loro modo di vivere, sulla caccia, sui rituali e sulle divinità.",
-        "Corretta",
+        4,
     ),
     (
         "Come l'arte rupestre può essere interpretata per comprendere le culture preistoriche?",
+        "docente.archeologia",
         "L'arte rupestre era puramente decorativa, senza significato o scopo, utilizzata dalle culture preistoriche solo per abbellire i loro ambienti di vita.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quali sono state le influenze culturali sull'arte della Mesopotamia?",
+        "docente.archeologia",
         "L'arte della Mesopotamia è stata influenzata da una varietà di culture circostanti, comprese le interazioni con gli antichi Egizi, Persiani e le culture delle steppe, risultando in uno scambio di tecniche artistiche e temi.",
-        "Corretta",
+        4,
     ),
     (
         "Quali sono state le influenze culturali sull'arte della Mesopotamia?",
+        "docente.archeologia",
         "L'arte della Mesopotamia era completamente isolata, senza alcuna influenza esterna o scambio culturale, riflettendo una società chiusa e autarchica.",
-        "Sbagliata",
+        0,
     ),
     (
         "In che modo le tecniche di restauro moderne possono influenzare la percezione delle opere d'arte antiche?",
+        "docente.archeologia",
         "Le tecniche di restauro moderne possono migliorare la percezione delle opere d'arte antiche, preservandole per le future generazioni e restituendo il loro aspetto originale, ma possono anche alterare la loro autenticità se non eseguite con cura.",
-        "Corretta",
+        4,
     ),
     (
         "In che modo le tecniche di restauro moderne possono influenzare la percezione delle opere d'arte antiche?",
+        "docente.archeologia",
         "Le tecniche di restauro moderne rendono le opere d'arte antiche indistinguibili dalle creazioni contemporanee, eliminando qualsiasi traccia del loro contesto storico originale.",
-        "Sbagliata",
+        0,
     ),
     (
         "Qual è stata l'importanza della Via della Seta per lo scambio culturale e artistico?",
+        "docente.archeologia",
         "La Via della Seta ha avuto un ruolo cruciale nello scambio culturale e artistico, permettendo la diffusione di idee, tecnologie, prodotti e arte tra l'Est e l'Ovest, arricchendo le società connesse da questa rete commerciale.",
-        "Corretta",
+        4,
     ),
     (
         "Qual è stata l'importanza della Via della Seta per lo scambio culturale e artistico?",
+        "docente.archeologia",
         "La Via della Seta era usata esclusivamente per il trasporto di seta e spezie, senza alcun impatto sullo scambio culturale o artistico tra le diverse regioni.",
-        "Sbagliata",
+        0,
     )
 ]
 
 risposte += [
     (
         "Quale innovazione nell'architettura romana ha permesso la costruzione di grandi spazi interni coperti?",
+        "docente.archeologia",
         "Un'importante innovazione nell'architettura romana che ha consentito la costruzione di grandi spazi interni coperti è stata l'introduzione della volta a crociera. Questa tecnica consisteva nell'incrociare due o più archi a tutto sesto per formare una volta che distribuiva il peso in modo uniforme sui pilastri o le pareti circostanti. Le volte a crociera permettevano di coprire ampi spazi senza la necessità di utilizzare colonne o muri interni, consentendo la creazione di edifici monumentali come basiliche, terme e grandi sale pubbliche, caratteristiche dell'architettura romana.",
-        "Corretta",
+        5,
     ),
     (
         "Quale innovazione nell'architettura romana ha permesso la costruzione di grandi spazi interni coperti?",
+        "docente.archeologia",
         "L'uso esclusivo del marmo ha permesso ai Romani di costruire grandi spazi interni coperti.",
-        "Sbagliata",
+        0,
     ),
     (
         "Qual è una differenza principale tra l'arte classica greco-romana e quella neoclassica?",
+        "docente.archeologia",
         "L'arte neoclassica, risorgente nel XVIII secolo, enfatizza la razionalità e il ritorno ai principi dell'arte e dell'architettura classica, spesso come reazione contro il Barocco e il Rococò.",
-        "Corretta",
+        4,
     ),
     (
         "Qual è una differenza principale tra l'arte classica greco-romana e quella neoclassica?",
+        "docente.archeologia",
         "L'arte classica si concentra sull'uso di colori vivaci, mentre l'arte neoclassica utilizza esclusivamente il bianco e il nero.",
-        "Sbagliata",
+        0,
     ),
     (
         "Quale metodo di datazione è comunemente utilizzato per determinare l'età di siti archeologici antichi?",
+        "docente.archeologia",
         "La datazione al radiocarbonio (C-14) è comunemente utilizzata per determinare l'età di materiali organici nei siti archeologici fino a circa 50.000 anni fa.",
-        "Corretta",
+        4,
     ),
     (
         "Quale metodo di datazione è comunemente utilizzato per determinare l'età di siti archeologici antichi?",
+        "docente.archeologia",
         "La datazione con il metodo del litio è comunemente utilizzata per determinare l'età di siti archeologici.",
-        "Sbagliata",
+        0,
     ),
     (
         "Qual è stata una delle cause principali del declino dell'Impero Romano d'Occidente?",
+        "docente.archeologia",
         "Le invasioni barbariche furono una delle cause principali del declino dell'Impero Romano d'Occidente nel V secolo d.C.",
-        "Corretta",
+        3,
     ),
     (
         "Qual è stata una delle cause principali del declino dell'Impero Romano d'Occidente?",
+        "docente.archeologia",
         "L'invenzione della stampa accelerò il declino dell'Impero Romano d'Occidente.",
-        "Sbagliata",
+        0,
     ),
     (
         "Qual era la tecnica predominante utilizzata dai Greci antichi per la fusione delle statue in bronzo?",
+        "docente.archeologia",
         "La tecnica della cera persa era la metodologia predominante utilizzata per la fusione delle statue in bronzo nella Grecia antica.",
-        "Corretta",
+        4,
     ),
     (
         "Qual era la tecnica predominante utilizzata dai Greci antichi per la fusione delle statue in bronzo?",
+        "docente.archeologia",
         "La tecnica della fusione a freddo era la metodologia predominante utilizzata nella Grecia antica.",
-        "Sbagliata",
+        0,
     ),
     (
         "Qual era la principale funzione delle monete nell'antica Roma?",
+        "docente.archeologia",
         "Nell'antica Roma, le monete servivano principalmente come mezzo di scambio e come strumento per diffondere l'immagine e il messaggio politico dell'imperatore.",
-        "Corretta",
+        4,
     ),
     (
         "Qual era la principale funzione delle monete nell'antica Roma?",
+        "docente.archeologia",
         "Nell'antica Roma, le monete erano usate principalmente come decorazioni personali e simboli di status.",
-        "Sbagliata",
+        0,
     ),
     (
         "Chi è accreditato per la scoperta del sito archeologico di Troia?",
+        "docente.archeologia",
         "Heinrich Schliemann è accreditato per la scoperta del sito archeologico di Troia negli anni 1870.",
-        "Corretta",
+        5,
     ),
     (
         "Chi è accreditato per la scoperta del sito archeologico di Troia?",
+        "docente.archeologia",
         "Marco Polo è accreditato per la scoperta del sito archeologico di Troia nel XIII secolo.",
-        "Sbagliata",
+        0,
     ),
 ]
 
 risposte += [
     (
         "Quali erano le principali tecniche di scultura utilizzate nella Grecia antica?",
+        "docente.archeologia",
         "Le principali tecniche di scultura nella Grecia antica includevano la scultura a tutto tondo (diretta e a sbalzo), il bassorilievo e l'altorilievo, la fusione a cera persa per statue in bronzo, e la policromia per decorare le statue. Le tecniche si sono evolute nel tempo, passando da forme rigide e geometriche del periodo arcaico all'armonia e realismo del periodo classico, fino alla sperimentazione di pose e drammaticità del periodo ellenistico. Materiali come terracotta, avorio, oro e argento completavano il repertorio scultoreo.",
-        "Corretta",
+        5,
     ),
     (
         "Quale innovazione nell'architettura romana ha permesso la costruzione di grandi spazi interni coperti?",
+        "docente.archeologia",
         "L'innovazione che permise la costruzione di grandi spazi interni coperti nell'architettura romana fu l'introduzione del calcestruzzo. Questo materiale, composto da una miscela di acqua, calce, aggregati e pozzolana, era molto più resistente del mattone o della pietra e poteva essere gettato in forme complesse. L'utilizzo del calcestruzzo permise la realizzazione di volte a botte, cupole e solai, che coprivano ampie aree senza la necessità di supporti interni. Esempi emblematici di questa innovazione sono il Pantheon, le terme romane e gli edifici basilicali. La volta a botte, in particolare, permise di distribuire il peso su una superficie più ampia, consentendo la costruzione di edifici più alti e spaziosi. Oltre al calcestruzzo, altre innovazioni come l'arco e la cupola contribuirono alla creazione di grandi spazi interni. L'arco, elemento strutturale curvo, permetteva di superare aperture ampie, mentre la cupola, una struttura a forma di calotta emisferica, consentiva di coprire spazi circolari. L'utilizzo combinato di queste innovazioni rivoluzionò l'architettura romana, permettendo la realizzazione di edifici monumentali con ampie e luminose sale interne.",
-        "Corretta",
+        5,
     ),
     (
         "Quali erano le funzioni sociali e religiose dell'arte nella società Maya?",
+        "docente.archeologia",
         "L'arte Maya svolgeva un ruolo fondamentale nella vita sociale e religiosa, permeando la cultura Maya e unificando la società. Le sue funzioni principali erano la religione in quanto raffigurava divinità, miti e rituali, rafforzando il legame con il divino, infatti le immagini sacre servivano per comunicare con gli dei e gli antenati e la società, infatti commemorava eventi storici e figure importanti, preservando la memoria collettiva, dichiarava status e potere, rafforzando la gerarchia sociale, narrava storie e leggende, trasmettendo valori morali e la storia del popolo Maya. L'arte Maya era un linguaggio visivo potente che univa il mondo materiale e spirituale.",
-        "Corretta",
+        5,
     ),
     (
         "In che modo l'arte e l'architettura riflettono il potere e la religione nell'Impero Bizantino?",
+        "docente.archeologia",
         "Nell'Impero Bizantino, arte e architettura erano strumenti potenti per glorificare il potere imperiale e la religione cristiana ortodossa. Le immense basiliche, come Santa Sofia a Istanbul, con le loro cupole svettanti e mosaici dorati, simboleggiavano la grandiosità dell'Impero e la sua connessione con il divino. L'arte ufficiale, ricca di icone sacre e immagini di imperatori, rafforzava l'autorità imperiale e la centralità della Chiesa ortodossa nella vita pubblica. La raffinatezza artistica e architettonica bizantina, sintesi di influenze ellenistiche e orientali, divenne un simbolo di prestigio e cultura, irradiando la sua influenza in tutto il Mediterraneo.",
-        "Corretta",
+        5,
     ),
     (
         "Quali sono le principali differenze tra l'arte del Rinascimento e quella del Medioevo?",
+        "docente.archeologia",
         "L'arte del Rinascimento si differenzia nettamente da quella medievale per diversi aspetti. Il Rinascimento pone l'uomo al centro dell'universo, riscoprendo la classicità e la mitologia, e valorizzando il ritratto realistico. Lo stile rinascimentale si contraddistingue per la prospettiva, l'anatomia realistica, le proporzioni armoniche e l'idealizzazione della bellezza. Le tecniche utilizzate includono la pittura a olio, l'affresco, la scultura a tutto tondo e la fusione a cera persa. Al contrario, l'arte medievale è caratterizzata dal teocentrismo, con figure religiose ieratiche e simboliche. Lo stile è bidimensionale, con forme stilizzate e assenza di prospettiva. Le tecniche più diffuse sono l'affresco, il mosaico, la miniatura, la scultura lignea e l'oreficeria. In sintesi, l'arte rinascimentale celebra l'uomo e la bellezza del mondo naturale, mentre l'arte medievale si concentra sulla spiritualità e la trascendenza.",
-        "Corretta",
+        5,
     ),
     (
         "Quali sono le principali differenze tra l'arte del Rinascimento e quella del Medioevo?",
+        "docente.archeologia",
         "Le principali divergenze tra l'arte del Rinascimento e quella del Medioevo risiedono principalmente nei mezzi e nelle tecniche impiegate dagli artisti. Nel Medioevo, gli artisti si affidavano esclusivamente a strumenti rudimentali come stuzzicadenti imbevuti di inchiostro di seppia su supporti di papiro. Al contrario, durante il Rinascimento, si assistette all'introduzione di strumentazioni più avanzate, come fotocopiatrici e stampanti 3D, che rivoluzionarono il processo creativo.",
-        "Sbagliata",
+        0,
     ),
     (
         "In che modo l'arte e l'architettura riflettono il potere e la religione nell'Impero Bizantino?",
+        "docente.archeologia",
         "Nell'Impero Bizantino, l'arte e l'architettura erano strumenti potenti per esprimere il potere e la religione, ma in modo differente rispetto ad altre culture. Le opere riflettevano un'estetica distinta, spesso caratterizzata da un utilizzo deliberato di materiali rustici e un design che poteva apparire disordinato agli occhi di chi osservava dall'esterno. Le chiese, ad esempio, potevano essere costruite con legno che mostrava segni di degrado, mentre le icone dipinte potevano presentare colori vivaci e linee disordinate, intese a rappresentare simbolicamente la complessità e il mistero del potere imperiale.",
-        "Sbagliata",
+        1,
     ),
     (
         "Quali erano le funzioni sociali e religiose dell'arte nella società Maya?",
+        "docente.archeologia",
         "Nella società Maya, l'arte serviva principalmente come mezzo di intrattenimento per le classi nobili, che apprezzavano opere d'arte elaborate e riccamente decorate per adornare i loro palazzi e templi. Inoltre, l'arte veniva utilizzata per scopi pratici come la decorazione di vasi cerimoniali e utensili domestici. Dal punto di vista religioso, l'arte maya non giocava alcun ruolo significativo, poiché le divinità maya preferivano evitare le rappresentazioni artistiche e le offerte materiali, concentrandosi invece sulla comunicazione spirituale attraverso la preghiera e i rituali.",
-        "Sbagliata",
+        1,
     ),
 ]
 
@@ -821,46 +955,104 @@ risposte_docente = [
 risposte_test = [
     (
         "Quali erano le principali tecniche di scultura utilizzate nella Grecia antica?",
+        "docente.archeologia",
         "Le tecniche di scultura nella Grecia antica includevano la lavorazione del marmo e del bronzo, con l'uso della tecnica della cera persa per le sculture in bronzo, che permetteva una maggiore dettagliatezza e realismo.",
-        "Corretta"
+        4
     ),
     (
         "Quale innovazione nell'architettura romana ha permesso la costruzione di grandi spazi interni coperti?",
+        "docente.archeologia",
         "L'introduzione dell'arco e della volta ha permesso ai Romani di costruire grandi spazi interni coperti, come terme, basiliche e anfiteatri.",
-        "Corretta"
+        3
     ),
     (
         "Quali sono le tecniche di navigazione e mappatura utilizzate dalle antiche civiltà marinare?",
+        "docente.archeologia",
         "Le antiche civiltà marinare utilizzavano l'astronomia per la navigazione, identificando stelle e costellazioni per orientarsi in mare, e creavano mappe rudimentali basate su osservazioni costiere e la direzione dei venti.",
-        "Corretta"
+        4
     ),
     (
         "Quali erano le funzioni sociali e religiose dell'arte nella società Maya?",
+        "docente.archeologia",
         "Nella società Maya, l'arte aveva funzioni sociali e religiose significative, servendo come mezzo per documentare eventi storici, esprimere credenze cosmologiche e celebrare l'élite al potere.",
-        "Corretta"
+        4
     ),
     (
         "Quali erano le funzioni sociali e religiose dell'arte nella società Maya?",
+        "docente.archeologia",
         "Nella società Maya, l'arte svolgeva funzioni principalmente di intrattenimento e pubblicità politica. Gli artisti Maya erano famosi per le loro abilità nel dipingere scene di festa e celebrazioni, che venivano utilizzate per divertire la popolazione durante le feste annuali. Inoltre, le opere d'arte erano spesso commissionate dai governanti come mezzi di propaganda politica per promuovere la loro autorità e legittimità al potere, piuttosto che per scopi religiosi.",
-        "Sbagliata"
+        0
     ),
     (
         "In che modo l'arte e l'architettura riflettono il potere e la religione nell'Impero Bizantino?",
+        "docente.archeologia",
         "Nell'Impero Bizantino, l'arte e l'architettura riflettevano il potere e la religione attraverso l'uso di materiali scadenti e design volutamente disordinati. Le chiese erano spesso costruite con legno marcio e fatiscente, mentre le icone dipinte erano eseguite con colori sgargianti e tratti scomposti per simboleggiare il caos del potere imperiale. Le rappresentazioni dei leader bizantini mostravano spesso deformità e caratteristiche grottesche per comunicare la fragilità del loro dominio.",
-        "Sbagliata"
+        0
     ),
     (
         "Quali sono le principali differenze tra l'arte del Rinascimento e quella del Medioevo?",
+        "docente.archeologia",
         "Le principali differenze tra l'arte del Rinascimento e quella del Medioevo risiedono principalmente nell'uso della tecnologia: nel Medioevo, gli artisti dipingevano esclusivamente con l'ausilio di stuzzicadenti intinti nell'inchiostro di seppia su carta di papiro, mentre nel Rinascimento, gli artisti impiegavano sofisticate macchine per produrre le loro opere, tra cui fotocopiatrici e stampanti 3D. Inoltre, nel Medioevo le opere d'arte erano caratterizzate da una mancanza di prospettiva e realismo, con figure piatte e colori opachi, mentre nel Rinascimento, grazie all'avvento della tecnologia, gli artisti erano in grado di creare opere dettagliate e realistiche, con un uso sapiente della prospettiva e dei chiaroscuri.",
-        "Sbagliata"
+        0
     ),
 ]
 
+# Aggiungi id alle domande
+for indice, tupla in enumerate(domande):
+    # Converti la tupla in una lista per poterla modificare
+    tupla_modificata = list(tupla)
+    # Aggiungi il nuovo elemento alla lista
+    tupla_modificata.insert(0, f"id_{indice}")
+    # Assegna la lista modificata alla tupla originale
+    domande[indice] = tuple(tupla_modificata)
+
+# Aggiungi id domande alle risposte
+for indice, tupla in enumerate(risposte):
+    # Converti la tupla in una lista per poterla modificare
+    tupla_modificata = list(tupla)
+
+    for indice_domanda, tupla_domanda in enumerate(domande):
+        if tupla_domanda[1] == tupla[0]:
+            # Aggiungi il nuovo elemento alla lista
+            tupla_modificata.insert(0, tupla_domanda[0])
+            break
+
+    # Assegna la lista modificata alla tupla originale
+    risposte[indice] = tuple(tupla_modificata)
+
+# Aggiungi id domande alle risposte
+for indice, tupla in enumerate(risposte_docente):
+    # Converti la tupla in una lista per poterla modificare
+    tupla_modificata = list(tupla)
+
+    for indice_domanda, tupla_domanda in enumerate(domande):
+        if tupla_domanda[1] == tupla[0]:
+            # Aggiungi il nuovo elemento alla lista
+            tupla_modificata.insert(0, tupla_domanda[0])
+            break
+
+    # Assegna la lista modificata alla tupla originale
+    risposte_docente[indice] = tuple(tupla_modificata)
+
+# Aggiungi id domande alle risposte
+for indice, tupla in enumerate(risposte_test):
+    # Converti la tupla in una lista per poterla modificare
+    tupla_modificata = list(tupla)
+
+    for indice_domanda, tupla_domanda in enumerate(domande):
+        if tupla_domanda[1] == tupla[0]:
+            # Aggiungi il nuovo elemento alla lista
+            tupla_modificata.insert(0, tupla_domanda[0])
+            break
+
+    # Assegna la lista modificata alla tupla originale
+    risposte_test[indice] = tuple(tupla_modificata)
+
 # Creazione del DataFrame
-df_domande = pd.DataFrame(domande, columns=['text', 'label'])
-df_risposte = pd.DataFrame(risposte, columns=['title', 'text', 'label'])
-df_risposte_docente = pd.DataFrame(risposte_docente, columns=['title', 'text', 'id_docente'])
-df_risposte_test = pd.DataFrame(risposte_test, columns=['title', 'text', 'label'])
+df_domande = pd.DataFrame(domande, columns=['id', 'text', 'label', 'id_docente'])
+df_risposte = pd.DataFrame(risposte, columns=['id_domanda', 'title', 'id_docente', 'text', 'label'])
+df_risposte_docente = pd.DataFrame(risposte_docente, columns=['id_domanda', 'title', 'text', 'id_docente'])
+df_risposte_test = pd.DataFrame(risposte_test, columns=['id_domanda', 'title', 'id_docente', 'text', 'label'])
 
 # Salvataggio del DataFrame come CSV
 training_data_folder_path = Path("./training_data")

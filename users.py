@@ -7,3 +7,7 @@ TEACHERS = [
     {'username': 'docente.archeologia', 'password': 'docente123'},
     {'username': 'docente.basidati', 'password': 'docente123'}
 ]
+
+RELATIONS = [
+    {'studente.archeologia': ['docente.archeologia']}
+]
