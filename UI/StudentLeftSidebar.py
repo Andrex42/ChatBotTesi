@@ -6,7 +6,8 @@ from UI.QuestionListWidget import QuestionListWidget
 
 class StudentLeftSideBar(QWidget):
 
-    changed = QtCore.pyqtSignal(QListWidgetItem)
+    unansweredSelectionChanged = QtCore.pyqtSignal(QListWidgetItem)
+    answeredSelectionChanged = QtCore.pyqtSignal(QListWidgetItem)
     questionUpdated = QtCore.pyqtSignal(str, str)
 
     def __init__(self, authorized_user):
@@ -32,10 +33,10 @@ class StudentLeftSideBar(QWidget):
         lay.setContentsMargins(0, 0, 0, 0)
 
         self.__unansweredQuestionListWidget = QuestionListWidget(enable_checkbox=False)
-        self.__unansweredQuestionListWidget.changed.connect(self.changed)
+        self.__unansweredQuestionListWidget.changed.connect(self.unansweredSelectionChanged)
 
         self.__answeredQuestionListWidget = QuestionListWidget(enable_checkbox=False)
-        #self.__answeredQuestionListWidget.changed.connect(self.changed)
+        self.__answeredQuestionListWidget.changed.connect(self.answeredSelectionChanged)
 
         tabWidget = QTabWidget()
         tabWidget.addTab(self.__unansweredQuestionListWidget, "Da rispondere")

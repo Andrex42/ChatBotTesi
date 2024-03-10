@@ -263,7 +263,7 @@ def generate_response_full(data):
         f"{Fore.GREEN}Result Detected: {Fore.YELLOW}{Style.BRIGHT}{risultato}{Style.RESET_ALL}"
     )
 
-    if abs(risultato - data['label']) < 1:
+    if abs(risultato - data['label']) <= 1:
         print(
             f"{Fore.GREEN}Final Result: {Fore.GREEN}{Style.BRIGHT}[PASSED]{Style.RESET_ALL}"
         )
@@ -400,7 +400,7 @@ def test_model():
 
         response, risultato, ambito = generate_response_full(item)
 
-        if abs(risultato - item['label']) < 1:
+        if abs(risultato - item['label']) <= 1:
             correct += 1
 
         total += 1

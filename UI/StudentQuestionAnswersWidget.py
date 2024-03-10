@@ -5,6 +5,7 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QSplitter, QListWidgetItem
 
+from UI.AnswerToQuestionWidget import AnswerToQuestionWidget
 from UI.QuestionDetailsWidget import QuestionDetailsWidget
 from UI.StudentLeftSidebar import StudentLeftSideBar
 
@@ -152,19 +153,19 @@ class StudentQuestionAnswersWidget(QWidget):
 
     def __initUi(self):
         self.__leftSideBarWidget = StudentLeftSideBar(self.authorized_user)
-        self.__questionDetailsWidget = QuestionDetailsWidget(self.authorized_user)
+        self.__answerToQuestionWidget = AnswerToQuestionWidget(self.authorized_user)
 
         lay = QVBoxLayout()
-        lay.addWidget(self.__questionDetailsWidget)
+        lay.addWidget(self.__answerToQuestionWidget)
         lay.setSpacing(0)
         lay.setContentsMargins(0, 0, 0, 0)
 
-        questionDetailsWidget = QWidget()
-        questionDetailsWidget.setLayout(lay)
+        answerToQuestionWidget = QWidget()
+        answerToQuestionWidget.setLayout(lay)
 
         mainWidget = QSplitter()
         mainWidget.addWidget(self.__leftSideBarWidget)
-        mainWidget.addWidget(questionDetailsWidget)
+        mainWidget.addWidget(answerToQuestionWidget)
 
         mainWidget.setSizes([100, 500, 400])
         mainWidget.setChildrenCollapsible(False)
@@ -178,7 +179,8 @@ class StudentQuestionAnswersWidget(QWidget):
             }
             ''')
 
-        self.__leftSideBarWidget.changed.connect(self.__changedQuestion)
+        self.__leftSideBarWidget.unansweredSelectionChanged.connect(self.__unansweredQuestionSelectionChanged)
+        self.__leftSideBarWidget.answeredSelectionChanged.connect(self.__answeredQuestionSelectionChanged)
         self.__leftSideBarWidget.questionUpdated.connect(self.__updatedQuestion)
 
         lay = QVBoxLayout()
@@ -233,9 +235,21 @@ class StudentQuestionAnswersWidget(QWidget):
         data_array = extract_data(result)
         print("data converted", data_array)
 
-        self.__questionDetailsWidget.replaceQuestion(question, data_array)
+        # self.__questionDetailsWidget.replaceQuestion(question, data_array) TODO
 
-    def __changedQuestion(self, item: QListWidgetItem):
+    def __unansweredQuestionSelectionChanged(self, item: QListWidgetItem):
+        if item:
+            question = item.data(Qt.UserRole)
+            id, title = question['id'], question['document']
+            print("changed", id, title)
+            # Inserisci un controllo nel caso in cui si sia inserita una risposta, se una risposta è presente,
+            # avvisa l'utente che potrebbe perdere i progressi fatti # TODO
+            self.__answerToQuestionWidget.replaceQuestion(question)
+        else:
+            # self.__browser.resetChatWidget(0) TODO
+            print("reset")
+
+    def __answeredQuestionSelectionChanged(self, item: QListWidgetItem):
         if item:
             question = item.data(Qt.UserRole)
             id, title = question['id'], question['document']
