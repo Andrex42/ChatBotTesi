@@ -284,9 +284,9 @@ def get_ambito_classification_full(data, co):
 
     department_examples = []
 
-    example_collection = get_chroma_q_a_collection()
+    q_a_collection = get_chroma_q_a_collection()
 
-    results = example_collection.query(
+    results = q_a_collection.query(
         query_texts=[data['text']],
         n_results=10,
         where={"domanda": data['title']}
@@ -306,11 +306,66 @@ def get_ambito_classification_full(data, co):
     return ambito
 
 
+def calcola_voto_finale_ponderato(punteggi, voti):
+    # Calcola l'inverso di ciascun punteggio (assumendo che nessun punteggio sia 0)
+    inversi = [1 / punteggio if punteggio != 0 else 0 for punteggio in punteggi]
+
+    # Calcola la somma totale degli inversi
+    somma_totale_inversi = sum(inversi)
+
+    # Calcola il peso di ciascun punteggio in base all'inverso
+    pesi = [inverso / somma_totale_inversi for inverso in inversi] if somma_totale_inversi != 0 else [0 for _ in
+                                                                                                      punteggi]
+
+    # Calcola il voto finale ponderato come la somma dei prodotti dei voti per i loro pesi corrispondenti
+    voto_finale_ponderato = sum(voto * peso for voto, peso in zip(voti, pesi))
+
+    return voto_finale_ponderato
+
+
+def add_answer_to_collection(authenticated_user, question, answer: str):
+    q_a_collection = get_chroma_q_a_collection()
+
+    id, title = question['id'], question['document']
+
+    results = q_a_collection.query(
+        query_embeddings=sentence_transformer_ef([preprocess(answer)]),
+        n_results=20,
+        where={"id_domanda": id},
+        include=["documents", "embeddings", "metadatas", "distances"]
+    )
+
+    print(f"{Fore.YELLOW}{Style.BRIGHT}Found {len(results['documents'][0])} similar documents{Style.RESET_ALL}:")
+
+    for idx, doc in enumerate(results['documents'][0]):
+        it_metadata = results['metadatas'][0][idx]
+        it_distances = results['distances'][0][idx]
+        print(f" - Doc {idx}: ({it_metadata['voto_docente']}) ({it_distances})", doc)
+
+    min_distance = min(results['distances'][0])
+    min_distance_index = results['distances'][0].index(min_distance)
+
+    levenshtein_distance = edit_distance(answer, results['documents'][0][min_distance_index])
+
+    print(f"\n{Fore.CYAN}Best similarity match{Style.RESET_ALL}:\n"
+          f"\tCosine Distance: {results['distances'][0][min_distance_index]}"
+          f"\tLevenshtein Distance: {levenshtein_distance}"
+          f"\n\tRef. Result: {Fore.GREEN if results['metadatas'][0][min_distance_index]['voto_docente'] >= 3 else Fore.RED}{results['metadatas'][0][min_distance_index]['voto_docente']}{Style.RESET_ALL}"
+          f"\n\tDocument: {results['documents'][0][min_distance_index]}")
+
+    voti = extract_metadata(results['metadatas'], 'voto_docente')
+    voto_ponderato = round(calcola_voto_finale_ponderato(results['distances'][0], voti), 1)
+
+    print(
+        f"{Fore.GREEN}Result Detected: {Fore.YELLOW}{Style.BRIGHT}{voto_ponderato}{Style.RESET_ALL}"
+    )
+
+
 def get_risultato_classification_full(data, co):
 
-    example_collection = get_chroma_q_a_collection()
+    q_a_collection = get_chroma_q_a_collection()
 
-    results = example_collection.query(
+    results = q_a_collection.query(
         query_embeddings=sentence_transformer_ef([preprocess(data['text'])]),
         n_results=20,
         where={"domanda": data['title']},
@@ -324,9 +379,9 @@ def get_risultato_classification_full(data, co):
         it_distances = results['distances'][0][idx]
         print(f" - Doc {idx}: ({it_metadata['voto_docente']}) ({it_distances})", doc)
 
-    # Zcorrect_answers_results = example_collection.get(
-    # Z    where={"$and": [{"domanda": data['title']}, {"risultato": "Corretta"}]}
-    # Z)
+    # correct_answers_results = example_collection.get(
+    #     where={"$and": [{"domanda": data['title']}, {"risultato": "Corretta"}]}
+    # )
 
     # for doc, md in zip(results['documents'][0], results['metadatas'][0]):
     #     mood_examples.append(Example(doc, md['risultato']))
@@ -342,7 +397,10 @@ def get_risultato_classification_full(data, co):
           f"\n\tRef. Result: {Fore.GREEN if results['metadatas'][0][min_distance_index]['voto_docente'] >= 3 else Fore.RED}{results['metadatas'][0][min_distance_index]['voto_docente']}{Style.RESET_ALL}"
           f"\n\tDocument: {results['documents'][0][min_distance_index]}")
 
-    return results['metadatas'][0][min_distance_index]['voto_docente']
+    voti = extract_metadata(results['metadatas'], 'voto_docente')
+    voto_ponderato = round(calcola_voto_finale_ponderato(results['distances'][0], voti), 1)
+
+    return voto_ponderato
 
 
 def get_collections():

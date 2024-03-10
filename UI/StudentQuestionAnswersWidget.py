@@ -9,7 +9,7 @@ from UI.AnswerToQuestionWidget import AnswerToQuestionWidget
 from UI.QuestionDetailsWidget import QuestionDetailsWidget
 from UI.StudentLeftSidebar import StudentLeftSideBar
 
-from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, extract_data, extract_metadata
+from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, add_answer_to_collection, extract_data, extract_metadata
 from users import RELATIONS
 
 
@@ -28,7 +28,7 @@ class Worker(QtCore.QObject):
 
     unanswered_questions_ready_event = QtCore.pyqtSignal(object)
     answered_questions_ready_event = QtCore.pyqtSignal(object)
-    question_added_event = QtCore.pyqtSignal(object)
+    answer_added_event = QtCore.pyqtSignal(object)
     q_a_ready_event = QtCore.pyqtSignal(object, object)
 
     @QtCore.pyqtSlot()
@@ -89,19 +89,21 @@ class Worker(QtCore.QObject):
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
-    def add_question(self, question):
+    def add_answer(self, question: object, answer: str):
         start = time.time()
 
         # init_chroma_client()
 
-        question_collection, teacher_answers_collection, student_answers_collection = get_collections()
+        question_collection, q_a_collection = get_collections()
 
-        print("adding question", question)
+        print("adding answer", answer)
 
-        question_collection.add(
-            documents=[question],
-            metadatas=[{"teacher_id": self.teacher_id}],
-        )
+
+        add_answer_to_collection(self.authorized_user, question, answer)
+        # question_collection.add(
+        #     documents=[question],
+        #     metadatas=[{"teacher_id": self.teacher_id}],
+        # )
 
         # query_result = question_collection.query(
         #     query_texts=["Quale può essere il futuro dell'intelligenza artificiale?"],
@@ -110,7 +112,7 @@ class Worker(QtCore.QObject):
 
         # print("# The most similar sentences computed by chroma")
         # print(query_result)
-        self.question_added_event.emit(question)
+        self.answer_added_event.emit(answer)
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
@@ -183,6 +185,8 @@ class StudentQuestionAnswersWidget(QWidget):
         self.__leftSideBarWidget.answeredSelectionChanged.connect(self.__answeredQuestionSelectionChanged)
         self.__leftSideBarWidget.questionUpdated.connect(self.__updatedQuestion)
 
+        self.__answerToQuestionWidget.onSendAnswerClicked.connect(self.__onSendAnswerClicked)
+
         lay = QVBoxLayout()
         lay.addWidget(mainWidget)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -248,6 +252,11 @@ class StudentQuestionAnswersWidget(QWidget):
         else:
             # self.__browser.resetChatWidget(0) TODO
             print("reset")
+
+    def __onSendAnswerClicked(self, question: object, answer: str):
+        print("Domanda", question)
+        print("Risposta", answer)
+        self.db_worker.add_answer(question, answer)
 
     def __answeredQuestionSelectionChanged(self, item: QListWidgetItem):
         if item:

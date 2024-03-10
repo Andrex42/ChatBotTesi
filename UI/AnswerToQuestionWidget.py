@@ -1,3 +1,4 @@
+from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QListWidgetItem, QPushButton, QHBoxLayout, QScrollArea, \
     QTextEdit
@@ -5,10 +6,13 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QListWidgetItem, QPush
 
 class AnswerToQuestionWidget(QWidget):
 
+    onSendAnswerClicked = QtCore.pyqtSignal(object, str)
+
     def __init__(self, authorized_user):
         super().__init__()
 
         self.authorized_user = authorized_user
+        self.question = None
 
         self.__initUi()
 
@@ -39,6 +43,9 @@ class AnswerToQuestionWidget(QWidget):
 
     def replaceQuestion(self, question):
         self.cleanup()
+
+        self.question = question
+
         id, title = question['id'], question['document']
 
         question_label = QLabel(title)
@@ -66,6 +73,7 @@ class AnswerToQuestionWidget(QWidget):
         self.sendAnswerBtn.setEnabled(False)
 
         self.answerTextEdit.textChanged.connect(self.checkTextEdit)
+        self.sendAnswerBtn.clicked.connect(self.__onSendAnswerClicked)
 
         self.students_answers_layout.addWidget(answer_label)
         self.students_answers_layout.addWidget(self.answerTextEdit)
@@ -77,6 +85,11 @@ class AnswerToQuestionWidget(QWidget):
             self.sendAnswerBtn.setEnabled(True)
         else:
             self.sendAnswerBtn.setEnabled(False)
+
+    def __onSendAnswerClicked(self):
+        # Controlla se il QTextEdit contiene del testo
+        if self.answerTextEdit.toPlainText():
+            self.onSendAnswerClicked.emit(self.question, self.answerTextEdit.toPlainText())
 
     def cleanup(self):
         print()
