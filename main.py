@@ -1,11 +1,9 @@
 import sys
-import argparse
-# from document_similarity import get_letters_df, get_data_for_training, get_doc2vec
 
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from UI.LoginFormApp import LoginFormApp
 
-from collection import init_model, test_model, generate_response, get_chroma_q_a_collection
+from collection import init_model, check_answer_records, test_model
 
 
 class Application(QMainWindow):
@@ -14,7 +12,8 @@ class Application(QMainWindow):
         self.setup_ui()
 
         init_model()
-        test_model()
+        # check_answer_records()
+        # test_model()
 
         # # A message to inform the user that they can type 'quit' to end the conversation.
         # print("Type 'quit' at any time to end the conversation.")
@@ -61,17 +60,4 @@ def main():
 
 
 if __name__ == '__main__':
-    PARSER = argparse.ArgumentParser(description="Execute the distance similarity")
-    # PARSER.add_argument("-dist", "--distance", help="euclidean or cosine.")
-    # PARSER.add_argument(
-    #     "-p", "--path", help="Pickle path to the letters dict.")
-    # PARSER.add_argument(
-    #     "-t", "--target", help="The target letter year.")
-    # PARSER.add_argument(
-    #     "-n", "--number", help="The number of letters to return.")
-    # PARSER.add_argument(
-    #     "-pre", "--pretrained", help="The pretrained model to use in transformers.")
-
-    # ARGS = PARSER.parse_args()
-
     main()

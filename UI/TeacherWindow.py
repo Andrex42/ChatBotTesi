@@ -1,10 +1,12 @@
+import os
+
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QWidget, QMessageBox, QPushButton, QVBoxLayout, QListWidget, QListWidgetItem, QHBoxLayout, \
     QLabel, QSizePolicy
 from UI.LoginFormApp import LoginFormApp
 from UI.TeacherEditQuestionDialog import EditQuestionDialog
 from UI.TeacherQuestionDialog import QuestionDialog
-from collection import init_chroma_client, get_collections, extract_data, get_question_collection, get_teacher_answers_collection, get_student_answers_collection, populate_collections
+from collection import init_chroma_client, get_collections, extract_data, get_chroma_q_a_collection
 
 import time
 
@@ -16,9 +18,9 @@ class Worker(QtCore.QObject):
     """
     Worker thread that handles the major program load. Allowing the gui to still be responsive.
     """
-    def __init__(self, teacher_id, config):
+    def __init__(self, authorized_user, config):
         super(Worker, self).__init__()
-        self.teacher_id = teacher_id
+        self.authorized_user = authorized_user
         self.config = config
 
     #QT signals - specify the method that the worker will be executing
@@ -27,8 +29,7 @@ class Worker(QtCore.QObject):
 
     questions_ready_event = QtCore.pyqtSignal(object)
     question_added_event = QtCore.pyqtSignal(object)
-    answer_ready_event = QtCore.pyqtSignal(object)
-    students_answers_ready_event = QtCore.pyqtSignal(object)
+    q_a_ready_event = QtCore.pyqtSignal(object)
 
     @QtCore.pyqtSlot()
     def start_ml(self):
@@ -36,25 +37,14 @@ class Worker(QtCore.QObject):
 
         init_chroma_client()
 
-        if not skip_db_creation:
-            populate_collections()
-            print("Database created")
-
         question_collection, q_a_collection = get_collections()
 
-        print("getting questions of teacher", self.teacher_id)
+        print("getting questions of teacher", self.authorized_user)
 
         query_result = question_collection.get(
-            where={"teacher_id": self.teacher_id},
+            where={"id_docente": self.authorized_user['username']},
         )
 
-        # query_result = question_collection.query(
-        #     query_texts=["Quale può essere il futuro dell'intelligenza artificiale?"],
-        #     n_results=10
-        # )
-
-        # print("# The most similar sentences computed by chroma")
-        # print(query_result)
         self.questions_ready_event.emit(query_result)
         print(f'Execution time = {time.time() - start} seconds.')
 
@@ -84,55 +74,37 @@ class Worker(QtCore.QObject):
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
-    def get_teacher_answer(self, question_id):
-        start = time.time()
-
-        # init_chroma_client()
-
-        teacher_answers_collection = get_teacher_answers_collection()
-
-        print("getting answers for", question_id)
-
-        query_result = teacher_answers_collection.get(
-            ids=[question_id],
-            where={"teacher_id": self.teacher_id}
-        )
-
-        self.answer_ready_event.emit(query_result)
-        # print(query_result)
-        print(f'Execution time = {time.time() - start} seconds.')
-
-    @QtCore.pyqtSlot()
     def get_students_answers(self, question_id, question_text):
         start = time.time()
 
         # init_chroma_client()
 
-        student_answers_collection = get_student_answers_collection()
+        q_a_collection = get_chroma_q_a_collection()
 
-        print("getting students answers for", question_id)
+        print("getting answers for", question_text)
 
-        similarity_query_result = student_answers_collection.query(
-            query_texts=[question_text],
-            where={"question_id": question_id}
-        )
+        USE_TRAIN_RESPONSES_DATA = os.getenv("USE_TRAIN_RESPONSES_DATA")
 
-        print("similarity", similarity_query_result)
+        if USE_TRAIN_RESPONSES_DATA == "true":
+            query_result = q_a_collection.get(
+                where={"domanda": question_text}
+            )
+        else:
+            query_result = q_a_collection.get(
+                where={"$and": [{"domanda": question_text}, {"id_autore": {"$ne": "undefined"}}]}
+            )
 
-        query_result = student_answers_collection.get(
-            where={"question_id": question_id}
-        )
-
-        self.students_answers_ready_event.emit(query_result)
+        self.q_a_ready_event.emit(query_result)
         # print(query_result)
         print(f'Execution time = {time.time() - start} seconds.')
 
 
 class TeacherWindow(QWidget):
-    def __init__(self, parent):
+    def __init__(self, parent, authorized_user):
         super(TeacherWindow, self).__init__(parent)
 
         self.main_window = parent
+        self.authorized_user = authorized_user
 
         self.main_window.setWindowTitle("Area Docente")
         self.main_window.resize(800, 500)
@@ -146,7 +118,8 @@ class TeacherWindow(QWidget):
         #     self.addQuestionToListWidget(question["value"])
 
         self.config = {}
-        self.db_worker = Worker("docente.test1", self.config)
+        self.db_worker = Worker(self.authorized_user, self.config)
+
         self.db_worker.call_start_ml.connect(self.db_worker.start_ml)
         self.db_worker.questions_ready_event.connect(lambda data: self.on_questions_ready(data))
         self.db_worker.question_added_event.connect(lambda data: self.on_question_added(data))
@@ -231,12 +204,11 @@ class TeacherWindow(QWidget):
             print("ok, view question riuscito", question)
 
         self.dialog = QuestionDialog(
+            self.authorized_user,
             question,
-            self.db_worker.answer_ready_event,
-            self.db_worker.students_answers_ready_event,
+            self.db_worker.q_a_ready_event,
             load_callback)
 
-        self.db_worker.get_teacher_answer(question["id"])
         self.db_worker.get_students_answers(question["id"], question["document"])
 
         self.dialog.show()

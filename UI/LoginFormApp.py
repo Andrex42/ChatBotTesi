@@ -43,7 +43,7 @@ class LoginFormApp(QWidget):
         self.prefill_creds()
 
     def prefill_creds(self):
-        self.username_field.setText("docente.test1")
+        self.username_field.setText("docente.archeologia")
         self.password_field.setText("docente123")
 
     def check_login(self, username, password):
@@ -90,7 +90,7 @@ class LoginFormApp(QWidget):
             elif authorized_user["role"] == "teacher":
                 from UI.TeacherWindow import TeacherWindow
                 print("apri teacher")
-                window = TeacherWindow(self.main_window)
+                window = TeacherWindow(self.main_window, authorized_user)
                 window.show()
                 # self.close()
         else:

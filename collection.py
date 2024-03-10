@@ -1,7 +1,6 @@
 import chromadb
 import os
 import string
-import nltk
 from dotenv import load_dotenv
 import cohere
 from cohere.responses.classify import Example
@@ -10,13 +9,11 @@ import pandas as pd
 import logging
 import spacy
 from halo import Halo
+from datetime import datetime
 from colorama import Fore, Style, init
 from nltk.corpus import stopwords
 from nltk.metrics import edit_distance
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 import chromadb.utils.embedding_functions as embedding_functions
-from mock import MOCK_DATA
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
@@ -71,43 +68,171 @@ def get_chroma_q_a_collection():
     return q_a_collection
 
 
+def get_chroma_questions_collection():
+    if chroma_client is None:
+        raise Exception("Chroma client not initialized")
+
+    # Gets or creates a ChromaDB collection named 'questions', using the Cohere embedding function.
+    # example_collection = chroma_client.get_or_create_collection(name="questions", embedding_function=cohere_ef)
+    # Gets or creates a ChromaDB collection named 'questions',
+    # using the SentenceTransformerEmbeddingFunction embedding function.
+    questions_collection = chroma_client.get_or_create_collection(name="questions", embedding_function=sentence_transformer_ef)
+    return questions_collection
+
+
 def init_model():
     init_chroma_client()
 
     # Reads the CSV data into pandas DataFrames.
     df_domande = pd.read_csv('./training_data/domande_archeologia_storia_arte.csv')
     df_risposte = pd.read_csv('./training_data/risposte_archeologia_storia_arte.csv')
+    df_risposte_docente = pd.read_csv('./training_data/risposte_docente_archeologia_storia_arte.csv')
 
     # Converts the DataFrames to lists of dictionaries.
     domande_dict = df_domande.to_dict('records')
     risposte_dict = df_risposte.to_dict('records')
+    risposte_docente_dict = df_risposte_docente.to_dict('records')
 
-    example_collection = get_chroma_q_a_collection()
-    collection_count = example_collection.count()
+    domande_collection = get_chroma_questions_collection()
+    domande_collection_count = domande_collection.count()
 
-    print(collection_count, "documenti trovati in example_collection")
-    print(len(risposte_dict), "risposte trovate nei dati di training")
+    print(domande_collection_count, "documenti trovati in domande_collection")
+    print(len(domande_dict), "domande trovate nei dati di training")
 
-    limit_add = 75
+    q_a_collection = get_chroma_q_a_collection()
+    q_a_collection_count = q_a_collection.count()
 
-    # If the number of examples in the collection is less than the number of examples in the department data,
+    print(q_a_collection_count, "documenti trovati in q_a_collection")
+    print(len(risposte_dict) + len(risposte_docente_dict), "risposte trovate nei dati di training")
+
+    limit_add = None
+
+    # If the number of examples in the collection is less than the number of examples in the questions data,
     # adds the examples to the collection.
-    if collection_count < len(risposte_dict):
-        for idx, item in enumerate(risposte_dict[collection_count:]):
-            index = collection_count + idx
-            print("\nAdding", index, item)
+    if domande_collection_count < len(domande_dict):
+        for idx, item in enumerate(domande_dict[domande_collection_count:]):
+            index = domande_collection_count + idx
+            print("\nAdding question", index, item)
 
-            example_collection.add(
+            # Ottieni la data e l'ora correnti
+            now = datetime.now()
+            # Converti in formato ISO 8601
+            iso_format = now.isoformat()
+
+            domande_collection.add(
                 embeddings=sentence_transformer_ef([preprocess(item['text'])]),
-                documents=[item['text']],  # aggiunge la risposta ai documenti
-                metadatas=[{"domanda": item['title'],
-                            "risultato": item['label'],
-                            "source": "internal__training"}],
+                documents=[item['text']],  # aggiunge la domanda ai documenti
+                metadatas=[{"id_docente": "docente.archeologia",
+                            "categoria": item['label'],
+                            "source": "internal__training",
+                            "data_creazione": iso_format}],
                 ids=[f"id_{index}"]
             )
 
             if limit_add == idx:
                 break
+
+    # If the number of examples in the collection is less than the number of examples in the q_a data,
+    # adds the examples to the collection.
+    if q_a_collection_count < len(risposte_docente_dict):
+        for idx, item in enumerate(risposte_docente_dict[q_a_collection_count:]):
+            index = q_a_collection_count + idx
+            print("\nAdding risposta docente", index, item)
+
+            # Ottieni la data e l'ora correnti
+            now = datetime.now()
+            # Converti in formato ISO 8601
+            iso_format = now.isoformat()
+
+            q_a_collection.add(
+                embeddings=sentence_transformer_ef([preprocess(item['text'])]),
+                documents=[item['text']],  # aggiunge la risposta ai documenti
+                metadatas=[{"domanda": item['title'],
+                            "id_autore": item['id_docente'],
+                            "risultato": "Corretta",
+                            "commento": "undefined",
+                            "source": "internal__training",
+                            "data_creazione": iso_format}],
+                ids=[f"id_{index}"]
+            )
+
+            if limit_add is not None and limit_add == idx:
+                break
+
+    q_a_collection_count = q_a_collection.count()
+
+    # If the number of examples in the collection is less than the number of examples in the q_a data,
+    # adds the examples to the collection.
+
+    if q_a_collection_count < (len(risposte_docente_dict) + len(risposte_dict)):
+        for idx, item in enumerate(risposte_dict[(q_a_collection_count - len(risposte_docente_dict)):]):
+            index = q_a_collection_count + idx
+            print("\nAdding risposta", index, item)
+
+            # Ottieni la data e l'ora correnti
+            now = datetime.now()
+            # Converti in formato ISO 8601
+            iso_format = now.isoformat()
+
+            q_a_collection.add(
+                embeddings=sentence_transformer_ef([preprocess(item['text'])]),
+                documents=[item['text']],  # aggiunge la risposta ai documenti
+                metadatas=[{"domanda": item['title'],
+                            "id_autore": "undefined",
+                            "risultato": item['label'],
+                            "commento": "undefined",
+                            "source": "internal__training",
+                            "data_creazione": iso_format}],
+                ids=[f"id_{index}"]
+            )
+
+            if limit_add is not None and limit_add == idx:
+                break
+
+
+def check_answer_records():
+    init_chroma_client()
+
+    # Reads the CSV data into pandas DataFrames.
+    df_risposte = pd.read_csv('./training_data/risposte_archeologia_storia_arte.csv')
+    df_risposte_docente = pd.read_csv('./training_data/risposte_docente_archeologia_storia_arte.csv')
+
+    # Converts the DataFrames to lists of dictionaries.
+    risposte_dict = df_risposte.to_dict('records')
+    risposte_docente_dict = df_risposte_docente.to_dict('records')
+
+    q_a_collection = get_chroma_q_a_collection()
+    q_a_collection_count = q_a_collection.count()
+
+    risposte_docente_result = q_a_collection.get(
+        where={"id_autore": {"$ne": "undefined"}}
+    )
+
+    ok = True
+
+    print("len(risposte_docente_result['documents'])", len(risposte_docente_result['documents']))
+    print("len(risposte_docente_dict)", len(risposte_docente_dict))
+
+    if len(risposte_docente_result['documents']) == len(risposte_docente_dict):
+        for idx, item in enumerate(risposte_docente_dict):
+            if item['text'] not in risposte_docente_result['documents']:
+                print(item['text'], "non trovato")
+                ok = False
+
+    risposte_result = q_a_collection.get(
+        where={"id_autore": "undefined"}
+    )
+
+    print("len(risposte_result['documents'])", len(risposte_result['documents']))
+    print("len(risposte_dict)", len(risposte_dict))
+
+    if len(risposte_result['documents']) == len(risposte_dict):
+        for idx, item in enumerate(risposte_dict):
+            if item['text'] not in risposte_result['documents']:
+                print(item['text'], "non trovato")
+                ok = False
+
+    print("check_answer_records", ok)
 
 
 def generate_response(messages):
@@ -344,10 +469,6 @@ def encode(answer_text):
     return cohere_ef([answer_text])
 
 
-def get_questions_and_answers_data():
-    return MOCK_DATA
-
-
 def get_collections():
     if chroma_client is None:
         raise Exception("Chroma client not initialized")
@@ -383,41 +504,6 @@ def get_student_answers_collection():
     student_answers_collection = chroma_client.get_or_create_collection(name="student_answers", embedding_function=cohere_ef)
 
     return student_answers_collection
-
-
-def populate_collections():
-    if chroma_client is None:
-        raise Exception("Chroma client not initialized")
-
-    question_collection, teacher_answers_collection, student_answers_collection = get_collections()
-    q_and_a = get_questions_and_answers_data()
-
-    question_collection.add(
-        documents=[question["value"] for question in q_and_a],
-        metadatas=[{"teacher_id": question["teacher_id"]} for question in q_and_a],
-        ids=[question["id"] for question in q_and_a]
-    )
-
-    teacher_answers = [question["answer"] for question in q_and_a]
-    teacher_answers_embeddings = encode(teacher_answers)
-
-    teacher_answers_collection.add(
-        embeddings=teacher_answers_embeddings,
-        documents=[question["answer"] for question in q_and_a],
-        metadatas=[{"question_id": question["id"], "teacher_id": question["teacher_id"]} for question in q_and_a],
-        ids=[question["id"] for question in q_and_a]  # same as question_id
-    )
-
-    student_answers = [student_answer["value"] for question in q_and_a for student_answer in question["student_answers"]]
-    student_answers_embeddings = encode(student_answers)
-
-    student_answers_collection.add(
-        embeddings=student_answers_embeddings,
-        documents=[student_answer["value"] for question in q_and_a for student_answer in question["student_answers"]],
-        metadatas=[{"question_id": question["id"], "student_id": student_answer["student_id"]}
-                   for question in q_and_a for student_answer in question["student_answers"]],
-        ids=[student_answer["id"] for question in q_and_a for student_answer in question["student_answers"]]
-    )
 
 
 def extract_data(query_result):

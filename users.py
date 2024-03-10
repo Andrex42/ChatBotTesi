@@ -1,9 +1,9 @@
 STUDENTS = [
-    {'username': 'studente.test1', 'password': 'studente123'},
-    {'username': 'studente.test1', 'password': 'studente123'}
+    {'username': 'studente.archeologia', 'password': 'studente123'},
+    {'username': 'studente.basidati', 'password': 'studente123'}
 ]
 
 TEACHERS = [
-    {'username': 'docente.test1', 'password': 'docente123'},
-    {'username': 'docente.test1', 'password': 'docente123'}
+    {'username': 'docente.archeologia', 'password': 'docente123'},
+    {'username': 'docente.basidati', 'password': 'docente123'}
 ]
