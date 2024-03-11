@@ -1,3 +1,5 @@
+import os
+
 from PyQt5.QtWidgets import QWidget, QFormLayout, QLabel, QLineEdit, QPushButton, QMessageBox
 from users import STUDENTS, TEACHERS
 
@@ -40,13 +42,13 @@ class LoginFormApp(QWidget):
         # Set the layout for the central widget
         central_widget.setLayout(form_layout)
 
-        self.prefill_creds(False)
+        self.prefill_creds(os.getenv("PREFILL_CREDS"))
 
-    def prefill_creds(self, teacher: bool):
-        if teacher:
+    def prefill_creds(self, type: str):
+        if type == "teacher":
             self.username_field.setText("docente.archeologia")
             self.password_field.setText("docente123")
-        else:
+        elif type == "student":
             self.username_field.setText("studente.archeologia")
             self.password_field.setText("studente123")
 

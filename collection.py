@@ -20,9 +20,9 @@ load_dotenv()  # This loads environment variables from a .env file, which is goo
 pp = pprint.PrettyPrinter(indent=4)  # PrettyPrinter makes dictionary output easier to read
 
 # Initializes the Cohere API key from the environment variables. Raises an error if the key isn't found.
-COHERE_KEY = os.getenv("COHERE_KEY")
-if COHERE_KEY is None:
-    raise ValueError("Cohere API key not found in the environment variables.")
+PRETRAINED_MODEL_NAME = os.getenv("PRETRAINED_MODEL_NAME")
+if PRETRAINED_MODEL_NAME is None:
+    raise ValueError("Pretrained model name not found in the environment variables.")
 
 
 nlp = spacy.load("it_core_news_sm")
@@ -241,10 +241,7 @@ def generate_response_full(data):
     spinner = Halo(text='Loading...', spinner='dots')  # Creates a loading animation
     spinner.start()
 
-    co = cohere.Client(COHERE_KEY)  # Initializes the Cohere API client with your API key
-
-    risultato = get_risultato_classification_full(data, co)
-    #ambito = get_ambito_classification_full(data, co)
+    risultato = get_risultato_classification_full(data)
 
     spinner.stop()  # Stops the loading animation after receiving the response
 
@@ -307,15 +304,17 @@ def get_ambito_classification_full(data, co):
 
 
 def calcola_voto_finale_ponderato(punteggi, voti):
-    # Calcola l'inverso di ciascun punteggio (assumendo che nessun punteggio sia 0)
-    inversi = [1 / punteggio if punteggio != 0 else 0 for punteggio in punteggi]
+    if punteggi[0] == 0:
+        return voti[0]
+
+    # Calcola l'inverso di ciascun punteggio
+    inversi = [1 / punteggio for punteggio in punteggi]
 
     # Calcola la somma totale degli inversi
     somma_totale_inversi = sum(inversi)
 
     # Calcola il peso di ciascun punteggio in base all'inverso
-    pesi = [inverso / somma_totale_inversi for inverso in inversi] if somma_totale_inversi != 0 else [0 for _ in
-                                                                                                      punteggi]
+    pesi = [inverso / somma_totale_inversi for inverso in inversi]
 
     # Calcola il voto finale ponderato come la somma dei prodotti dei voti per i loro pesi corrispondenti
     voto_finale_ponderato = sum(voto * peso for voto, peso in zip(voti, pesi))
@@ -328,8 +327,10 @@ def add_answer_to_collection(authenticated_user, question, answer: str):
 
     id, title = question['id'], question['document']
 
+    answer_embeddings = sentence_transformer_ef([preprocess(answer)])
+
     results = q_a_collection.query(
-        query_embeddings=sentence_transformer_ef([preprocess(answer)]),
+        query_embeddings=answer_embeddings,
         n_results=20,
         where={"$and": [{"id_domanda": id},
                         {"voto_docente": {"$gt": -1}}]},  # seleziona solo le risposte valutate dal docente
@@ -354,15 +355,35 @@ def add_answer_to_collection(authenticated_user, question, answer: str):
           f"\n\tRef. Result: {Fore.GREEN if results['metadatas'][0][min_distance_index]['voto_docente'] >= 3 else Fore.RED}{results['metadatas'][0][min_distance_index]['voto_docente']}{Style.RESET_ALL}"
           f"\n\tDocument: {results['documents'][0][min_distance_index]}")
 
-    voti = extract_metadata(results['metadatas'], 'voto_docente')
+    voti = extract_metadata_from_query_result(results['metadatas'], 'voto_docente')
     voto_ponderato = round(calcola_voto_finale_ponderato(results['distances'][0], voti), 1)
 
     print(
         f"{Fore.GREEN}Result Detected: {Fore.YELLOW}{Style.BRIGHT}{voto_ponderato}{Style.RESET_ALL}"
     )
 
+    # Ottieni la data e l'ora correnti
+    now = datetime.now()
+    # Converti in formato ISO 8601
+    iso_format = now.isoformat()
 
-def get_risultato_classification_full(data, co):
+    q_a_collection.add(
+        embeddings=answer_embeddings,
+        documents=[answer],  # aggiunge la risposta ai documenti
+        metadatas=[{"id_domanda": id,
+                    "domanda": title,
+                    "id_docente": question['id_docente'],
+                    "id_autore": authenticated_user['username'],
+                    "voto_docente": -1,
+                    "voto_predetto": voto_ponderato,
+                    "commento": "undefined",
+                    "source": "application",
+                    "data_creazione": iso_format}],
+        ids=[f"{id}_{authenticated_user['username']}"]
+    )
+
+
+def get_risultato_classification_full(data):
 
     q_a_collection = get_chroma_q_a_collection()
 
@@ -399,7 +420,7 @@ def get_risultato_classification_full(data, co):
           f"\n\tRef. Result: {Fore.GREEN if results['metadatas'][0][min_distance_index]['voto_docente'] >= 3 else Fore.RED}{results['metadatas'][0][min_distance_index]['voto_docente']}{Style.RESET_ALL}"
           f"\n\tDocument: {results['documents'][0][min_distance_index]}")
 
-    voti = extract_metadata(results['metadatas'], 'voto_docente')
+    voti = extract_metadata_from_query_result(results['metadatas'], 'voto_docente')
     voto_ponderato = round(calcola_voto_finale_ponderato(results['distances'][0], voti), 1)
 
     return voto_ponderato
@@ -431,16 +452,33 @@ def extract_data(query_result):
     return result
 
 
-def extract_metadata(data, key):
+def extract_metadata_from_query_result(data, key):
     # Inizializza una lista vuota per i valori di status
     metadata_values = []
 
     # Itera attraverso i dati per trovare tutte le occorrenze del valore 'key'
     for item in data:
+        print("item", item)
         for sub_item in item:
+            print("sub_item", sub_item)
             # Se la chiave è presente nell'elemento corrente, aggiungi il suo valore alla lista dei valori di status
             if key in sub_item:
                 metadata_values.append(sub_item[key])
+
+    # Restituisci la lista dei valori di status
+    return metadata_values
+
+
+def extract_metadata_from_get_result(data, key):
+    # Inizializza una lista vuota per i valori di status
+    metadata_values = []
+
+    # Itera attraverso i dati per trovare tutte le occorrenze del valore 'key'
+    for item in data:
+        print("item", item)
+        # Se la chiave è presente nell'elemento corrente, aggiungi il suo valore alla lista dei valori di status
+        if key in item:
+            metadata_values.append(item[key])
 
     # Restituisci la lista dei valori di status
     return metadata_values

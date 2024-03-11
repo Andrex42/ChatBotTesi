@@ -3,13 +3,13 @@ import time
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QSplitter, QListWidgetItem
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem
 
 from UI.AnswerToQuestionWidget import AnswerToQuestionWidget
-from UI.QuestionDetailsWidget import QuestionDetailsWidget
 from UI.StudentLeftSidebar import StudentLeftSideBar
 
-from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, add_answer_to_collection, extract_data, extract_metadata
+from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, add_answer_to_collection, \
+    extract_data, extract_metadata_from_get_result
 from users import RELATIONS
 
 
@@ -62,7 +62,7 @@ class Worker(QtCore.QObject):
 
                 answered_questions = None
             else:
-                id_domanda_metadatas = extract_metadata(all_student_answers['metadatas'], "id_domanda")
+                id_domanda_metadatas = extract_metadata_from_get_result(all_student_answers['metadatas'], "id_domanda")
                 unanswered_questions = question_collection.get(
                     where={"$and": [{"id_docente": {"$in": related_teachers}},
                                     {"id_domanda": {"$nin": id_domanda_metadatas}}]}
