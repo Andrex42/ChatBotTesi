@@ -32,7 +32,7 @@ lemmatizer = nlp.get_pipe("lemmatizer")
 # Initializes a CohereEmbeddingFunction, which is a specific function that generates embeddings
 # using the Cohere model.
 # These embeddings will be used to add and retrieve examples in the ChromaDB database.
-sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name="paraphrase-multilingual-MiniLM-L12-v2")
+sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=os.getenv("PRETRAINED_MODEL_NAME"))
 # cohere_ef = embedding_functions.CohereEmbeddingFunction(api_key=COHERE_KEY,  model_name=os.getenv('COHERE_MODEL_NAME'))
 
 
@@ -331,7 +331,8 @@ def add_answer_to_collection(authenticated_user, question, answer: str):
     results = q_a_collection.query(
         query_embeddings=sentence_transformer_ef([preprocess(answer)]),
         n_results=20,
-        where={"id_domanda": id},
+        where={"$and": [{"id_domanda": id},
+                        {"voto_docente": {"$gt": -1}}]},  # seleziona solo le risposte valutate dal docente
         include=["documents", "embeddings", "metadatas", "distances"]
     )
 
@@ -368,7 +369,8 @@ def get_risultato_classification_full(data, co):
     results = q_a_collection.query(
         query_embeddings=sentence_transformer_ef([preprocess(data['text'])]),
         n_results=20,
-        where={"domanda": data['title']},
+        where={"$and": [{"domanda": data['title']},
+                        {"voto_docente": {"$gt": -1}}]},  # seleziona solo le risposte valutate dal docente
         include=["documents", "embeddings", "metadatas", "distances"]
     )
 
