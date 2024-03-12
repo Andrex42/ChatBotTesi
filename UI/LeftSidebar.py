@@ -7,7 +7,7 @@ from UI.QuestionListWidget import QuestionListWidget
 
 class LeftSideBar(QWidget):
 
-    added = QtCore.pyqtSignal()
+    on_add_question_clicked = QtCore.pyqtSignal()
     changed = QtCore.pyqtSignal(QListWidgetItem)
     deleted = QtCore.pyqtSignal(list)
     questionUpdated = QtCore.pyqtSignal(str, str)
@@ -70,7 +70,7 @@ class LeftSideBar(QWidget):
         self.__convListWidget.setCurrentRow(0)
 
     def __addClicked(self):
-        self.added.emit()
+        self.on_add_question_clicked.emit()
 
     def __deleteClicked(self):
         # get the ID of row, not actual index (because list is in a stacked form)

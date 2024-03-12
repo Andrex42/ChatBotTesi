@@ -59,3 +59,14 @@ class StudentLeftSideBar(QWidget):
     def moveQuestionToAnsweredList(self, question):
         self.__unansweredQuestionListWidget.removeQuestion(question)
         self.__answeredQuestionListWidget.addQuestion(question)
+
+    def selectUnansweredListItem(self, index: int):
+        if index < self.__unansweredQuestionListWidget.count():
+            self.__unansweredQuestionListWidget.setCurrentRow(index)
+
+    def selectAnsweredListItem(self, index: int):
+        if index < self.__answeredQuestionListWidget.count():
+            self.__answeredQuestionListWidget.setCurrentRow(index)
+
+    def getCurrentAnsweredListItem(self) -> int:
+        return self.__answeredQuestionListWidget.currentRow()

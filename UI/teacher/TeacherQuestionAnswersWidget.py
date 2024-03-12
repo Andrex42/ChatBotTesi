@@ -3,10 +3,10 @@ import time
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QSplitter, QListWidgetItem
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem
 
 from UI.LeftSidebar import LeftSideBar
-from UI.QuestionDetailsWidget import QuestionDetailsWidget
+from UI.teacher.TeacherQuestionDetailsWidget import QuestionDetailsWidget
 
 from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, extract_data
 
@@ -97,20 +97,48 @@ class Worker(QtCore.QObject):
         # print(query_result)
         print(f'Execution time = {time.time() - start} seconds.')
 
+    @QtCore.pyqtSlot()
+    def assign_vote(self, answer, voto):
+        start = time.time()
+
+        init_chroma_client()
+
+        id = answer['id']
+
+        q_a_collection = get_chroma_q_a_collection()
+
+        print("updating answer with evaluation", answer)
+
+        q_a_collection.update(
+            ids=[id],
+            metadatas=[{"id_domanda": answer['id_domanda'],
+                        "domanda": answer['domanda'],
+                        "id_docente": answer['id_docente'],
+                        "id_autore": answer['id_autore'],
+                        "voto_docente": voto,
+                        "voto_predetto": answer['voto_predetto'],
+                        "commento": answer['commento'],
+                        "source": answer['source'],
+                        "data_creazione": answer['data_creazione']}],
+        )
+
+        print(f'Execution time = {time.time() - start} seconds.')
+
 
 class TeacherQuestionAnswersWidget(QWidget):
-    def __init__(self, authorized_user):
+    def __init__(self, authorized_user, onCreatedThread):
         super().__init__()
 
         self.authorized_user = authorized_user
+        self.onCreatedWorker = onCreatedThread
 
-        self.__initUi()
         self.__initWorker()
+        self.__initUi()
         self.__initQuestions()
 
     def __initUi(self):
         self.__leftSideBarWidget = LeftSideBar(self.authorized_user)
-        self.__questionDetailsWidget = QuestionDetailsWidget(self.authorized_user)
+        self.__questionDetailsWidget = QuestionDetailsWidget(self.authorized_user, self.db_worker)
 
         lay = QVBoxLayout()
         lay.addWidget(self.__questionDetailsWidget)
@@ -136,7 +164,7 @@ class TeacherQuestionAnswersWidget(QWidget):
             }
             ''')
 
-        self.__leftSideBarWidget.added.connect(self.__addedQuestion)
+        self.__leftSideBarWidget.on_add_question_clicked.connect(self.__onAddQuestionClicked)
         self.__leftSideBarWidget.changed.connect(self.__changedQuestion)
         self.__leftSideBarWidget.deleted.connect(self.__deletedQuestion)
         self.__leftSideBarWidget.questionUpdated.connect(self.__updatedQuestion)
@@ -155,18 +183,26 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.db_worker.call_start_ml.connect(self.db_worker.start_ml)
         self.db_worker.questions_ready_event.connect(lambda data: self.on_questions_ready(data))
         self.db_worker.q_a_ready_event.connect(lambda question, result: self.on_question_details_ready(question, result))
-        # self.db_worker.question_added_event.connect(lambda data: self.on_question_added(data))
 
         self.db_thread = QtCore.QThread()
         self.db_thread.start()
 
+        self.db_thread.finished.connect(self.on_finished_thread)
+        self.onCreatedWorker(self.db_worker)
+
         self.db_worker.moveToThread(self.db_thread)
 
+    def on_finished_thread(self):
+        self.db_worker.deleteLater()
+        self.db_worker = None
+
     def __initQuestions(self):
-        self.db_worker.call_start_ml.emit()
+        if self.db_worker is not None:
+            self.db_worker.call_start_ml.emit()
 
     def __getQuestionDetails(self, question):
-        self.db_worker.get_students_answers(question)
+        if self.db_worker is not None:
+            self.db_worker.get_students_answers(question)
 
     @QtCore.pyqtSlot()
     def on_questions_ready(self, data):
@@ -195,7 +231,7 @@ class TeacherQuestionAnswersWidget(QWidget):
             # self.__browser.resetChatWidget(0) TODO
             print("reset")
 
-    def __addedQuestion(self):
+    def __onAddQuestionClicked(self):
         # cur_id = DB.insertConv(LangClass.TRANSLATIONS['New Chat'])
         # self.__browser.resetChatWidget(cur_id) TODO
         #self.__leftSideBarWidget.addToList(cur_id)

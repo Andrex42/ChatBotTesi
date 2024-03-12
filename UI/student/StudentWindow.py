@@ -1,7 +1,8 @@
+from PyQt5 import QtCore
 from PyQt5.QtWidgets import QLabel, QPushButton, QStackedWidget, QToolBar, \
-    QWidgetAction, QSizePolicy, QAction, QMessageBox
+    QWidgetAction, QSizePolicy
 from UI.LoginFormApp import LoginFormApp
-from UI.StudentQuestionAnswersWidget import StudentQuestionAnswersWidget
+from UI.student.StudentQuestionAnswersWidget import StudentQuestionAnswersWidget
 
 
 class StudentWindow(QStackedWidget):
@@ -11,10 +12,12 @@ class StudentWindow(QStackedWidget):
         self.main_window = parent
         self.authorized_user = authorized_user
 
+        self.activeWorkers: list[QtCore.QObject] = []
+
         self.main_window.setWindowTitle("Area Studente")
         self.main_window.resize(800, 500)
 
-        self.__studentQuestionAnswersWidget = StudentQuestionAnswersWidget(authorized_user)
+        self.__studentQuestionAnswersWidget = StudentQuestionAnswersWidget(authorized_user, self.__onCreatedThread)
         self.addWidget(self.__studentQuestionAnswersWidget)
 
         self.__setActions()
@@ -22,6 +25,10 @@ class StudentWindow(QStackedWidget):
 
         self.main_window.resize(800, 500)
         self.main_window.setCentralWidget(self)
+
+    def __onCreatedThread(self, worker):
+        print("worker created", worker)
+        self.activeWorkers.append(worker)
 
     def __setActions(self):
         # toolbar action
@@ -45,7 +52,17 @@ class StudentWindow(QStackedWidget):
         self.main_window.addToolBar(aiTypeToolBar)
 
     def logout(self):
+        for worker in self.activeWorkers:
+            thread = worker.thread()
+            if thread is not None:
+                thread.quit()
+                thread.deleteLater()
+
+        self.activeWorkers = []
+
+        print("logout, workers", self.activeWorkers)
+
         window = LoginFormApp(self.main_window)
         window.show()
 
-        # self.close()
+        self.close()

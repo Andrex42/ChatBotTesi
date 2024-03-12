@@ -391,6 +391,7 @@ def add_answer_to_collection(authenticated_user, question, answer_text: str):
             added_answer_data_array[0]['id_domanda'],
             added_answer_data_array[0]['domanda'],
             added_answer_data_array[0]['id_docente'],
+            added_answer_data_array[0]['document'],
             added_answer_data_array[0]['id_autore'],
             added_answer_data_array[0]['voto_docente'],
             added_answer_data_array[0]['voto_predetto'],

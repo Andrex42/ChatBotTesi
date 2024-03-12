@@ -88,12 +88,12 @@ class LoginFormApp(QWidget):
         if authorized_user is not None:
             print(authorized_user)
             if authorized_user["role"] == "student":
-                from UI.StudentWindow import StudentWindow
+                from UI.student.StudentWindow import StudentWindow
                 window = StudentWindow(self.main_window, authorized_user)
                 window.show()
                 # self.close()
             elif authorized_user["role"] == "teacher":
-                from UI.TeacherWindow import TeacherWindow
+                from UI.teacher.TeacherWindow import TeacherWindow
                 window = TeacherWindow(self.main_window, authorized_user)
                 window.show()
                 # self.close()

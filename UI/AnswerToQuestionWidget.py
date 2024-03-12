@@ -92,7 +92,6 @@ class AnswerToQuestionWidget(QWidget):
             self.onSendAnswerClicked.emit(self.question, self.answerTextEdit.toPlainText())
 
     def cleanup(self, cleanup_callback=None):
-        print()
         # Elimina tutti i widget dal layout
         while self.teacher_answer_layout.count():
             item = self.teacher_answer_layout.takeAt(0)

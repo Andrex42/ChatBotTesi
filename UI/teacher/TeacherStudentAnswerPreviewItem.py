@@ -1,60 +1,16 @@
-import time
-
-from PyQt5 import QtCore
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QLineEdit, QDoubleSpinBox
-
-from collection import init_chroma_client, get_collections, get_chroma_q_a_collection
-
-
-class Worker(QtCore.QObject):
-    """
-    Worker thread that handles the major program load. Allowing the gui to still be responsive.
-    """
-    def __init__(self, authorized_user, config):
-        super(Worker, self).__init__()
-        self.authorized_user = authorized_user
-        self.config = config
-
-    answer_added_event = QtCore.pyqtSignal(object)
-
-    @QtCore.pyqtSlot()
-    def start_ml(self, answer, voto):
-        start = time.time()
-
-        init_chroma_client()
-
-        id = answer['id']
-
-        q_a_collection = get_chroma_q_a_collection()
-
-        print("updating answer with evaluation", answer)
-
-        q_a_collection.update(
-            ids=[id],
-            metadatas=[{"id_domanda": answer['id_domanda'],
-                        "domanda": answer['domanda'],
-                        "id_docente": answer['id_docente'],
-                        "id_autore": answer['id_autore'],
-                        "voto_docente": voto,
-                        "voto_predetto": answer['voto_predetto'],
-                        "commento": answer['commento'],
-                        "source": answer['source'],
-                        "data_creazione": answer['data_creazione']}],
-        )
-
-        print(f'Execution time = {time.time() - start} seconds.')
 
 
 class TeacherStudentAnswerPreviewItem(QWidget):
-    def __init__(self, authorized_user, answer, evaluated):
+    def __init__(self, db_worker, authorized_user, answer, evaluated):
         super().__init__()
 
+        self.db_worker = db_worker
         self.authorized_user = authorized_user
         self.answer = answer
         self.evaluated = evaluated
 
         self.__initUi()
-        self.__initWorker()
 
     def __initUi(self):
         lay = QVBoxLayout()
@@ -143,14 +99,6 @@ class TeacherStudentAnswerPreviewItem(QWidget):
 
         self.setLayout(lay)
 
-    def __initWorker(self):
-        self.config = {}
-        self.db_worker = Worker(self.authorized_user, self.config)
-
-        self.db_thread = QtCore.QThread()
-        self.db_thread.start()
-
-        self.db_worker.moveToThread(self.db_thread)
-
     def __assignVote(self):
-        self.db_worker.start_ml(self.answer, self.votoCustomSpinBox.value())
+        if self.db_worker is not None:
+            self.db_worker.assign_vote(self.answer, self.votoCustomSpinBox.value())

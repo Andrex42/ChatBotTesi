@@ -1,11 +1,9 @@
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QWidget, QMessageBox, QPushButton, QVBoxLayout, QListWidget, QListWidgetItem, QHBoxLayout, \
-    QLabel, QSizePolicy, QStackedWidget, QAction, QToolBar, QWidgetAction
+from PyQt5.QtWidgets import QMessageBox, QPushButton, QLabel, QSizePolicy, QStackedWidget, QToolBar, QWidgetAction
 from UI.LoginFormApp import LoginFormApp
-from UI.TeacherEditQuestionDialog import EditQuestionDialog
-from UI.TeacherQuestionAnswersWidget import TeacherQuestionAnswersWidget
-from UI.TeacherQuestionDialog import QuestionDialog
-from collection import extract_data
+from UI.teacher.TeacherEditQuestionDialog import EditQuestionDialog
+from UI.teacher.TeacherQuestionAnswersWidget import TeacherQuestionAnswersWidget
+from UI.teacher.TeacherQuestionDialog import QuestionDialog
 
 
 class TeacherWindow(QStackedWidget):
@@ -15,9 +13,11 @@ class TeacherWindow(QStackedWidget):
         self.main_window = parent
         self.authorized_user = authorized_user
 
+        self.activeWorkers: list[QtCore.QObject] = []
+
         self.main_window.setWindowTitle("Area Docente")
 
-        self.__teacherQuestionAnswersWidget = TeacherQuestionAnswersWidget(authorized_user)
+        self.__teacherQuestionAnswersWidget = TeacherQuestionAnswersWidget(authorized_user, self.__onCreatedThread)
         self.addWidget(self.__teacherQuestionAnswersWidget)
 
         self.__setActions()
@@ -25,6 +25,10 @@ class TeacherWindow(QStackedWidget):
 
         self.main_window.resize(800, 500)
         self.main_window.setCentralWidget(self)
+
+    def __onCreatedThread(self, worker):
+        print("worker created", worker)
+        self.activeWorkers.append(worker)
 
     def __setActions(self):
         # toolbar action
@@ -83,7 +87,17 @@ class TeacherWindow(QStackedWidget):
             print(f"Domanda eliminata: {question}")  # Qui dovresti eliminare la domanda effettivamente
 
     def logout(self):
+        for worker in self.activeWorkers:
+            thread = worker.thread()
+            if thread is not None:
+                thread.quit()
+                thread.deleteLater()
+
+        self.activeWorkers = []
+
+        print("logout, workers", self.activeWorkers)
+
         window = LoginFormApp(self.main_window)
         window.show()
 
-        # self.close()
+        self.close()

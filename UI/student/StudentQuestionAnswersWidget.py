@@ -1,15 +1,14 @@
-import os
 import time
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem, QMessageBox, QTabWidget
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem, QMessageBox
 
 from UI.AnswerToQuestionWidget import AnswerToQuestionWidget
-from UI.StudentLeftSidebar import StudentLeftSideBar
+from UI.student.StudentAnswerDetailsWidget import AnswerDetailsWidget
+from UI.student.StudentLeftSidebar import StudentLeftSideBar
 
-from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, add_answer_to_collection, \
-    extract_data, extract_metadata_from_get_result
+from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, extract_data, extract_metadata_from_get_result
 from model.answer_model import Answer
 from users import RELATIONS
 
@@ -29,7 +28,7 @@ class Worker(QtCore.QObject):
     unanswered_questions_ready_event = QtCore.pyqtSignal(object)
     answered_questions_ready_event = QtCore.pyqtSignal(object)
     answer_added_event = QtCore.pyqtSignal(object, Answer)
-    answer_details_ready_event = QtCore.pyqtSignal(Answer)
+    answer_details_ready_event = QtCore.pyqtSignal(object, Answer)
 
     @QtCore.pyqtSlot()
     def get_student_answers(self):
@@ -86,16 +85,18 @@ class Worker(QtCore.QObject):
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
-    def get_student_answer(self, question_id):
+    def get_student_answer(self, question):
         start = time.time()
+
+        id, title = question['id'], question['document']
 
         q_a_collection = get_chroma_q_a_collection()
 
-        print("getting answer by question", question_id)
+        print("getting answer by question", id)
 
         answer_result = q_a_collection.get(
             where={"$and": [{"id_autore": self.authorized_user['username']},
-                            {"id_domanda": question_id}]}
+                            {"id_domanda": id}]}
         )
 
         answer_data_array = extract_data(answer_result)
@@ -106,6 +107,7 @@ class Worker(QtCore.QObject):
                 answer_data_array[0]['id_domanda'],
                 answer_data_array[0]['domanda'],
                 answer_data_array[0]['id_docente'],
+                answer_data_array[0]['document'],
                 answer_data_array[0]['id_autore'],
                 answer_data_array[0]['voto_docente'],
                 answer_data_array[0]['voto_predetto'],
@@ -114,7 +116,7 @@ class Worker(QtCore.QObject):
                 answer_data_array[0]['data_creazione'],
             )
 
-            self.answer_details_ready_event.emit(answer)
+            self.answer_details_ready_event.emit(question, answer)
 
         print(f'Execution time = {time.time() - start} seconds.')
 
@@ -136,9 +138,10 @@ class Worker(QtCore.QObject):
             'id_domanda',
             'domanda',
             'id_docente',
+            'risposta',
             'id_autore',
-            'voto_docente',
-            'voto_predetto',
+            5,
+            3,
             'commento',
             'source',
             'data_creazione'
@@ -149,21 +152,25 @@ class Worker(QtCore.QObject):
 
 
 class StudentQuestionAnswersWidget(QWidget):
-    def __init__(self, authorized_user):
+    def __init__(self, authorized_user, onCreatedThread):
         super().__init__()
 
         self.authorized_user = authorized_user
+        self.onCreatedWorker = onCreatedThread
 
-        self.__initUi()
         self.__initWorker()
+        self.__initUi()
         self.__initQuestions()
 
     def __initUi(self):
         self.__leftSideBarWidget = StudentLeftSideBar(self.authorized_user)
         self.__answerToQuestionWidget = AnswerToQuestionWidget(self.authorized_user)
+        self.__answerDetailsWidget = AnswerDetailsWidget(self.authorized_user)
+        self.__answerDetailsWidget.hide()
 
         lay = QVBoxLayout()
         lay.addWidget(self.__answerToQuestionWidget)
+        lay.addWidget(self.__answerDetailsWidget)
         lay.setSpacing(0)
         lay.setContentsMargins(0, 0, 0, 0)
 
@@ -206,17 +213,23 @@ class StudentQuestionAnswersWidget(QWidget):
         self.db_worker.unanswered_questions_ready_event.connect(lambda data: self.on_unanswered_questions_ready(data))
         self.db_worker.answered_questions_ready_event.connect(lambda data: self.on_answered_questions_ready(data))
         self.db_worker.answer_added_event.connect(lambda question, answer: self.on_answer_added(question, answer))
-        self.db_worker.answer_details_ready_event.connect(lambda answer: self.on_answer_details_ready(answer))
-        # self.db_worker.q_a_ready_event.connect(lambda question, result: self.on_question_details_ready(question, result))
-        # self.db_worker.question_added_event.connect(lambda data: self.on_question_added(data))
+        self.db_worker.answer_details_ready_event.connect(lambda question, answer: self.on_answer_details_ready(question, answer))
 
         self.db_thread = QtCore.QThread()
         self.db_thread.start()
 
+        self.db_thread.finished.connect(self.on_finished_thread)
+        self.onCreatedWorker(self.db_worker)
+
         self.db_worker.moveToThread(self.db_thread)
 
+    def on_finished_thread(self):
+        self.db_worker.deleteLater()
+        self.db_worker = None
+
     def __initQuestions(self):
-        self.db_worker.get_student_answers()
+        if self.db_worker is not None:
+            self.db_worker.get_student_answers()
 
     @QtCore.pyqtSlot()
     def on_unanswered_questions_ready(self, data):
@@ -226,6 +239,7 @@ class StudentQuestionAnswersWidget(QWidget):
 
         for question in data_array:
             self.__leftSideBarWidget.addQuestionToUnansweredList(question)
+        self.__leftSideBarWidget.selectUnansweredListItem(0)
 
     @QtCore.pyqtSlot()
     def on_answered_questions_ready(self, data):
@@ -252,12 +266,14 @@ class StudentQuestionAnswersWidget(QWidget):
         self.__leftSideBarWidget.moveQuestionToAnsweredList(question)
 
     @QtCore.pyqtSlot()
-    def on_answer_details_ready(self, answer: Answer):
+    def on_answer_details_ready(self, question, answer: Answer):
         print("[on_answer_details_ready]", answer)
+        self.__answerDetailsWidget.replaceAnswer(question, answer)
 
     def __unansweredQuestionSelectionChanged(self, item: QListWidgetItem):
         if item:
             self.__answerToQuestionWidget.show()
+            self.__answerDetailsWidget.hide()
 
             question = item.data(Qt.UserRole)
             id, title = question['id'], question['document']
@@ -272,16 +288,18 @@ class StudentQuestionAnswersWidget(QWidget):
     def __onSendAnswerClicked(self, question: object, answer: str):
         print("Domanda", question)
         print("Risposta", answer)
-        self.db_worker.add_answer(question, answer)
+        if self.db_worker is not None:
+            self.db_worker.add_answer(question, answer)
 
     def __answeredQuestionSelectionChanged(self, item: QListWidgetItem):
         if item:
             self.__answerToQuestionWidget.hide()
+            self.__answerDetailsWidget.show()
 
             question = item.data(Qt.UserRole)
             id, title = question['id'], question['document']
             print("changed", id, title)
-            self.__getAnswerDetails(id)
+            self.__getAnswerDetails(question)
         else:
             # self.__browser.resetChatWidget(0) TODO
             print("reset")
@@ -290,8 +308,14 @@ class StudentQuestionAnswersWidget(QWidget):
         print(tabName, "changed")
         if tabName == "Da rispondere":
             self.__answerToQuestionWidget.show()
+            self.__answerDetailsWidget.hide()
         elif tabName == "Già risposte":
+            if self.__leftSideBarWidget.getCurrentAnsweredListItem() < 0:
+                self.__leftSideBarWidget.selectAnsweredListItem(0)
+
             self.__answerToQuestionWidget.hide()
+            self.__answerDetailsWidget.show()
 
     def __getAnswerDetails(self, question):
-        self.db_worker.get_student_answer(question)
+        if self.db_worker is not None:
+            self.db_worker.get_student_answer(question)
