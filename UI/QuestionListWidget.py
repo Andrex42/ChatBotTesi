@@ -3,6 +3,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QListWidgetItem, QLabel, QVBoxLayout, QPushButton, QHBoxLayout, QListWidget, \
     QApplication
 
+from model.question_model import Question
+
 
 class QuestionItemWidget(QWidget):
     btnClicked = QtCore.pyqtSignal(QListWidgetItem)
@@ -70,16 +72,14 @@ class QuestionListWidget(QListWidget):
         self.itemClicked.connect(self.__clicked)
         self.currentItemChanged.connect(self.changed)
 
-    def addQuestion(self, question):
-        id, title = question['id'], question['document']
-
+    def addQuestion(self, question: Question):
         item = QListWidgetItem()
 
         if self.enable_checkbox:
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
             item.setCheckState(Qt.Unchecked)
 
-        widget = QuestionItemWidget(title, item, id)
+        widget = QuestionItemWidget(question.domanda, item, question.id)
         widget.questionUpdated.connect(self.questionUpdated)
         item.setSizeHint(widget.sizeHint())
         item.setData(Qt.UserRole, question)
@@ -87,8 +87,6 @@ class QuestionListWidget(QListWidget):
         self.setItemWidget(item, widget)
 
     def removeQuestion(self, question):
-        id, title = question['id'], question['document']
-
         rowToRemove = -1
 
         for x in range(self.count() - 1):

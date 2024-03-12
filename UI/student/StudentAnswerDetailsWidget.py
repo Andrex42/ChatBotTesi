@@ -1,6 +1,7 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea
 from model.answer_model import Answer
+from model.question_model import Question
 
 
 class AnswerDetailsWidget(QWidget):
@@ -54,10 +55,8 @@ class AnswerDetailsWidget(QWidget):
 
         self.setLayout(lay)
 
-    def replaceAnswer(self, question, answer: Answer):
-        id, title = question['id'], question['document']
-
-        self.question_label.setText(title)
+    def replaceAnswer(self, question: Question, answer: Answer):
+        self.question_label.setText(question.domanda)
         self.answer_label.setText(answer.risposta)
         self.result_label.setText("In attesa di valutazione" if answer.voto_docente == -1 else str(answer.voto_docente))
 

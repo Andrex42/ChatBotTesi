@@ -3,10 +3,12 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QListWidgetItem, QPushButton, QHBoxLayout, QScrollArea, \
     QTextEdit, QApplication
 
+from model.question_model import Question
+
 
 class AnswerToQuestionWidget(QWidget):
 
-    onSendAnswerClicked = QtCore.pyqtSignal(object, str)
+    onSendAnswerClicked = QtCore.pyqtSignal(Question, str)
 
     def __init__(self, authorized_user):
         super().__init__()
@@ -41,14 +43,12 @@ class AnswerToQuestionWidget(QWidget):
 
         self.setLayout(lay)
 
-    def replaceQuestion(self, question):
+    def replaceQuestion(self, question: Question):
         self.cleanup()
 
         self.question = question
 
-        id, title = question['id'], question['document']
-
-        question_label = QLabel(title)
+        question_label = QLabel(question.domanda)
         question_label.setStyleSheet('''
             QLabel {
                 font-size: 14px; 
@@ -69,6 +69,7 @@ class AnswerToQuestionWidget(QWidget):
         ''')
 
         self.answerTextEdit = QTextEdit()
+        self.answerTextEdit.setPlaceholderText("Inserisci risposta")
         self.sendAnswerBtn = QPushButton("Invia risposta")
         self.sendAnswerBtn.setEnabled(False)
 

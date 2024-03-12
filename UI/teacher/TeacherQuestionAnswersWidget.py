@@ -6,9 +6,12 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem
 
 from UI.LeftSidebar import LeftSideBar
+from UI.teacher.TeacherAddQuestionDialog import AddQuestionDialog
 from UI.teacher.TeacherQuestionDetailsWidget import QuestionDetailsWidget
 
-from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, extract_data
+from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, extract_data, \
+    add_question_to_collection
+from model.question_model import Question
 
 
 class Worker(QtCore.QObject):
@@ -25,7 +28,7 @@ class Worker(QtCore.QObject):
     call_add_question = QtCore.pyqtSignal()
 
     questions_ready_event = QtCore.pyqtSignal(object)
-    question_added_event = QtCore.pyqtSignal(object)
+    question_added_event = QtCore.pyqtSignal(Question)
     q_a_ready_event = QtCore.pyqtSignal(object, object)
 
     @QtCore.pyqtSlot()
@@ -46,51 +49,40 @@ class Worker(QtCore.QObject):
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
-    def add_question(self, question):
+    def add_question(self, categoria, question_text, ref_answer_text):
         start = time.time()
 
         # init_chroma_client()
 
-        question_collection, teacher_answers_collection, student_answers_collection = get_collections()
+        print("adding question", question_text, ref_answer_text)
 
-        print("adding question", question)
+        question = add_question_to_collection(self.authorized_user, categoria, question_text, ref_answer_text)
 
-        question_collection.add(
-            documents=[question],
-            metadatas=[{"teacher_id": self.teacher_id}],
-        )
+        if question:
+            print("[add_question]", "question added", question)
+            self.question_added_event.emit(question)
 
-        # query_result = question_collection.query(
-        #     query_texts=["Quale può essere il futuro dell'intelligenza artificiale?"],
-        #     n_results=10
-        # )
-
-        # print("# The most similar sentences computed by chroma")
-        # print(query_result)
-        self.question_added_event.emit(question)
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
-    def get_students_answers(self, question):
+    def get_students_answers(self, question: Question):
         start = time.time()
 
         # init_chroma_client()
 
         q_a_collection = get_chroma_q_a_collection()
 
-        id, title = question['id'], question['document']
-
-        print("getting answers for", title)
+        print("getting answers for", question.domanda)
 
         USE_TRAIN_RESPONSES_DATA = os.getenv("USE_TRAIN_RESPONSES_DATA")
 
         if USE_TRAIN_RESPONSES_DATA == "true":
             query_result = q_a_collection.get(
-                where={"domanda": title}
+                where={"domanda": question.domanda}
             )
         else:
             query_result = q_a_collection.get(
-                where={"$and": [{"domanda": title}, {"id_autore": {"$ne": "undefined"}}]}
+                where={"$and": [{"domanda": question.domanda}, {"id_autore": {"$ne": "undefined"}}]}
             )
 
         self.q_a_ready_event.emit(question, query_result)
@@ -164,6 +156,11 @@ class TeacherQuestionAnswersWidget(QWidget):
             }
             ''')
 
+        self.add_question_dialog = AddQuestionDialog(
+            parent=self,
+            save_callback=self.save_callback
+        )
+
         self.__leftSideBarWidget.on_add_question_clicked.connect(self.__onAddQuestionClicked)
         self.__leftSideBarWidget.changed.connect(self.__changedQuestion)
         self.__leftSideBarWidget.deleted.connect(self.__deletedQuestion)
@@ -183,6 +180,7 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.db_worker.call_start_ml.connect(self.db_worker.start_ml)
         self.db_worker.questions_ready_event.connect(lambda data: self.on_questions_ready(data))
         self.db_worker.q_a_ready_event.connect(lambda question, result: self.on_question_details_ready(question, result))
+        self.db_worker.question_added_event.connect(lambda question: self.on_question_added(question))
 
         self.db_thread = QtCore.QThread()
         self.db_thread.start()
@@ -192,6 +190,12 @@ class TeacherQuestionAnswersWidget(QWidget):
 
         self.db_worker.moveToThread(self.db_thread)
 
+    def save_callback(self, categoria, question_text, ref_answer_text):
+        # Qui dovresti aggiornare la domanda effettivamente, per semplicità la stampiamo solo
+        print(f"Nuova domanda: {categoria} {question_text} {ref_answer_text}")  # Aggiorna questa parte per modificare i dati effettivi
+        if self.db_worker is not None:
+            self.db_worker.add_question(categoria, question_text, ref_answer_text)
+
     def on_finished_thread(self):
         self.db_worker.deleteLater()
         self.db_worker = None
@@ -200,7 +204,7 @@ class TeacherQuestionAnswersWidget(QWidget):
         if self.db_worker is not None:
             self.db_worker.call_start_ml.emit()
 
-    def __getQuestionDetails(self, question):
+    def __getQuestionDetails(self, question: Question):
         if self.db_worker is not None:
             self.db_worker.get_students_answers(question)
 
@@ -210,22 +214,36 @@ class TeacherQuestionAnswersWidget(QWidget):
         data_array = extract_data(data)
         print("data converted", data_array)
 
-        for question in data_array:
+        for q in data_array:
+            question = Question(
+                q['id'],
+                q['document'],
+                q['id_docente'],
+                q['categoria'],
+                q['source'],
+                q['data_creazione'],
+            )
+
             self.__leftSideBarWidget.addQuestionToList(question)
 
     @QtCore.pyqtSlot()
-    def on_question_details_ready(self, question, result):
+    def on_question_details_ready(self, question: Question, result):
         print("received", result)
         data_array = extract_data(result)
         print("data converted", data_array)
 
         self.__questionDetailsWidget.replaceQuestion(question, data_array)
 
+    @QtCore.pyqtSlot()
+    def on_question_added(self, question: Question):
+        print("received", question)
+
+        self.__leftSideBarWidget.addQuestionToList(question)
+
     def __changedQuestion(self, item: QListWidgetItem):
         if item:
-            question = item.data(Qt.UserRole)
-            id, title = question['id'], question['document']
-            print("changed", id, title)
+            question: Question = item.data(Qt.UserRole)
+            print("changed", question.id, question.domanda)
             self.__getQuestionDetails(question)
         else:
             # self.__browser.resetChatWidget(0) TODO
@@ -236,7 +254,7 @@ class TeacherQuestionAnswersWidget(QWidget):
         # self.__browser.resetChatWidget(cur_id) TODO
         #self.__leftSideBarWidget.addToList(cur_id)
         # self.__lineEdit.setFocus()
-        print("add question")
+        self.add_question_dialog.show()
 
     def __updatedQuestion(self, id, title=None):
         if title:

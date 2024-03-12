@@ -2,6 +2,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea
 
 from UI.teacher.TeacherStudentAnswerPreviewItem import TeacherStudentAnswerPreviewItem
+from model.question_model import Question
 
 
 class QuestionDetailsWidget(QWidget):
@@ -81,11 +82,10 @@ class QuestionDetailsWidget(QWidget):
 
         self.setLayout(lay)
 
-    def replaceQuestion(self, question, data_array):
+    def replaceQuestion(self, question: Question, data_array):
         self.cleanup()
-        id, title = question['id'], question['document']
 
-        self.question_label.setText(title)
+        self.question_label.setText(question.domanda)
 
         for answer in data_array:
             if answer["id_autore"] == self.authorized_user['username']:

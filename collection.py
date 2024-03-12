@@ -1,3 +1,5 @@
+from typing import Optional
+
 import chromadb
 import os
 from dotenv import load_dotenv
@@ -12,6 +14,8 @@ from colorama import Fore, Style
 from model.answer_model import Answer
 from nltk.metrics import edit_distance
 import chromadb.utils.embedding_functions as embedding_functions
+
+from model.question_model import Question
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
@@ -322,17 +326,15 @@ def calcola_voto_finale_ponderato(punteggi, voti):
     return voto_finale_ponderato
 
 
-def add_answer_to_collection(authenticated_user, question, answer_text: str):
+def add_answer_to_collection(authenticated_user, question: Question, answer_text: str):
     q_a_collection = get_chroma_q_a_collection()
-
-    id, title = question['id'], question['document']
 
     answer_embeddings = sentence_transformer_ef([preprocess(answer_text)])
 
     results = q_a_collection.query(
         query_embeddings=answer_embeddings,
         n_results=20,
-        where={"$and": [{"id_domanda": id},
+        where={"$and": [{"id_domanda": question.id},
                         {"voto_docente": {"$gt": -1}}]},  # seleziona solo le risposte valutate dal docente
         include=["documents", "embeddings", "metadatas", "distances"]
     )
@@ -370,19 +372,19 @@ def add_answer_to_collection(authenticated_user, question, answer_text: str):
     q_a_collection.add(
         embeddings=answer_embeddings,
         documents=[answer_text],  # aggiunge la risposta ai documenti
-        metadatas=[{"id_domanda": id,
-                    "domanda": title,
-                    "id_docente": question['id_docente'],
+        metadatas=[{"id_domanda": question.id,
+                    "domanda": question.domanda,
+                    "id_docente": question.id_docente,
                     "id_autore": authenticated_user['username'],
                     "voto_docente": -1,
                     "voto_predetto": voto_ponderato,
                     "commento": "undefined",
                     "source": "application",
                     "data_creazione": iso_format}],
-        ids=[f"{id}_{authenticated_user['username']}"]
+        ids=[f"{question.id}_{authenticated_user['username']}"]
     )
 
-    added_answer_result = q_a_collection.get(ids=[f"{id}_{authenticated_user['username']}"])
+    added_answer_result = q_a_collection.get(ids=[f"{question.id}_{authenticated_user['username']}"])
     added_answer_data_array = extract_data(added_answer_result)
 
     if len(added_answer_data_array):
@@ -405,6 +407,64 @@ def add_answer_to_collection(authenticated_user, question, answer_text: str):
     return None
 
 
+def add_question_to_collection(authenticated_user, categoria: str, question_text: str, ref_answer_text: str) \
+        -> Optional[Question]:
+    questions_collection = get_chroma_questions_collection()
+    q_a_collection = get_chroma_q_a_collection()
+
+    question_embeddings = sentence_transformer_ef([preprocess(question_text)])
+    answer_embeddings = sentence_transformer_ef([preprocess(ref_answer_text)])
+
+    # Ottieni la data e l'ora correnti
+    now = datetime.now()
+    # Converti in formato ISO 8601
+    iso_format = now.isoformat()
+
+    id_domanda = f"{authenticated_user['username']}_q_{iso_format}"
+    id_risposta = f"{authenticated_user['username']}_a_{iso_format}"
+
+    questions_collection.add(
+        embeddings=question_embeddings,
+        documents=[question_text],  # aggiunge la domanda ai documenti
+        metadatas=[{"id_domanda": id_domanda,
+                    "id_docente": authenticated_user['username'],
+                    "categoria": categoria,
+                    "source": "application",
+                    "data_creazione": iso_format}],
+        ids=[id_domanda]
+    )
+
+    q_a_collection.add(
+        embeddings=answer_embeddings,
+        documents=[ref_answer_text],  # aggiunge la risposta ai documenti
+        metadatas=[{"id_domanda": id_domanda,
+                    "domanda": question_text,
+                    "id_docente": authenticated_user['username'],
+                    "id_autore": authenticated_user['username'],
+                    "voto_docente": 5,
+                    "voto_predetto": -1,
+                    "commento": "undefined",
+                    "source": "application",
+                    "data_creazione": iso_format}],
+        ids=[id_risposta]
+    )
+
+    added_question_result = questions_collection.get(ids=[f"{authenticated_user['username']}_q_{iso_format}"])
+    added_question_data_array = extract_data(added_question_result)
+
+    if len(added_question_result):
+        question = Question(
+            added_question_data_array[0]['id'],
+            added_question_data_array[0]['document'],
+            added_question_data_array[0]['id_docente'],
+            added_question_data_array[0]['categoria'],
+            added_question_data_array[0]['source'],
+            added_question_data_array[0]['data_creazione'],
+        )
+
+        return question
+
+    return None
 
 
 def get_risultato_classification_full(data):

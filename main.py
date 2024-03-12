@@ -7,8 +7,10 @@ from collection import init_model, check_answer_records, test_model
 
 
 class Application(QMainWindow):
-    def __init__(self):
+    def __init__(self, app):
         super().__init__()
+        self.app = app
+
         self.setup_ui()
 
         init_model()
@@ -56,7 +58,7 @@ class Application(QMainWindow):
                 self.close()
             # No
             elif reply == QMessageBox.No:
-                self.main_window.app.quit()
+                self.app.quit()
 
     def closeEvent(self, e):
         f = self.__beforeClose()
@@ -80,7 +82,7 @@ def main():
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
 
-    window = Application()
+    window = Application(app)
     window.show()
 
     sys.exit(app.exec_())

@@ -2,6 +2,7 @@ from PyQt5 import QtCore
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QListWidgetItem, QHBoxLayout, QSpacerItem, QSizePolicy, QTabWidget
 
 from UI.QuestionListWidget import QuestionListWidget
+from model.question_model import Question
 
 
 class StudentLeftSideBar(QWidget):
@@ -50,13 +51,13 @@ class StudentLeftSideBar(QWidget):
 
         self.setLayout(lay)
 
-    def addQuestionToUnansweredList(self, question):
+    def addQuestionToUnansweredList(self, question: Question):
         self.__unansweredQuestionListWidget.addQuestion(question)
 
-    def addQuestionToAnsweredList(self, question):
+    def addQuestionToAnsweredList(self, question: Question):
         self.__answeredQuestionListWidget.addQuestion(question)
 
-    def moveQuestionToAnsweredList(self, question):
+    def moveQuestionToAnsweredList(self, question: Question):
         self.__unansweredQuestionListWidget.removeQuestion(question)
         self.__answeredQuestionListWidget.addQuestion(question)
 

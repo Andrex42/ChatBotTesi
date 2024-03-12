@@ -8,8 +8,10 @@ from UI.AnswerToQuestionWidget import AnswerToQuestionWidget
 from UI.student.StudentAnswerDetailsWidget import AnswerDetailsWidget
 from UI.student.StudentLeftSidebar import StudentLeftSideBar
 
-from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, extract_data, extract_metadata_from_get_result
+from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, extract_data, \
+    extract_metadata_from_get_result, add_answer_to_collection
 from model.answer_model import Answer
+from model.question_model import Question
 from users import RELATIONS
 
 
@@ -27,8 +29,8 @@ class Worker(QtCore.QObject):
 
     unanswered_questions_ready_event = QtCore.pyqtSignal(object)
     answered_questions_ready_event = QtCore.pyqtSignal(object)
-    answer_added_event = QtCore.pyqtSignal(object, Answer)
-    answer_details_ready_event = QtCore.pyqtSignal(object, Answer)
+    answer_added_event = QtCore.pyqtSignal(Question, Answer)
+    answer_details_ready_event = QtCore.pyqtSignal(Question, Answer)
 
     @QtCore.pyqtSlot()
     def get_student_answers(self):
@@ -85,18 +87,16 @@ class Worker(QtCore.QObject):
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
-    def get_student_answer(self, question):
+    def get_student_answer(self, question: Question):
         start = time.time()
-
-        id, title = question['id'], question['document']
 
         q_a_collection = get_chroma_q_a_collection()
 
-        print("getting answer by question", id)
+        print("getting answer by question", question.id)
 
         answer_result = q_a_collection.get(
             where={"$and": [{"id_autore": self.authorized_user['username']},
-                            {"id_domanda": id}]}
+                            {"id_domanda": question.id}]}
         )
 
         answer_data_array = extract_data(answer_result)
@@ -121,31 +121,14 @@ class Worker(QtCore.QObject):
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
-    def add_answer(self, question: object, answer_text: str):
+    def add_answer(self, question: Question, answer_text: str):
         start = time.time()
 
         # init_chroma_client()
 
         print("adding answer", answer_text)
 
-        # answer = add_answer_to_collection(self.authorized_user, question, answer_text)
-
-        # print("# The most similar sentences computed by chroma")
-        # print(query_result)
-
-        answer = Answer(
-            'id',
-            'id_domanda',
-            'domanda',
-            'id_docente',
-            'risposta',
-            'id_autore',
-            5,
-            3,
-            'commento',
-            'source',
-            'data_creazione'
-        )
+        answer = add_answer_to_collection(self.authorized_user, question, answer_text)
 
         self.answer_added_event.emit(question, answer)
         print(f'Execution time = {time.time() - start} seconds.')
@@ -237,7 +220,16 @@ class StudentQuestionAnswersWidget(QWidget):
         data_array = extract_data(data)
         print("on_unanswered_questions_ready", "data converted", data_array)
 
-        for question in data_array:
+        for q in data_array:
+            question = Question(
+                q['id'],
+                q['document'],
+                q['id_docente'],
+                q['categoria'],
+                q['source'],
+                q['data_creazione'],
+            )
+
             self.__leftSideBarWidget.addQuestionToUnansweredList(question)
         self.__leftSideBarWidget.selectUnansweredListItem(0)
 
@@ -247,11 +239,20 @@ class StudentQuestionAnswersWidget(QWidget):
         data_array = extract_data(data)
         print("on_answered_questions_ready", "data converted", data_array)
 
-        for question in data_array:
+        for q in data_array:
+            question = Question(
+                q['id'],
+                q['document'],
+                q['id_docente'],
+                q['categoria'],
+                q['source'],
+                q['data_creazione'],
+            )
+
             self.__leftSideBarWidget.addQuestionToAnsweredList(question)
 
     @QtCore.pyqtSlot()
-    def on_answer_added(self, question, answer: Answer):
+    def on_answer_added(self, question: Question, answer: Answer):
         print("[on_answer_added]", answer)
         def show_confirm():
             message = 'Risposta inviata correttamente. Puoi verificare lo stato della valutazione nella sezione "Già risposte"'
@@ -266,7 +267,7 @@ class StudentQuestionAnswersWidget(QWidget):
         self.__leftSideBarWidget.moveQuestionToAnsweredList(question)
 
     @QtCore.pyqtSlot()
-    def on_answer_details_ready(self, question, answer: Answer):
+    def on_answer_details_ready(self, question: Question, answer: Answer):
         print("[on_answer_details_ready]", answer)
         self.__answerDetailsWidget.replaceAnswer(question, answer)
 
@@ -275,9 +276,8 @@ class StudentQuestionAnswersWidget(QWidget):
             self.__answerToQuestionWidget.show()
             self.__answerDetailsWidget.hide()
 
-            question = item.data(Qt.UserRole)
-            id, title = question['id'], question['document']
-            print("changed", id, title)
+            question: Question = item.data(Qt.UserRole)
+            print("changed", question.id, question.domanda)
             # Inserisci un controllo nel caso in cui si sia inserita una risposta, se una risposta è presente,
             # avvisa l'utente che potrebbe perdere i progressi fatti # TODO
             self.__answerToQuestionWidget.replaceQuestion(question)
@@ -285,20 +285,19 @@ class StudentQuestionAnswersWidget(QWidget):
             # self.__browser.resetChatWidget(0) TODO
             print("reset")
 
-    def __onSendAnswerClicked(self, question: object, answer: str):
+    def __onSendAnswerClicked(self, question: Question, answer_text: str):
         print("Domanda", question)
-        print("Risposta", answer)
+        print("Risposta", answer_text)
         if self.db_worker is not None:
-            self.db_worker.add_answer(question, answer)
+            self.db_worker.add_answer(question, answer_text)
 
     def __answeredQuestionSelectionChanged(self, item: QListWidgetItem):
         if item:
             self.__answerToQuestionWidget.hide()
             self.__answerDetailsWidget.show()
 
-            question = item.data(Qt.UserRole)
-            id, title = question['id'], question['document']
-            print("changed", id, title)
+            question: Question = item.data(Qt.UserRole)
+            print("changed", question.id, question.domanda)
             self.__getAnswerDetails(question)
         else:
             # self.__browser.resetChatWidget(0) TODO
@@ -316,6 +315,6 @@ class StudentQuestionAnswersWidget(QWidget):
             self.__answerToQuestionWidget.hide()
             self.__answerDetailsWidget.show()
 
-    def __getAnswerDetails(self, question):
+    def __getAnswerDetails(self, question: Question):
         if self.db_worker is not None:
             self.db_worker.get_student_answer(question)

@@ -5,8 +5,11 @@ from collection import extract_data
 
 
 # Definizione di una finestra di dialogo per mostrare il testo della domanda
+from model.question_model import Question
+
+
 class QuestionDialog(QDialog):
-    def __init__(self, authorized_user, question, q_a_ready_event, load_callback):
+    def __init__(self, authorized_user, question: Question, q_a_ready_event, load_callback):
         super().__init__()
         self.setWindowTitle("Dettaglio Domanda")
         self.setMinimumSize(500, 300)
@@ -18,7 +21,7 @@ class QuestionDialog(QDialog):
         self.dialog_main_layout.addLayout(self.teacher_answer_layout)
 
         # Adding question label fixed on top
-        question_label = QLabel(question["document"])
+        question_label = QLabel(question.domanda)
         question_label.setWordWrap(True)
         self.teacher_answer_layout.addWidget(question_label)
         self.teacher_answer_layout.addWidget(QLabel("Risposta di riferimento"))

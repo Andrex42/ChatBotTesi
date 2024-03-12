@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QListWidgetItem, QPush
     QSizePolicy, QCheckBox
 
 from UI.QuestionListWidget import QuestionListWidget
+from model.question_model import Question
 
 
 class LeftSideBar(QWidget):
@@ -62,12 +63,8 @@ class LeftSideBar(QWidget):
 
         self.setLayout(lay)
 
-    def addQuestionToList(self, question):
+    def addQuestionToList(self, question: Question):
         self.__questionListWidget.addQuestion(question)
-
-    def addToList(self, id):
-        self.__questionListWidget.addQuestion('New Chat', id)
-        self.__convListWidget.setCurrentRow(0)
 
     def __addClicked(self):
         self.on_add_question_clicked.emit()
