@@ -24,13 +24,6 @@ class StudentWindow(QStackedWidget):
         self.main_window.setCentralWidget(self)
 
     def __setActions(self):
-        # menu action
-        self.__exitAction = QAction('Exit', self)
-        self.__exitAction.triggered.connect(self.__beforeClose)
-
-        self.__aboutAction = QAction('About...', self)
-        #self.__aboutAction.triggered.connect(self.__showAboutDialog)
-
         # toolbar action
         self.__currentUserUsernameAction = QWidgetAction(self)
         self.__currentUserUsernameLabel = QLabel(self.authorized_user['username'])
@@ -50,24 +43,6 @@ class StudentWindow(QStackedWidget):
         aiTypeToolBar.addAction(self.__logoutAction)
 
         self.main_window.addToolBar(aiTypeToolBar)
-
-    def __beforeClose(self):
-        message = 'The window will be closed. Would you like to continue running this app in the background?'
-        closeMessageBox = QMessageBox(self)
-        closeMessageBox.setWindowTitle('Wait!')
-        closeMessageBox.setText(message)
-        closeMessageBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-        reply = closeMessageBox.exec()
-        # Cancel
-        if reply == QMessageBox.Cancel:
-            return True
-        else:
-            # Yes
-            if reply == QMessageBox.Yes:
-                self.close()
-            # No
-            elif reply == QMessageBox.No:
-                self.main_window.app.quit()
 
     def logout(self):
         window = LoginFormApp(self.main_window)

@@ -8,7 +8,6 @@ class StudentLeftSideBar(QWidget):
 
     unansweredSelectionChanged = QtCore.pyqtSignal(QListWidgetItem)
     answeredSelectionChanged = QtCore.pyqtSignal(QListWidgetItem)
-    questionUpdated = QtCore.pyqtSignal(str, str)
 
     def __init__(self, authorized_user):
         super().__init__()
@@ -54,7 +53,6 @@ class StudentLeftSideBar(QWidget):
     def addQuestionToAnsweredList(self, question):
         self.__answeredQuestionListWidget.addQuestion(question)
 
-    def addToList(self, id):
-        self.__unansweredQuestionListWidget.addQuestion('New Chat', id)
-        self.__convListWidget.setCurrentRow(0)
-
+    def moveQuestionToAnsweredList(self, question):
+        self.__unansweredQuestionListWidget.removeQuestion(question)
+        self.__answeredQuestionListWidget.addQuestion(question)

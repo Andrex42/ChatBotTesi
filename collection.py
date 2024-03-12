@@ -1,7 +1,6 @@
 import chromadb
 import os
 from dotenv import load_dotenv
-import cohere
 from cohere.responses.classify import Example
 import pprint
 import pandas as pd
@@ -9,7 +8,8 @@ import logging
 import spacy
 from halo import Halo
 from datetime import datetime
-from colorama import Fore, Style, init
+from colorama import Fore, Style
+from model.answer_model import Answer
 from nltk.metrics import edit_distance
 import chromadb.utils.embedding_functions as embedding_functions
 
@@ -322,12 +322,12 @@ def calcola_voto_finale_ponderato(punteggi, voti):
     return voto_finale_ponderato
 
 
-def add_answer_to_collection(authenticated_user, question, answer: str):
+def add_answer_to_collection(authenticated_user, question, answer_text: str):
     q_a_collection = get_chroma_q_a_collection()
 
     id, title = question['id'], question['document']
 
-    answer_embeddings = sentence_transformer_ef([preprocess(answer)])
+    answer_embeddings = sentence_transformer_ef([preprocess(answer_text)])
 
     results = q_a_collection.query(
         query_embeddings=answer_embeddings,
@@ -347,7 +347,7 @@ def add_answer_to_collection(authenticated_user, question, answer: str):
     min_distance = min(results['distances'][0])
     min_distance_index = results['distances'][0].index(min_distance)
 
-    levenshtein_distance = edit_distance(answer, results['documents'][0][min_distance_index])
+    levenshtein_distance = edit_distance(answer_text, results['documents'][0][min_distance_index])
 
     print(f"\n{Fore.CYAN}Best similarity match{Style.RESET_ALL}:\n"
           f"\tCosine Distance: {results['distances'][0][min_distance_index]}"
@@ -369,7 +369,7 @@ def add_answer_to_collection(authenticated_user, question, answer: str):
 
     q_a_collection.add(
         embeddings=answer_embeddings,
-        documents=[answer],  # aggiunge la risposta ai documenti
+        documents=[answer_text],  # aggiunge la risposta ai documenti
         metadatas=[{"id_domanda": id,
                     "domanda": title,
                     "id_docente": question['id_docente'],
@@ -381,6 +381,29 @@ def add_answer_to_collection(authenticated_user, question, answer: str):
                     "data_creazione": iso_format}],
         ids=[f"{id}_{authenticated_user['username']}"]
     )
+
+    added_answer_result = q_a_collection.get(ids=[f"{id}_{authenticated_user['username']}"])
+    added_answer_data_array = extract_data(added_answer_result)
+
+    if len(added_answer_data_array):
+        answer = Answer(
+            added_answer_data_array[0]['id'],
+            added_answer_data_array[0]['id_domanda'],
+            added_answer_data_array[0]['domanda'],
+            added_answer_data_array[0]['id_docente'],
+            added_answer_data_array[0]['id_autore'],
+            added_answer_data_array[0]['voto_docente'],
+            added_answer_data_array[0]['voto_predetto'],
+            added_answer_data_array[0]['commento'],
+            added_answer_data_array[0]['source'],
+            added_answer_data_array[0]['data_creazione'],
+        )
+
+        return answer
+
+    return None
+
+
 
 
 def get_risultato_classification_full(data):

@@ -1,7 +1,7 @@
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QListWidgetItem, QPushButton, QHBoxLayout, QScrollArea, \
-    QTextEdit
+    QTextEdit, QApplication
 
 
 class AnswerToQuestionWidget(QWidget):
@@ -91,7 +91,7 @@ class AnswerToQuestionWidget(QWidget):
         if self.answerTextEdit.toPlainText():
             self.onSendAnswerClicked.emit(self.question, self.answerTextEdit.toPlainText())
 
-    def cleanup(self):
+    def cleanup(self, cleanup_callback=None):
         print()
         # Elimina tutti i widget dal layout
         while self.teacher_answer_layout.count():
@@ -105,3 +105,10 @@ class AnswerToQuestionWidget(QWidget):
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
+
+        # Esegue un ciclo degli eventi per assicurarsi che i widget vengano eliminati
+        QApplication.processEvents()
+
+        # Chiamare la callback se è stata fornita
+        if cleanup_callback:
+            cleanup_callback()

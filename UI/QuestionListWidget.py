@@ -86,6 +86,19 @@ class QuestionListWidget(QListWidget):
         self.insertItem(0, item)
         self.setItemWidget(item, widget)
 
+    def removeQuestion(self, question):
+        id, title = question['id'], question['document']
+
+        rowToRemove = -1
+
+        for x in range(self.count() - 1):
+            if self.item(x).data(Qt.UserRole) == question:
+                rowToRemove = x
+                break
+
+        if rowToRemove > -1:
+            self.takeItem(rowToRemove)
+
     def __clicked(self, item):
         potentialChkBoxWidgetInItem = QApplication.widgetAt(self.cursor().pos())
         if isinstance(potentialChkBoxWidgetInItem, QWidget) and potentialChkBoxWidgetInItem.children():

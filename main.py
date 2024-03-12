@@ -1,6 +1,6 @@
 import sys
 
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from UI.LoginFormApp import LoginFormApp
 
 from collection import init_model, check_answer_records, test_model
@@ -39,6 +39,31 @@ class Application(QMainWindow):
         #                     "risultato": risultato}],
         #         ids=[f"id_{index}"]
         #     )
+
+    def __beforeClose(self):
+        message = 'The window will be closed. Would you like to continue running this app in the background?'
+        closeMessageBox = QMessageBox(self)
+        closeMessageBox.setWindowTitle('Wait!')
+        closeMessageBox.setText(message)
+        closeMessageBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+        reply = closeMessageBox.exec()
+        # Cancel
+        if reply == QMessageBox.Cancel:
+            return True
+        else:
+            # Yes
+            if reply == QMessageBox.Yes:
+                self.close()
+            # No
+            elif reply == QMessageBox.No:
+                self.main_window.app.quit()
+
+    def closeEvent(self, e):
+        f = self.__beforeClose()
+        if f:
+            e.ignore()
+        else:
+            return super().closeEvent(e)
 
     def setup_ui(self):
         login_widget = LoginFormApp(self)
