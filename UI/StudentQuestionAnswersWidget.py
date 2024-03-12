@@ -3,7 +3,7 @@ import time
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem, QMessageBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem, QMessageBox, QTabWidget
 
 from UI.AnswerToQuestionWidget import AnswerToQuestionWidget
 from UI.StudentLeftSidebar import StudentLeftSideBar
@@ -188,6 +188,7 @@ class StudentQuestionAnswersWidget(QWidget):
 
         self.__leftSideBarWidget.unansweredSelectionChanged.connect(self.__unansweredQuestionSelectionChanged)
         self.__leftSideBarWidget.answeredSelectionChanged.connect(self.__answeredQuestionSelectionChanged)
+        self.__leftSideBarWidget.tabSelectionChanged.connect(self.__tabSelectionChanged)
 
         self.__answerToQuestionWidget.onSendAnswerClicked.connect(self.__onSendAnswerClicked)
 
@@ -256,6 +257,8 @@ class StudentQuestionAnswersWidget(QWidget):
 
     def __unansweredQuestionSelectionChanged(self, item: QListWidgetItem):
         if item:
+            self.__answerToQuestionWidget.show()
+
             question = item.data(Qt.UserRole)
             id, title = question['id'], question['document']
             print("changed", id, title)
@@ -273,6 +276,8 @@ class StudentQuestionAnswersWidget(QWidget):
 
     def __answeredQuestionSelectionChanged(self, item: QListWidgetItem):
         if item:
+            self.__answerToQuestionWidget.hide()
+
             question = item.data(Qt.UserRole)
             id, title = question['id'], question['document']
             print("changed", id, title)
@@ -280,6 +285,13 @@ class StudentQuestionAnswersWidget(QWidget):
         else:
             # self.__browser.resetChatWidget(0) TODO
             print("reset")
+
+    def __tabSelectionChanged(self, tabName: str):
+        print(tabName, "changed")
+        if tabName == "Da rispondere":
+            self.__answerToQuestionWidget.show()
+        elif tabName == "Già risposte":
+            self.__answerToQuestionWidget.hide()
 
     def __getAnswerDetails(self, question):
         self.db_worker.get_student_answer(question)

@@ -8,6 +8,7 @@ class StudentLeftSideBar(QWidget):
 
     unansweredSelectionChanged = QtCore.pyqtSignal(QListWidgetItem)
     answeredSelectionChanged = QtCore.pyqtSignal(QListWidgetItem)
+    tabSelectionChanged = QtCore.pyqtSignal(str)
 
     def __init__(self, authorized_user):
         super().__init__()
@@ -40,6 +41,8 @@ class StudentLeftSideBar(QWidget):
         tabWidget = QTabWidget()
         tabWidget.addTab(self.__unansweredQuestionListWidget, "Da rispondere")
         tabWidget.addTab(self.__answeredQuestionListWidget, "Già risposte")
+
+        tabWidget.currentChanged.connect(lambda index: self.tabSelectionChanged.emit(tabWidget.tabText(index)))
 
         lay = QVBoxLayout()
         lay.addWidget(topWidget)
