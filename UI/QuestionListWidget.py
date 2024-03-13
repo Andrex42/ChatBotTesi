@@ -89,7 +89,7 @@ class QuestionListWidget(QListWidget):
     def removeQuestion(self, question):
         rowToRemove = -1
 
-        for x in range(self.count() - 1):
+        for x in range(self.count()):
             questionRow: Question = self.item(x).data(Qt.UserRole)
             if questionRow.id == question.id:
                 rowToRemove = x
