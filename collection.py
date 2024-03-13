@@ -551,9 +551,7 @@ def extract_metadata_from_query_result(data, key):
 
     # Itera attraverso i dati per trovare tutte le occorrenze del valore 'key'
     for item in data:
-        print("item", item)
         for sub_item in item:
-            print("sub_item", sub_item)
             # Se la chiave è presente nell'elemento corrente, aggiungi il suo valore alla lista dei valori di status
             if key in sub_item:
                 metadata_values.append(sub_item[key])
