@@ -1,7 +1,8 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QMessageBox, QPushButton
 
 from UI.teacher.TeacherStudentAnswerPreviewItem import TeacherStudentAnswerPreviewItem
+from model.answer_model import Answer
 from model.question_model import Question
 
 
@@ -12,6 +13,7 @@ class QuestionDetailsWidget(QWidget):
 
         self.authorized_user = authorized_user
         self.db_worker = db_worker
+        self.id_domanda = None
 
         self.__initUi()
 
@@ -32,10 +34,15 @@ class QuestionDetailsWidget(QWidget):
         self.answer_label = QLabel("")
         self.answer_label.setWordWrap(True)
 
+        self.btnRecalc = QPushButton("Ricalcola")
+        self.btnRecalc.clicked.connect(lambda:
+                                       self.db_worker.recalc_question_unevaluated_answers_predictions(self.id_domanda))
+
         self.teacher_answer_layout.addWidget(QLabel("Domanda"))
         self.teacher_answer_layout.addWidget(self.question_label)
         self.teacher_answer_layout.addWidget(QLabel("Risposta di riferimento"))
         self.teacher_answer_layout.addWidget(self.answer_label)
+        self.teacher_answer_layout.addWidget(self.btnRecalc)
 
         self.students_answers_layout = QVBoxLayout()
 
@@ -85,12 +92,27 @@ class QuestionDetailsWidget(QWidget):
     def replaceQuestion(self, question: Question, data_array):
         self.cleanup()
 
+        self.id_domanda = question.id
         self.question_label.setText(question.domanda)
 
-        for answer in data_array:
-            if answer["id_autore"] == self.authorized_user['username']:
-                self.answer_label.setText(answer["document"])
-            elif answer['voto_docente'] == -1:
+        for answer_dict in data_array:
+            answer = Answer(
+                answer_dict['id'],
+                answer_dict['id_domanda'],
+                answer_dict['domanda'],
+                answer_dict['id_docente'],
+                answer_dict['document'],
+                answer_dict['id_autore'],
+                answer_dict['voto_docente'],
+                answer_dict['voto_predetto'],
+                answer_dict['commento'],
+                answer_dict['source'],
+                answer_dict['data_creazione'],
+            )
+
+            if answer.id_autore == self.authorized_user['username']:
+                self.answer_label.setText(answer.risposta)
+            elif answer.voto_docente == -1:
                 studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
                     self.db_worker, self.authorized_user, answer, False)
                 self.students_answers_not_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
@@ -98,6 +120,40 @@ class QuestionDetailsWidget(QWidget):
                 studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
                     self.db_worker, self.authorized_user, answer, True)
                 self.students_answers_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
+
+    def onRecalulatedVotes(self, votes: list[float]):
+        teacherStudentAnswerPreviewItemIndex = 0
+        for not_evaluated_item_index in range(self.students_answers_not_evaluated_layout.count()):
+            item = self.students_answers_not_evaluated_layout.itemAt(not_evaluated_item_index)
+            widget = item.widget()
+            if isinstance(widget, TeacherStudentAnswerPreviewItem):
+                widget.label_risultato.setText(str(votes[teacherStudentAnswerPreviewItemIndex]))
+                widget.votoCustomSpinBox.setValue(votes[teacherStudentAnswerPreviewItemIndex])
+                teacherStudentAnswerPreviewItemIndex += 1
+
+    def onEvaluatedAnswer(self, answer: Answer):
+        def show_confirm():
+            message = 'Voto assegnato correttamente.'
+            closeMessageBox = QMessageBox(self)
+            closeMessageBox.setWindowTitle('Successo')
+            closeMessageBox.setText(message)
+            closeMessageBox.setStandardButtons(QMessageBox.Close)
+            reply = closeMessageBox.exec()
+
+        show_confirm()
+
+        for not_evaluated_item_index in range(self.students_answers_not_evaluated_layout.count()):
+            item = self.students_answers_not_evaluated_layout.itemAt(not_evaluated_item_index)
+            widget = item.widget()
+            if isinstance(widget, TeacherStudentAnswerPreviewItem):
+                print(widget)
+                if widget.answer.id == answer.id:
+                    widget.deleteLater()
+                    break
+
+        studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
+            self.db_worker, self.authorized_user, answer, True)
+        self.students_answers_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
 
     def cleanup(self):
         # Elimina tutti i widget dal layout tranne l'header della sezione

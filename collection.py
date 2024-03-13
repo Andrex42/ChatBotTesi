@@ -326,17 +326,15 @@ def calcola_voto_finale_ponderato(punteggi, voti):
     return voto_finale_ponderato
 
 
-def add_answer_to_collection(authenticated_user, question: Question, answer_text: str):
+def get_similar_sentences(id_domanda: str, sentence_to_compare_text, sentence_to_compare_embeddings):
     q_a_collection = get_chroma_q_a_collection()
 
-    answer_embeddings = sentence_transformer_ef([preprocess(answer_text)])
-
     results = q_a_collection.query(
-        query_embeddings=answer_embeddings,
+        query_embeddings=sentence_to_compare_embeddings,
         n_results=20,
-        where={"$and": [{"id_domanda": question.id},
+        where={"$and": [{"id_domanda": id_domanda},
                         {"voto_docente": {"$gt": -1}}]},  # seleziona solo le risposte valutate dal docente
-        include=["documents", "embeddings", "metadatas", "distances"]
+        include=["documents", "metadatas", "distances"]
     )
 
     print(f"{Fore.YELLOW}{Style.BRIGHT}Found {len(results['documents'][0])} similar documents{Style.RESET_ALL}:")
@@ -349,7 +347,7 @@ def add_answer_to_collection(authenticated_user, question: Question, answer_text
     min_distance = min(results['distances'][0])
     min_distance_index = results['distances'][0].index(min_distance)
 
-    levenshtein_distance = edit_distance(answer_text, results['documents'][0][min_distance_index])
+    levenshtein_distance = edit_distance(sentence_to_compare_text, results['documents'][0][min_distance_index])
 
     print(f"\n{Fore.CYAN}Best similarity match{Style.RESET_ALL}:\n"
           f"\tCosine Distance: {results['distances'][0][min_distance_index]}"
@@ -363,6 +361,16 @@ def add_answer_to_collection(authenticated_user, question: Question, answer_text
     print(
         f"{Fore.GREEN}Result Detected: {Fore.YELLOW}{Style.BRIGHT}{voto_ponderato}{Style.RESET_ALL}"
     )
+
+    return voto_ponderato
+
+
+def add_answer_to_collection(authenticated_user, question: Question, answer_text: str):
+    answer_embeddings = sentence_transformer_ef([preprocess(answer_text)])
+
+    q_a_collection = get_chroma_q_a_collection()
+
+    voto_ponderato = get_similar_sentences(question.id, answer_text, answer_embeddings)
 
     # Ottieni la data e l'ora correnti
     now = datetime.now()
@@ -527,7 +535,8 @@ def extract_data(query_result):
         for i, metadata in enumerate(query_result['metadatas']):
             data = {
                 'id': query_result['ids'][i],
-                'document': query_result['documents'][i]
+                'document': query_result['documents'][i] if query_result['documents'] is not None else None,
+                'embeddings': query_result['embeddings'][i] if query_result['embeddings'] is not None else None
             }
             for key, value in metadata.items():
                 data[key] = value

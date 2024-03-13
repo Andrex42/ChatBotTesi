@@ -1,5 +1,6 @@
 STUDENTS = [
     {'username': 'studente.archeologia', 'password': 'studente123'},
+    {'username': 'studente.archeologia2', 'password': 'studente123'},
     {'username': 'studente.basidati', 'password': 'studente123'}
 ]
 
@@ -9,5 +10,6 @@ TEACHERS = [
 ]
 
 RELATIONS = [
-    {'studente.archeologia': ['docente.archeologia']}
+    {'studente.archeologia': ['docente.archeologia']},
+    {'studente.archeologia2': ['docente.archeologia']},
 ]
