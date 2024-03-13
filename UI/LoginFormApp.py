@@ -20,6 +20,7 @@ class LoginFormApp(QWidget):
 
         # Create a QFormLayout to arrange the widgets
         form_layout = QFormLayout()
+        form_layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
 
         # Create QLabel and QLineEdit widgets for username
         username_label = QLabel("Username:")

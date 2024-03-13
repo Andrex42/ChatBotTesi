@@ -180,17 +180,9 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.__leftSideBarWidget = LeftSideBar(self.authorized_user)
         self.__questionDetailsWidget = QuestionDetailsWidget(self.authorized_user, self.db_worker)
 
-        lay = QVBoxLayout()
-        lay.addWidget(self.__questionDetailsWidget)
-        lay.setSpacing(0)
-        lay.setContentsMargins(0, 0, 0, 0)
-
-        questionDetailsWidget = QWidget()
-        questionDetailsWidget.setLayout(lay)
-
         mainWidget = QSplitter()
         mainWidget.addWidget(self.__leftSideBarWidget)
-        mainWidget.addWidget(questionDetailsWidget)
+        mainWidget.addWidget(self.__questionDetailsWidget)
 
         mainWidget.setSizes([100, 500, 400])
         mainWidget.setChildrenCollapsible(False)

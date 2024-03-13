@@ -1,4 +1,6 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QLineEdit, QDoubleSpinBox
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QLineEdit, QDoubleSpinBox, \
+    QSizePolicy
 
 from model.answer_model import Answer
 
@@ -15,9 +17,15 @@ class TeacherStudentAnswerPreviewItem(QWidget):
         self.__initUi()
 
     def __initUi(self):
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setObjectName("answer_preview_item_container")
+        self.setStyleSheet('''
+                    #answer_preview_item_container {
+                        background-color: rgba(0, 0, 0, 0.1);
+                        border-radius: 20px;
+                    }''')
+
         lay = QVBoxLayout()
-        lay.setContentsMargins(0, 0, 0, 0)
-        lay.setSpacing(0)
 
         label_id_studente = QLabel("Studente: " + self.answer.id_autore)
         label_id_studente.setStyleSheet('''
@@ -31,11 +39,13 @@ class TeacherStudentAnswerPreviewItem(QWidget):
         answer_label.setWordWrap(True)
 
         risultatoLayout = QHBoxLayout()
-        risultatoLayout.setSpacing(0)
-        risultatoLayout.setContentsMargins(0, 0, 0, 0)
 
         if not self.evaluated:
             self.label_risultato = QLabel(str(self.answer.voto_predetto))
+            policy = self.label_risultato.sizePolicy()
+            policy.setHorizontalPolicy(QSizePolicy.Expanding)
+            self.label_risultato.setSizePolicy(policy)
+
             if self.answer.voto_predetto >= 3:
                 self.label_risultato.setStyleSheet('''
                                     QLabel {
@@ -61,8 +71,6 @@ class TeacherStudentAnswerPreviewItem(QWidget):
             assegnaVotoBtn = QPushButton("Assegna voto")
 
             confermaVotoLayout = QHBoxLayout()
-            confermaVotoLayout.setSpacing(0)
-            confermaVotoLayout.setContentsMargins(0, 0, 0, 0)
 
             lay.addWidget(label_id_studente)
             lay.addWidget(answer_label)
@@ -76,6 +84,10 @@ class TeacherStudentAnswerPreviewItem(QWidget):
             assegnaVotoBtn.clicked.connect(self.__assignVote)
         else:
             label_risultato = QLabel(str(self.answer.voto_docente))
+            policy = label_risultato.sizePolicy()
+            policy.setHorizontalPolicy(QSizePolicy.Expanding)
+            label_risultato.setSizePolicy(policy)
+
             if self.answer.voto_docente >= 3:
                 label_risultato.setStyleSheet('''
                                                 QLabel {
@@ -95,7 +107,9 @@ class TeacherStudentAnswerPreviewItem(QWidget):
 
             lay.addWidget(label_id_studente)
             lay.addWidget(answer_label)
-            risultatoLayout.addWidget(QLabel("Voto finale: "))
+
+            voto_finale_lbl = QLabel("Voto finale: ")
+            risultatoLayout.addWidget(voto_finale_lbl)
             risultatoLayout.addWidget(label_risultato)
             lay.addLayout(risultatoLayout)
 
