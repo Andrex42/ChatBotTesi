@@ -32,7 +32,7 @@ class Worker(QtCore.QObject):
     q_a_ready_event = QtCore.pyqtSignal(object, object)
 
     @QtCore.pyqtSlot()
-    def start_ml(self):
+    def get_teacher_questions(self):
         start = time.time()
 
         init_chroma_client()
@@ -72,17 +72,17 @@ class Worker(QtCore.QObject):
 
         q_a_collection = get_chroma_q_a_collection()
 
-        print("getting answers for", question.domanda)
+        print("getting answers for", question.id)
 
         USE_TRAIN_RESPONSES_DATA = os.getenv("USE_TRAIN_RESPONSES_DATA")
 
         if USE_TRAIN_RESPONSES_DATA == "true":
             query_result = q_a_collection.get(
-                where={"domanda": question.domanda}
+                where={"id_domanda": question.id}
             )
         else:
             query_result = q_a_collection.get(
-                where={"$and": [{"domanda": question.domanda}, {"id_autore": {"$ne": "undefined"}}]}
+                where={"$and": [{"id_domanda": question.id}, {"id_autore": {"$ne": "undefined"}}]}
             )
 
         self.q_a_ready_event.emit(question, query_result)
@@ -177,7 +177,7 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.config = {}
         self.db_worker = Worker(self.authorized_user, self.config)
 
-        self.db_worker.call_start_ml.connect(self.db_worker.start_ml)
+        self.db_worker.call_start_ml.connect(self.db_worker.get_teacher_questions)
         self.db_worker.questions_ready_event.connect(lambda data: self.on_questions_ready(data))
         self.db_worker.q_a_ready_event.connect(lambda question, result: self.on_question_details_ready(question, result))
         self.db_worker.question_added_event.connect(lambda question: self.on_question_added(question))
