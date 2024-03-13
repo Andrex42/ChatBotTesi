@@ -1,7 +1,7 @@
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QListWidgetItem, QPushButton, QHBoxLayout, QScrollArea, \
-    QTextEdit, QApplication
+    QTextEdit, QApplication, QFrame
 
 from model.question_model import Question
 
@@ -26,7 +26,10 @@ class AnswerToQuestionWidget(QWidget):
 
         scroll_vertical_layout = QVBoxLayout()
         scroll = QScrollArea()  # Scroll Area which contains the widgets, set as the centralWidget
+        scroll.setFrameShape(QFrame.NoFrame)
+
         scroll_widget = QWidget()
+
         scroll_widget.setLayout(scroll_vertical_layout)
         scroll.setWidget(scroll_widget)
         # Scroll Area Properties
@@ -39,6 +42,7 @@ class AnswerToQuestionWidget(QWidget):
         scroll_vertical_layout.addStretch()
 
         lay = QVBoxLayout()
+        lay.setContentsMargins(0, 0, 0, 0)
         lay.addWidget(scroll)
 
         self.setLayout(lay)
