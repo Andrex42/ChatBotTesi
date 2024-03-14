@@ -170,6 +170,7 @@ class StudentQuestionAnswersWidget(QWidget):
 
         self.__rightSideWidget = QWidget()
         self.__rightSideWidget.setLayout(lay)
+        self.__rightSideWidget.hide()
 
         mainWidget = QSplitter()
         mainWidget.addWidget(self.__leftSideBarWidget)
@@ -243,7 +244,10 @@ class StudentQuestionAnswersWidget(QWidget):
             )
 
             self.__leftSideBarWidget.addQuestionToUnansweredList(question)
-        self.__leftSideBarWidget.selectUnansweredListItem(0)
+
+        if len(data_array):
+            self.__leftSideBarWidget.selectUnansweredListItem(0)
+            self.__rightSideWidget.show()
 
     @QtCore.pyqtSlot()
     def on_answered_questions_ready(self, data):
@@ -314,7 +318,11 @@ class StudentQuestionAnswersWidget(QWidget):
         if tabName == "Da rispondere":
             self.__answerDetailsWidget.hide()
             if self.__leftSideBarWidget.getUnansweredRowCount() > 0:
+                self.__rightSideWidget.show()
                 self.__answerToQuestionWidget.show()
+            else:
+                self.__answerToQuestionWidget.hide()
+                self.__rightSideWidget.hide()
         elif tabName == "Già risposte":
             self.__answerToQuestionWidget.hide()
 
@@ -322,7 +330,11 @@ class StudentQuestionAnswersWidget(QWidget):
                 self.__leftSideBarWidget.selectAnsweredListItem(0)
 
             if self.__leftSideBarWidget.getAnsweredRowCount() > 0:
+                self.__rightSideWidget.show()
                 self.__answerDetailsWidget.show()
+            else:
+                self.__answerDetailsWidget.hide()
+                self.__rightSideWidget.hide()
 
     def __getAnswerDetails(self, question: Question):
         if self.db_worker is not None:
