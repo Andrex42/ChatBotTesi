@@ -10,26 +10,29 @@ class QuestionItemWidget(QWidget):
     btnClicked = QtCore.pyqtSignal(QListWidgetItem)
     questionUpdated = QtCore.pyqtSignal(str, str)
 
-    def __init__(self, text: str, item: QListWidgetItem, id):
+    def __init__(self, question: Question, item: QListWidgetItem, isTeacher: bool):
         super().__init__()
         self.__item = item
-        self.__id = id
-        self.__initUi(text)
+        self.__id = question.id
+        self.__isTeacher = isTeacher
+        self.__initUi(question)
 
-    def __initUi(self, text):
-        self.__topicLbl = QLabel(text)
+    def __initUi(self, question: Question):
+        self.__topicLbl = QLabel(question.categoria + " (" + question.id_docente + ")"
+                                 if not self.__isTeacher else question.categoria)
+        self.__topicLbl.setStyleSheet("QLabel {color: #5c5c5c;}")
+        self.__questionLbl = QLabel(question.domanda)
 
         lay = QVBoxLayout()
         lay.addWidget(self.__topicLbl)
+        lay.addWidget(self.__questionLbl)
         lay.setContentsMargins(0, 0, 0, 0)
 
         leftWidget = QWidget()
         leftWidget.setLayout(lay)
 
         editButton = QPushButton('rename')
-        # editButton.setIcon('ico/edit.svg')
         editButton.setToolTip('Rename')
-        # editButton.clicked.connect(self.__btnClicked)
 
         lay = QHBoxLayout()
         lay.setContentsMargins(0, 0, 0, 0)
@@ -72,14 +75,14 @@ class QuestionListWidget(QListWidget):
         self.itemClicked.connect(self.__clicked)
         self.currentItemChanged.connect(self.changed)
 
-    def addQuestion(self, question: Question):
+    def addQuestion(self, question: Question, isTeacher: bool):
         item = QListWidgetItem()
 
         if self.enable_checkbox:
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
             item.setCheckState(Qt.Unchecked)
 
-        widget = QuestionItemWidget(question.domanda, item, question.id)
+        widget = QuestionItemWidget(question, item, isTeacher)
         widget.questionUpdated.connect(self.questionUpdated)
         item.setSizeHint(widget.sizeHint())
         item.setData(Qt.UserRole, question)

@@ -210,7 +210,7 @@ class TeacherQuestionAnswersWidget(QWidget):
         mainWidget.addWidget(self.__leftSideBarWidget)
         mainWidget.addWidget(self.__questionDetailsWidget)
 
-        mainWidget.setSizes([100, 500, 400])
+        mainWidget.setSizes([500, 500])
         mainWidget.setChildrenCollapsible(False)
         mainWidget.setHandleWidth(2)
         mainWidget.setStyleSheet(

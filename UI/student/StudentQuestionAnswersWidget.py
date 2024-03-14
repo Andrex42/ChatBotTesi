@@ -165,22 +165,13 @@ class StudentQuestionAnswersWidget(QWidget):
         self.__leftSideBarWidget = StudentLeftSideBar(self.authorized_user)
         self.__answerToQuestionWidget = AnswerToQuestionWidget(self.authorized_user)
         self.__answerDetailsWidget = AnswerDetailsWidget(self.authorized_user)
-        self.__answerDetailsWidget.hide()
-
-        lay = QVBoxLayout()
-        lay.addWidget(self.__answerToQuestionWidget)
-        lay.addWidget(self.__answerDetailsWidget)
-        lay.setSpacing(0)
-        lay.setContentsMargins(0, 0, 0, 0)
-
-        answerToQuestionWidget = QWidget()
-        answerToQuestionWidget.setLayout(lay)
 
         mainWidget = QSplitter()
         mainWidget.addWidget(self.__leftSideBarWidget)
-        mainWidget.addWidget(answerToQuestionWidget)
+        mainWidget.addWidget(self.__answerToQuestionWidget)
+        mainWidget.addWidget(self.__answerDetailsWidget)
 
-        mainWidget.setSizes([100, 500, 400])
+        mainWidget.setSizes([500, 500, 500])
         mainWidget.setChildrenCollapsible(False)
         mainWidget.setHandleWidth(2)
         mainWidget.setStyleSheet(
@@ -291,8 +282,8 @@ class StudentQuestionAnswersWidget(QWidget):
 
     def __unansweredQuestionSelectionChanged(self, item: QListWidgetItem):
         if item:
-            self.__answerToQuestionWidget.show()
-            self.__answerDetailsWidget.hide()
+            # self.__answerToQuestionWidget.show()
+            # self.__answerDetailsWidget.hide()
 
             question: Question = item.data(Qt.UserRole)
             print("changed", question.id, question.domanda)
@@ -311,27 +302,29 @@ class StudentQuestionAnswersWidget(QWidget):
 
     def __answeredQuestionSelectionChanged(self, item: QListWidgetItem):
         if item:
-            self.__answerToQuestionWidget.hide()
-            self.__answerDetailsWidget.show()
+            # self.__answerToQuestionWidget.hide()
+            # self.__answerDetailsWidget.show()
 
             question: Question = item.data(Qt.UserRole)
             print("changed", question.id, question.domanda)
             self.__getAnswerDetails(question)
         else:
-            # self.__browser.resetChatWidget(0) TODO
             print("reset")
 
     def __tabSelectionChanged(self, tabName: str):
         print(tabName, "changed")
         if tabName == "Da rispondere":
-            self.__answerToQuestionWidget.show()
             self.__answerDetailsWidget.hide()
+            if self.__leftSideBarWidget.getUnansweredRowCount() > 0:
+                self.__answerToQuestionWidget.show()
         elif tabName == "Già risposte":
+            self.__answerToQuestionWidget.hide()
+
+            if self.__leftSideBarWidget.getAnsweredRowCount() > 0:
+                self.__answerDetailsWidget.show()
+
             if self.__leftSideBarWidget.getCurrentAnsweredListItem() < 0:
                 self.__leftSideBarWidget.selectAnsweredListItem(0)
-
-            self.__answerToQuestionWidget.hide()
-            self.__answerDetailsWidget.show()
 
     def __getAnswerDetails(self, question: Question):
         if self.db_worker is not None:

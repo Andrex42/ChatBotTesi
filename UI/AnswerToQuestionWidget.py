@@ -17,6 +17,7 @@ class AnswerToQuestionWidget(QWidget):
         self.question = None
 
         self.__initUi()
+        self.hide()
 
     def __initUi(self):
         # self.label = QLabel("")
@@ -83,6 +84,9 @@ class AnswerToQuestionWidget(QWidget):
         self.students_answers_layout.addWidget(answer_label)
         self.students_answers_layout.addWidget(self.answerTextEdit)
         self.students_answers_layout.addWidget(self.sendAnswerBtn)
+
+        if self.isHidden():
+            self.show()
 
     def checkTextEdit(self):
         # Controlla se il QTextEdit contiene del testo

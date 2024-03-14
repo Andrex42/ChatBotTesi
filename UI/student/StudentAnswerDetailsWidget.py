@@ -12,6 +12,7 @@ class AnswerDetailsWidget(QWidget):
         self.authorized_user = authorized_user
 
         self.__initUi()
+        self.hide()
 
     def __initUi(self):
         self.teacher_answer_layout = QVBoxLayout()
@@ -80,3 +81,6 @@ class AnswerDetailsWidget(QWidget):
                                     color: #a83232;
                                 }
                             ''')
+
+        if self.isHidden():
+            self.show()

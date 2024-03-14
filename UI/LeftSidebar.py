@@ -64,7 +64,7 @@ class LeftSideBar(QWidget):
         self.setLayout(lay)
 
     def addQuestionToList(self, question: Question):
-        self.__questionListWidget.addQuestion(question)
+        self.__questionListWidget.addQuestion(question, True)
 
     def __addClicked(self):
         self.on_add_question_clicked.emit()

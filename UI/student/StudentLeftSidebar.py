@@ -52,14 +52,14 @@ class StudentLeftSideBar(QWidget):
         self.setLayout(lay)
 
     def addQuestionToUnansweredList(self, question: Question):
-        self.__unansweredQuestionListWidget.addQuestion(question)
+        self.__unansweredQuestionListWidget.addQuestion(question, False)
 
     def addQuestionToAnsweredList(self, question: Question):
-        self.__answeredQuestionListWidget.addQuestion(question)
+        self.__answeredQuestionListWidget.addQuestion(question, False)
 
     def moveQuestionToAnsweredList(self, question: Question):
         self.__unansweredQuestionListWidget.removeQuestion(question)
-        self.__answeredQuestionListWidget.addQuestion(question)
+        self.__answeredQuestionListWidget.addQuestion(question, False)
 
     def selectUnansweredListItem(self, index: int):
         if index < self.__unansweredQuestionListWidget.count():
@@ -71,3 +71,9 @@ class StudentLeftSideBar(QWidget):
 
     def getCurrentAnsweredListItem(self) -> int:
         return self.__answeredQuestionListWidget.currentRow()
+
+    def getAnsweredRowCount(self):
+        return self.__answeredQuestionListWidget.count()
+
+    def getUnansweredRowCount(self):
+        return self.__unansweredQuestionListWidget.count()

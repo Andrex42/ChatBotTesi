@@ -43,22 +43,17 @@ class Application(QMainWindow):
         #     )
 
     def __beforeClose(self):
-        message = 'The window will be closed. Would you like to continue running this app in the background?'
+        message = "Vuoi uscire dall'applicazione?"
         closeMessageBox = QMessageBox(self)
-        closeMessageBox.setWindowTitle('Wait!')
+        closeMessageBox.setWindowTitle('Chiudi applicazione')
         closeMessageBox.setText(message)
-        closeMessageBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+        closeMessageBox.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
         reply = closeMessageBox.exec()
         # Cancel
         if reply == QMessageBox.Cancel:
             return True
-        else:
-            # Yes
-            if reply == QMessageBox.Yes:
-                self.close()
-            # No
-            elif reply == QMessageBox.No:
-                self.app.quit()
+        elif reply == QMessageBox.Yes:
+            self.app.quit()
 
     def closeEvent(self, e):
         f = self.__beforeClose()
