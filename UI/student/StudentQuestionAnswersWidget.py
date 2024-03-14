@@ -162,12 +162,20 @@ class StudentQuestionAnswersWidget(QWidget):
         self.__answerToQuestionWidget = AnswerToQuestionWidget(self.authorized_user)
         self.__answerDetailsWidget = AnswerDetailsWidget(self.authorized_user)
 
+        lay = QVBoxLayout()
+        lay.addWidget(self.__answerToQuestionWidget)
+        lay.addWidget(self.__answerDetailsWidget)
+        lay.setSpacing(0)
+        lay.setContentsMargins(0, 0, 0, 0)
+
+        self.__rightSideWidget = QWidget()
+        self.__rightSideWidget.setLayout(lay)
+
         mainWidget = QSplitter()
         mainWidget.addWidget(self.__leftSideBarWidget)
-        mainWidget.addWidget(self.__answerToQuestionWidget)
-        mainWidget.addWidget(self.__answerDetailsWidget)
+        mainWidget.addWidget(self.__rightSideWidget)
 
-        mainWidget.setSizes([500, 500, 500])
+        mainWidget.setSizes([500, 500])
         mainWidget.setChildrenCollapsible(False)
         mainWidget.setHandleWidth(2)
         mainWidget.setStyleSheet(

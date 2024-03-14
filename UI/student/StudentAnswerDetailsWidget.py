@@ -15,9 +15,17 @@ class AnswerDetailsWidget(QWidget):
         self.hide()
 
     def __initUi(self):
-        self.teacher_answer_layout = QVBoxLayout()
+        teacher_question_container = QWidget(self)
+        teacher_question_container.setObjectName("teacher_container")  # Setta un ID per il container
+        teacher_question_container.setStyleSheet('''
+            #teacher_container {
+                background-color: rgba(52, 143, 235, 0.1);
+                border-radius: 20px;
+            }''')
 
-        self.question_label = QLabel("")
+        self.teacher_answer_layout = QVBoxLayout(teacher_question_container)
+
+        self.question_label = QLabel("-")
         self.question_label.setStyleSheet('''
                     QLabel {
                         font-size: 14px; 
@@ -26,17 +34,43 @@ class AnswerDetailsWidget(QWidget):
                 ''')
         self.question_label.setWordWrap(True)
 
-        self.answer_label = QLabel("")
+        self.answer_label = QLabel("-")
         self.answer_label.setWordWrap(True)
 
-        self.result_label = QLabel("")
+        self.result_label = QLabel("-")
 
-        self.teacher_answer_layout.addWidget(QLabel("Domanda"))
+        lbl = QLabel("DOMANDA")
+        lbl.setStyleSheet('''
+                            QLabel {
+                                font-size: 12px; 
+                                font-weight: 300;
+                            }
+                        ''')
+        self.teacher_answer_layout.addWidget(lbl)
         self.teacher_answer_layout.addWidget(self.question_label)
-        self.teacher_answer_layout.addWidget(QLabel("Risposta"))
-        self.teacher_answer_layout.addWidget(self.answer_label)
-        self.teacher_answer_layout.addWidget(QLabel("Risultato"))
-        self.teacher_answer_layout.addWidget(self.result_label)
+
+        self.student_answer_layout = QVBoxLayout()
+        self.student_answer_layout.insertSpacing(10, 20)
+
+        lbl = QLabel("RISPOSTA")
+        lbl.setStyleSheet('''
+                                QLabel {
+                                    font-size: 12px; 
+                                    font-weight: 300;
+                                }
+                            ''')
+        self.student_answer_layout.addWidget(lbl)
+        self.student_answer_layout.addWidget(self.answer_label)
+
+        lbl = QLabel("RISULTATO")
+        lbl.setStyleSheet('''
+                                    QLabel {
+                                        font-size: 12px; 
+                                        font-weight: 300;
+                                    }
+                                ''')
+        self.student_answer_layout.addWidget(lbl)
+        self.student_answer_layout.addWidget(self.result_label)
 
         scroll_vertical_layout = QVBoxLayout()
         scroll = QScrollArea()  # Scroll Area which contains the widgets, set as the centralWidget
@@ -51,7 +85,8 @@ class AnswerDetailsWidget(QWidget):
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setWidgetResizable(True)
 
-        scroll_vertical_layout.addLayout(self.teacher_answer_layout)
+        scroll_vertical_layout.addWidget(teacher_question_container)
+        scroll_vertical_layout.addLayout(self.student_answer_layout)
         scroll_vertical_layout.addStretch()
 
         lay = QVBoxLayout()
