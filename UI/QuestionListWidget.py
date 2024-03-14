@@ -1,5 +1,6 @@
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QPalette, QColor, QColorConstants
 from PyQt5.QtWidgets import QWidget, QListWidgetItem, QLabel, QVBoxLayout, QPushButton, QHBoxLayout, QListWidget, \
     QApplication
 
@@ -20,12 +21,18 @@ class QuestionItemWidget(QWidget):
     def __initUi(self, question: Question):
         self.__topicLbl = QLabel(question.categoria + " (" + question.id_docente + ")"
                                  if not self.__isTeacher else question.categoria)
-        self.__topicLbl.setStyleSheet("QLabel {color: #5c5c5c;}")
+
+        palette = self.__topicLbl.palette()
+        color = palette.color(QPalette.Text)
+        color.setAlpha(127)
+        palette.setColor(QPalette.Text, color)
+        self.__topicLbl.setPalette(palette)
         self.__questionLbl = QLabel(question.domanda)
 
         lay = QVBoxLayout()
         lay.addWidget(self.__topicLbl)
         lay.addWidget(self.__questionLbl)
+        lay.setSpacing(2)
         lay.setContentsMargins(0, 0, 0, 0)
 
         leftWidget = QWidget()
