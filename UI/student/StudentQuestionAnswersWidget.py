@@ -58,7 +58,7 @@ class Worker(QtCore.QObject):
 
             if len(all_student_answers['documents']) == 0:
                 unanswered_questions = question_collection.get(
-                    where={"id_docente": {"$in": related_teachers}}
+                    where={"$and": [{"id_docente": {"$in": related_teachers}}, {"archived": False}]}
                 )
 
                 answered_questions = None
@@ -66,14 +66,16 @@ class Worker(QtCore.QObject):
                 id_domanda_metadatas = extract_metadata_from_get_result(all_student_answers['metadatas'], "id_domanda")
                 unanswered_questions = question_collection.get(
                     where={"$and": [{"id_docente": {"$in": related_teachers}},
-                                    {"id_domanda": {"$nin": id_domanda_metadatas}}]}
+                                    {"id_domanda": {"$nin": id_domanda_metadatas}},
+                                    {"archived": False}]}
                 )
 
 
 
                 answered_questions = question_collection.get(
                     where={"$and": [{"id_docente": {"$in": related_teachers}},
-                                    {"id_domanda": {"$in": id_domanda_metadatas}}]}
+                                    {"id_domanda": {"$in": id_domanda_metadatas}},
+                                    {"archived": False}]}
                 )
 
 
@@ -241,6 +243,7 @@ class StudentQuestionAnswersWidget(QWidget):
                 q['id_docente'],
                 q['categoria'],
                 q['source'],
+                q['archived'],
                 q['data_creazione'],
             )
 
@@ -260,6 +263,7 @@ class StudentQuestionAnswersWidget(QWidget):
                 q['id_docente'],
                 q['categoria'],
                 q['source'],
+                q['archived'],
                 q['data_creazione'],
             )
 

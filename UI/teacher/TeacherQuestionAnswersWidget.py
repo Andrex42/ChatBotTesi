@@ -3,14 +3,14 @@ import time
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem, QPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem, QPushButton, QMessageBox
 
 from UI.LeftSidebar import LeftSideBar
 from UI.teacher.TeacherAddQuestionDialog import AddQuestionDialog
 from UI.teacher.TeacherQuestionDetailsWidget import QuestionDetailsWidget
 
 from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, extract_data, \
-    add_question_to_collection, get_similar_sentences
+    add_question_to_collection, get_similar_sentences, get_chroma_questions_collection
 from model.answer_model import Answer
 from model.question_model import Question
 
@@ -31,6 +31,7 @@ class Worker(QtCore.QObject):
     questions_ready_event = QtCore.pyqtSignal(object)
     question_added_event = QtCore.pyqtSignal(Question)
     answer_voted_event = QtCore.pyqtSignal(Answer)
+    archived_questions_event = QtCore.pyqtSignal(list)
     recalculated_unevaluated_answers_event = QtCore.pyqtSignal(object)
     q_a_ready_event = QtCore.pyqtSignal(object, object)
 
@@ -45,7 +46,7 @@ class Worker(QtCore.QObject):
         print("getting questions of teacher", self.authorized_user)
 
         query_result = question_collection.get(
-            where={"id_docente": self.authorized_user['username']},
+            where={"$and": [{"id_docente": self.authorized_user['username']}, {"archived": False}]},
         )
 
         self.questions_ready_event.emit(query_result)
@@ -120,6 +121,31 @@ class Worker(QtCore.QObject):
         answer.voto_docente = voto
 
         self.answer_voted_event.emit(answer)
+
+        print(f'Execution time = {time.time() - start} seconds.')
+
+    @QtCore.pyqtSlot()
+    def archiveQuestions(self, domande: list[Question]):
+        start = time.time()
+
+        init_chroma_client()
+
+        questions_collection = get_chroma_questions_collection()
+
+        ids = [q.id for q in domande]
+        metadatas = [{"id_domanda": q.id,
+                      "id_docente": q.id_docente,
+                      "categoria": q.categoria,
+                      "source": q.source,
+                      "archived": True,
+                      "data_creazione": q.data_creazione} for q in domande]
+
+        questions_collection.update(
+            ids=ids,
+            metadatas=metadatas
+        )
+
+        self.archived_questions_event.emit(domande)
 
         print(f'Execution time = {time.time() - start} seconds.')
 
@@ -203,7 +229,7 @@ class TeacherQuestionAnswersWidget(QWidget):
 
         self.__leftSideBarWidget.on_add_question_clicked.connect(self.__onAddQuestionClicked)
         self.__leftSideBarWidget.changed.connect(self.__changedQuestion)
-        self.__leftSideBarWidget.deleted.connect(self.__deletedQuestion)
+        self.__leftSideBarWidget.deleteRowsClicked.connect(self.__onArchiveQuestionsClicked)
         self.__leftSideBarWidget.questionUpdated.connect(self.__updatedQuestion)
 
         lay = QVBoxLayout()
@@ -224,6 +250,7 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.db_worker.question_added_event.connect(lambda question: self.on_question_added(question))
         self.db_worker.answer_voted_event.connect(lambda answer: self.on_answer_voted(answer))
         self.db_worker.recalculated_unevaluated_answers_event.connect(lambda votes: self.on_recalculated_unevaluated_answers(votes))
+        self.db_worker.archived_questions_event.connect(lambda questions: self.on_archived_questions(questions))
 
         self.db_thread = QtCore.QThread()
         self.db_thread.start()
@@ -234,7 +261,6 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.db_worker.moveToThread(self.db_thread)
 
     def save_callback(self, categoria, question_text, ref_answer_text):
-        # Qui dovresti aggiornare la domanda effettivamente, per semplicità la stampiamo solo
         print(f"Nuova domanda: {categoria} {question_text} {ref_answer_text}")  # Aggiorna questa parte per modificare i dati effettivi
         if self.db_worker is not None:
             self.db_worker.add_question(categoria, question_text, ref_answer_text)
@@ -264,6 +290,7 @@ class TeacherQuestionAnswersWidget(QWidget):
                 q['id_docente'],
                 q['categoria'],
                 q['source'],
+                q['archived'],
                 q['data_creazione'],
             )
 
@@ -296,28 +323,40 @@ class TeacherQuestionAnswersWidget(QWidget):
         print("[on_recalculated_unevaluated_answers]", votes)
         self.__questionDetailsWidget.onRecalulatedVotes(votes)
 
+    @QtCore.pyqtSlot()
+    def on_archived_questions(self, archivedQuestions: list[Question]):
+        print("[on_archived_questions]", archivedQuestions)
+        self.__leftSideBarWidget.removeRows(archivedQuestions)
+
     def __changedQuestion(self, item: QListWidgetItem):
         if item:
             question: Question = item.data(Qt.UserRole)
             print("changed", question.id, question.domanda)
             self.__getQuestionDetails(question)
         else:
-            # self.__browser.resetChatWidget(0) TODO
             print("reset")
 
     def __onAddQuestionClicked(self):
-        # cur_id = DB.insertConv(LangClass.TRANSLATIONS['New Chat'])
-        # self.__browser.resetChatWidget(cur_id) TODO
-        #self.__leftSideBarWidget.addToList(cur_id)
-        # self.__lineEdit.setFocus()
         self.add_question_dialog.show()
 
     def __updatedQuestion(self, id, title=None):
         if title:
-            # DB.updateConv(id, title)
             print("update question", id, title)
 
-    def __deletedQuestion(self, id_lst):
-        for id in id_lst:
-            # DB.deleteConv(id)
-            print("delete question", id)
+    def __onArchiveQuestionsClicked(self, id_lst: list[Question]):
+        def showAreYouSureDialog():
+            message = f'Stai per archiviare {len(id_lst)} domande. Sei sicuro?'
+            closeMessageBox = QMessageBox(self)
+            closeMessageBox.setWindowTitle('Archivia domande')
+            closeMessageBox.setText(message)
+            closeMessageBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+            reply = closeMessageBox.exec()
+            # Cancel
+            if reply == QMessageBox.Cancel or reply == QMessageBox.No:
+                return True
+            elif reply == QMessageBox.Yes:
+                self.db_worker.archiveQuestions(id_lst)
+
+        # for id in id_lst:
+        #     print("delete question", id)
+        showAreYouSureDialog()

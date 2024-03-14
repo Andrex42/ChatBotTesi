@@ -119,6 +119,18 @@ class QuestionListWidget(QListWidget):
     def getCheckedRowsIds(self):
         return self.__getFlagRows(Qt.Checked, is_id=True)
 
+    def removeCheckedRows(self):
+        self.__removeFlagRows(Qt.Checked)
+
+    def removeUncheckedRows(self):
+        self.__removeFlagRows(Qt.Unchecked)
+
+    def __removeFlagRows(self, flag):
+        flag_lst = self.__getFlagRows(flag)
+        flag_lst = reversed(flag_lst)
+        for i in flag_lst:
+            self.takeItem(i)
+
     def getUncheckedRowsIds(self):
         return self.__getFlagRows(Qt.Unchecked, is_id=True)
 

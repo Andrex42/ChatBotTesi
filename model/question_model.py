@@ -8,4 +8,5 @@ class Question:
     id_docente: str
     categoria: str
     source: str
+    archived: bool
     data_creazione: str

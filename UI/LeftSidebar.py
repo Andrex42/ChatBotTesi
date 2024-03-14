@@ -10,7 +10,7 @@ class LeftSideBar(QWidget):
 
     on_add_question_clicked = QtCore.pyqtSignal()
     changed = QtCore.pyqtSignal(QListWidgetItem)
-    deleted = QtCore.pyqtSignal(list)
+    deleteRowsClicked = QtCore.pyqtSignal(list)
     questionUpdated = QtCore.pyqtSignal(str, str)
 
     def __init__(self, authorized_user):
@@ -22,11 +22,11 @@ class LeftSideBar(QWidget):
 
     def __initUi(self):
         self.__addBtn = QPushButton("Aggiungi")
-        self.__deleteBtn = QPushButton("Elimina")
+        self.__archiveBtn = QPushButton("Archivia")
         self.__saveBtn = QPushButton("Esporta")
 
         self.__addBtn.clicked.connect(self.__addClicked)
-        self.__deleteBtn.clicked.connect(self.__deleteClicked)
+        self.__archiveBtn.clicked.connect(self.__archiveClicked)
         # self.__saveBtn.clicked.connect(self.__saveClicked)
 
         self.__allCheckBox = QCheckBox('Seleziona tutto')
@@ -36,7 +36,7 @@ class LeftSideBar(QWidget):
         lay.addWidget(self.__allCheckBox)
         lay.addSpacerItem(QSpacerItem(10, 10, QSizePolicy.MinimumExpanding))
         lay.addWidget(self.__addBtn)
-        lay.addWidget(self.__deleteBtn)
+        lay.addWidget(self.__archiveBtn)
         lay.addWidget(self.__saveBtn)
         lay.setContentsMargins(0, 0, 0, 0)
 
@@ -69,15 +69,18 @@ class LeftSideBar(QWidget):
     def __addClicked(self):
         self.on_add_question_clicked.emit()
 
-    def __deleteClicked(self):
+    def __archiveClicked(self):
         # get the ID of row, not actual index (because list is in a stacked form)
         rows = self.__questionListWidget.getCheckedRowsIds()
-        self.__questionListWidget.removeCheckedRows()
-        self.deleted.emit(rows)
+        self.deleteRowsClicked.emit(rows)
         self.__allCheckBox.setChecked(False)
 
+    def removeRows(self, rows):
+        for row in rows:
+            self.__questionListWidget.removeQuestion(row)
+
     def __toggleButton(self, f):
-        self.__deleteBtn.setEnabled(f)
+        self.__archiveBtn.setEnabled(f)
         self.__saveBtn.setEnabled(f)
 
     def __stateChanged(self, f):

@@ -2,7 +2,6 @@ from PyQt5 import QtCore
 from PyQt5.QtWidgets import QMessageBox, QPushButton, QLabel, QSizePolicy, QStackedWidget, QToolBar, QWidgetAction
 from UI.LoginFormApp import LoginFormApp
 from UI.teacher.TeacherQuestionAnswersWidget import TeacherQuestionAnswersWidget
-from UI.teacher.TeacherQuestionDialog import QuestionDialog
 
 
 class TeacherWindow(QStackedWidget):
@@ -49,15 +48,6 @@ class TeacherWindow(QStackedWidget):
         aiTypeToolBar.addAction(self.__logoutAction)
 
         self.main_window.addToolBar(aiTypeToolBar)
-
-    # Implementazione della conferma di eliminazione
-    def confirmDelete(self, question):
-        reply = QMessageBox.question(self, 'Elimina Domanda',
-                                     "Sei sicuro di voler eliminare questa domanda?",
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-
-        if reply == QMessageBox.Yes:
-            print(f"Domanda eliminata: {question}")  # TODO: Qui dovresti eliminare la domanda effettivamente
 
     def logout(self):
         for worker in self.activeWorkers:

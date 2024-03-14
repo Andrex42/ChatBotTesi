@@ -16,6 +16,7 @@ class QuestionDetailsWidget(QWidget):
         self.id_domanda = None
 
         self.__initUi()
+        self.hide()
 
     def __initUi(self):
         # self.label = QLabel("")
@@ -148,6 +149,9 @@ class QuestionDetailsWidget(QWidget):
                 studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
                     self.db_worker, self.authorized_user, answer, True)
                 self.students_answers_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
+
+        if self.isHidden():
+            self.show()
 
     def onRecalulatedVotes(self, votes: list[float]):
         teacherStudentAnswerPreviewItemIndex = 0

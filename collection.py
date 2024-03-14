@@ -59,6 +59,8 @@ def get_chroma_q_a_collection():
     if chroma_client is None:
         raise Exception("Chroma client not initialized")
 
+    print("getting get_chroma_q_a_collection")
+
     # Gets or creates a ChromaDB collection named 'q_a', using the Cohere embedding function.
     # example_collection = chroma_client.get_or_create_collection(name="q_a", embedding_function=cohere_ef)
     # Gets or creates a ChromaDB collection named 'q_a',
@@ -70,6 +72,8 @@ def get_chroma_q_a_collection():
 def get_chroma_questions_collection():
     if chroma_client is None:
         raise Exception("Chroma client not initialized")
+
+    print("getting get_chroma_questions_collection")
 
     # Gets or creates a ChromaDB collection named 'questions', using the Cohere embedding function.
     # example_collection = chroma_client.get_or_create_collection(name="questions", embedding_function=cohere_ef)
@@ -125,6 +129,7 @@ def init_model():
                             "id_docente": item['id_docente'],
                             "categoria": item['label'],
                             "source": "internal__training",
+                            "archived": False,
                             "data_creazione": iso_format}],
                 ids=[item['id']]
             )
@@ -438,6 +443,7 @@ def add_question_to_collection(authenticated_user, categoria: str, question_text
                     "id_docente": authenticated_user['username'],
                     "categoria": categoria,
                     "source": "application",
+                    "archived": False,
                     "data_creazione": iso_format}],
         ids=[id_domanda]
     )
@@ -467,6 +473,7 @@ def add_question_to_collection(authenticated_user, categoria: str, question_text
             added_question_data_array[0]['id_docente'],
             added_question_data_array[0]['categoria'],
             added_question_data_array[0]['source'],
+            added_question_data_array[0]['archived'],
             added_question_data_array[0]['data_creazione'],
         )
 
@@ -521,6 +528,8 @@ def get_risultato_classification_full(data):
 def get_collections():
     if chroma_client is None:
         raise Exception("Chroma client not initialized")
+
+    print("getting collections")
 
     question_collection = chroma_client.get_or_create_collection(name="questions")
     q_a_collection = get_chroma_q_a_collection()

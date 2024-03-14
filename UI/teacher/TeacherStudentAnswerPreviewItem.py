@@ -65,6 +65,7 @@ class TeacherStudentAnswerPreviewItem(QWidget):
 
             self.votoCustomSpinBox = QDoubleSpinBox()
             self.votoCustomSpinBox.setValue(self.answer.voto_predetto)
+            self.votoCustomSpinBox.setSingleStep(0.50)
             self.votoCustomSpinBox.setMinimum(0)
             self.votoCustomSpinBox.setMaximum(5)
 
