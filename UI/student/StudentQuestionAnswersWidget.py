@@ -310,11 +310,11 @@ class StudentQuestionAnswersWidget(QWidget):
         elif tabName == "Già risposte":
             self.__answerToQuestionWidget.hide()
 
-            if self.__leftSideBarWidget.getAnsweredRowCount() > 0:
-                self.__answerDetailsWidget.show()
-
             if self.__leftSideBarWidget.getCurrentAnsweredListItem() < 0:
                 self.__leftSideBarWidget.selectAnsweredListItem(0)
+
+            if self.__leftSideBarWidget.getAnsweredRowCount() > 0:
+                self.__answerDetailsWidget.show()
 
     def __getAnswerDetails(self, question: Question):
         if self.db_worker is not None:
