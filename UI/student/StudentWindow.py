@@ -1,12 +1,12 @@
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QLabel, QPushButton, QStackedWidget, QToolBar, \
-    QWidgetAction, QSizePolicy
+    QWidgetAction, QSizePolicy, QMainWindow
 from UI.LoginFormApp import LoginFormApp
 from UI.student.StudentQuestionAnswersWidget import StudentQuestionAnswersWidget
 
 
 class StudentWindow(QStackedWidget):
-    def __init__(self, parent, authorized_user):
+    def __init__(self, parent: QMainWindow, authorized_user):
         super(StudentWindow, self).__init__(parent)
 
         self.main_window = parent
@@ -34,6 +34,7 @@ class StudentWindow(QStackedWidget):
         # toolbar action
         self.__currentUserUsernameAction = QWidgetAction(self)
         self.__currentUserUsernameLabel = QLabel(self.authorized_user['username'])
+        self.__currentUserUsernameLabel.setStyleSheet("QLabel {padding: 0px 0px 0px 5px;}")
         self.__currentUserUsernameLabel.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
         self.__currentUserUsernameAction.setDefaultWidget(self.__currentUserUsernameLabel)
 
@@ -44,12 +45,12 @@ class StudentWindow(QStackedWidget):
         self.__logoutButton.clicked.connect(self.logout)
 
     def __setToolBar(self):
-        aiTypeToolBar = QToolBar()
-        aiTypeToolBar.setMovable(False)
-        aiTypeToolBar.addAction(self.__currentUserUsernameAction)
-        aiTypeToolBar.addAction(self.__logoutAction)
+        self.studentToolBar = QToolBar()
+        self.studentToolBar.setMovable(False)
+        self.studentToolBar.addAction(self.__currentUserUsernameAction)
+        self.studentToolBar.addAction(self.__logoutAction)
 
-        self.main_window.addToolBar(aiTypeToolBar)
+        self.main_window.addToolBar(self.studentToolBar)
 
     def logout(self):
         for worker in self.activeWorkers:
@@ -61,6 +62,7 @@ class StudentWindow(QStackedWidget):
         self.activeWorkers = []
 
         print("logout, workers", self.activeWorkers)
+        self.main_window.removeToolBar(self.studentToolBar)
 
         window = LoginFormApp(self.main_window)
         window.show()

@@ -1,11 +1,11 @@
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QPushButton, QLabel, QSizePolicy, QStackedWidget, QToolBar, QWidgetAction
+from PyQt5.QtWidgets import QPushButton, QLabel, QSizePolicy, QStackedWidget, QToolBar, QWidgetAction, QMainWindow
 from UI.LoginFormApp import LoginFormApp
 from UI.teacher.TeacherQuestionAnswersWidget import TeacherQuestionAnswersWidget
 
 
 class TeacherWindow(QStackedWidget):
-    def __init__(self, parent, authorized_user):
+    def __init__(self, parent: QMainWindow, authorized_user):
         super(TeacherWindow, self).__init__(parent)
 
         self.main_window = parent
@@ -32,6 +32,7 @@ class TeacherWindow(QStackedWidget):
         # toolbar action
         self.__currentUserUsernameAction = QWidgetAction(self)
         self.__currentUserUsernameLabel = QLabel(self.authorized_user['username'])
+        self.__currentUserUsernameLabel.setStyleSheet("QLabel {padding: 0px 0px 0px 5px;}")
         self.__currentUserUsernameLabel.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
         self.__currentUserUsernameAction.setDefaultWidget(self.__currentUserUsernameLabel)
 
@@ -42,12 +43,12 @@ class TeacherWindow(QStackedWidget):
         self.__logoutButton.clicked.connect(self.logout)
 
     def __setToolBar(self):
-        aiTypeToolBar = QToolBar()
-        aiTypeToolBar.setMovable(False)
-        aiTypeToolBar.addAction(self.__currentUserUsernameAction)
-        aiTypeToolBar.addAction(self.__logoutAction)
+        self.teacherToolBar = QToolBar()
+        self.teacherToolBar.setMovable(False)
+        self.teacherToolBar.addAction(self.__currentUserUsernameAction)
+        self.teacherToolBar.addAction(self.__logoutAction)
 
-        self.main_window.addToolBar(aiTypeToolBar)
+        self.main_window.addToolBar(self.teacherToolBar)
 
     def logout(self):
         for worker in self.activeWorkers:
@@ -59,6 +60,7 @@ class TeacherWindow(QStackedWidget):
         self.activeWorkers = []
 
         print("logout, workers", self.activeWorkers)
+        self.main_window.removeToolBar(self.teacherToolBar)
 
         window = LoginFormApp(self.main_window)
         window.show()

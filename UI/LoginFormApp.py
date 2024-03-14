@@ -1,11 +1,11 @@
 import os
 
-from PyQt5.QtWidgets import QWidget, QFormLayout, QLabel, QLineEdit, QPushButton, QMessageBox
+from PyQt5.QtWidgets import QWidget, QFormLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QMainWindow
 from users import STUDENTS, TEACHERS
 
 
 class LoginFormApp(QWidget):
-    def __init__(self, parent):
+    def __init__(self, parent: QMainWindow):
         super(LoginFormApp, self).__init__(parent)
 
         self.main_window = parent
