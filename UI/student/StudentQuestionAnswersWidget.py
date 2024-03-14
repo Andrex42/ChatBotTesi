@@ -70,15 +70,11 @@ class Worker(QtCore.QObject):
                                     {"archived": False}]}
                 )
 
-
-
                 answered_questions = question_collection.get(
                     where={"$and": [{"id_docente": {"$in": related_teachers}},
                                     {"id_domanda": {"$in": id_domanda_metadatas}},
                                     {"archived": False}]}
                 )
-
-
 
             print("domande assegnate allo studente (risposte)", answered_questions)
             print("domande assegnate allo studente (non risposte)", unanswered_questions)
@@ -263,13 +259,14 @@ class StudentQuestionAnswersWidget(QWidget):
     @QtCore.pyqtSlot()
     def on_answer_added(self, question: Question, answer: Answer):
         print("[on_answer_added]", answer)
+
         def show_confirm():
             message = 'Risposta inviata correttamente. Puoi verificare lo stato della valutazione nella sezione "Già risposte"'
             closeMessageBox = QMessageBox(self)
             closeMessageBox.setWindowTitle('Risposta inviata con successo')
             closeMessageBox.setText(message)
             closeMessageBox.setStandardButtons(QMessageBox.Close)
-            reply = closeMessageBox.exec()
+            closeMessageBox.exec()
 
         show_confirm()
 
@@ -282,16 +279,12 @@ class StudentQuestionAnswersWidget(QWidget):
 
     def __unansweredQuestionSelectionChanged(self, item: QListWidgetItem):
         if item:
-            # self.__answerToQuestionWidget.show()
-            # self.__answerDetailsWidget.hide()
-
             question: Question = item.data(Qt.UserRole)
             print("changed", question.id, question.domanda)
             # Inserisci un controllo nel caso in cui si sia inserita una risposta, se una risposta è presente,
             # avvisa l'utente che potrebbe perdere i progressi fatti # TODO
             self.__answerToQuestionWidget.replaceQuestion(question)
         else:
-            # self.__browser.resetChatWidget(0) TODO
             print("reset")
 
     def __onSendAnswerClicked(self, question: Question, answer_text: str):
@@ -302,9 +295,6 @@ class StudentQuestionAnswersWidget(QWidget):
 
     def __answeredQuestionSelectionChanged(self, item: QListWidgetItem):
         if item:
-            # self.__answerToQuestionWidget.hide()
-            # self.__answerDetailsWidget.show()
-
             question: Question = item.data(Qt.UserRole)
             print("changed", question.id, question.domanda)
             self.__getAnswerDetails(question)
