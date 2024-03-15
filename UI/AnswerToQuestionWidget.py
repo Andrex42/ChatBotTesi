@@ -74,6 +74,7 @@ class AnswerToQuestionWidget(QWidget):
         ''')
 
         self.answerTextEdit = QTextEdit()
+        self.answerTextEdit.setAcceptRichText(False)
         self.answerTextEdit.setPlaceholderText("Inserisci risposta")
         self.sendAnswerBtn = QPushButton("Invia risposta")
         self.sendAnswerBtn.setEnabled(False)

@@ -9,9 +9,8 @@ from model.question_model import Question
 class LeftSideBar(QWidget):
 
     on_add_question_clicked = QtCore.pyqtSignal()
-    changed = QtCore.pyqtSignal(QListWidgetItem)
     deleteRowsClicked = QtCore.pyqtSignal(list)
-    questionUpdated = QtCore.pyqtSignal(str, str)
+    changed = QtCore.pyqtSignal(QListWidgetItem)
 
     def __init__(self, authorized_user):
         super().__init__()
@@ -53,9 +52,8 @@ class LeftSideBar(QWidget):
         lay.setContentsMargins(0, 0, 0, 0)
 
         self.__questionListWidget = QuestionListWidget()
-        self.__questionListWidget.changed.connect(self.changed)
         self.__questionListWidget.checked.connect(self.__checked)
-        self.__questionListWidget.questionUpdated.connect(self.questionUpdated)
+        self.__questionListWidget.changed.connect(self.changed)
 
         lay = QVBoxLayout()
         lay.addWidget(topWidget)
@@ -63,8 +61,8 @@ class LeftSideBar(QWidget):
 
         self.setLayout(lay)
 
-    def addQuestionToList(self, question: Question):
-        self.__questionListWidget.addQuestion(question, True)
+    def addQuestionToList(self, question: Question, hasUnevaluatedAnswers: bool):
+        self.__questionListWidget.addQuestion(question, True, hasUnevaluatedAnswers)
 
     def __addClicked(self):
         self.on_add_question_clicked.emit()
@@ -74,6 +72,9 @@ class LeftSideBar(QWidget):
         rows = self.__questionListWidget.getCheckedRowsIds()
         self.deleteRowsClicked.emit(rows)
         self.__allCheckBox.setChecked(False)
+
+    def updateHasUnevaluated(self, ids: list[str]):
+        self.__questionListWidget.updateHasUnevaluated(ids)
 
     def removeRows(self, rows):
         for row in rows:

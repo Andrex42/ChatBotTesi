@@ -4,18 +4,17 @@ from PyQt5.QtGui import QPalette, QColor, QColorConstants
 from PyQt5.QtWidgets import QWidget, QListWidgetItem, QLabel, QVBoxLayout, QPushButton, QHBoxLayout, QListWidget, \
     QApplication
 
+from UI.dot_widget import DotWidget
 from model.question_model import Question
 
 
 class QuestionItemWidget(QWidget):
-    btnClicked = QtCore.pyqtSignal(QListWidgetItem)
-    questionUpdated = QtCore.pyqtSignal(str, str)
-
-    def __init__(self, question: Question, item: QListWidgetItem, isTeacher: bool):
+    def __init__(self, question: Question, item: QListWidgetItem, isTeacher: bool, hasUnevaluatedAnswers: bool):
         super().__init__()
         self.__item = item
         self.__id = question.id
         self.__isTeacher = isTeacher
+        self.__hasUnevaluatedAnswers = hasUnevaluatedAnswers
         self.__initUi(question)
 
     def __initUi(self, question: Question):
@@ -30,35 +29,31 @@ class QuestionItemWidget(QWidget):
         self.__questionLbl = QLabel(question.domanda)
 
         lay = QVBoxLayout()
+        lay.addWidget(DotWidget(8))
+        lay.setSpacing(0)
+        lay.setContentsMargins(0, 0, 0, 0)
+
+        self.leftWidget = QWidget()
+        self.leftWidget.setLayout(lay)
+
+        lay = QVBoxLayout()
         lay.addWidget(self.__topicLbl)
         lay.addWidget(self.__questionLbl)
         lay.setSpacing(2)
-        lay.setContentsMargins(0, 0, 0, 0)
-
-        leftWidget = QWidget()
-        leftWidget.setLayout(lay)
-
-        editButton = QPushButton('rename')
-        editButton.setToolTip('Rename')
-
-        lay = QHBoxLayout()
-        lay.setContentsMargins(0, 0, 0, 0)
-        lay.addWidget(editButton)
-        self.__btnWidget = QWidget()
-        self.__btnWidget.setLayout(lay)
-        self.__btnWidget.setVisible(False)
-
-        lay = QVBoxLayout()
-        lay.addWidget(self.__btnWidget)
-        lay.setAlignment(Qt.AlignCenter | Qt.AlignRight)
         lay.setContentsMargins(0, 0, 0, 0)
 
         rightWidget = QWidget()
         rightWidget.setLayout(lay)
 
         lay = QHBoxLayout()
-        lay.addWidget(leftWidget)
+        lay.addWidget(self.leftWidget)
         lay.addWidget(rightWidget)
+        lay.addStretch()
+
+        if self.__hasUnevaluatedAnswers:
+            self.leftWidget.show()
+        else:
+            self.leftWidget.hide()
 
         self.setLayout(lay)
 
@@ -66,7 +61,6 @@ class QuestionItemWidget(QWidget):
 class QuestionListWidget(QListWidget):
     changed = QtCore.pyqtSignal(QListWidgetItem)
     checked = QtCore.pyqtSignal(list)
-    questionUpdated = QtCore.pyqtSignal(str, str)
 
     def __init__(self, *args, **kwargs):
         self.enable_checkbox = True
@@ -82,15 +76,14 @@ class QuestionListWidget(QListWidget):
         self.itemClicked.connect(self.__clicked)
         self.currentItemChanged.connect(self.changed)
 
-    def addQuestion(self, question: Question, isTeacher: bool):
+    def addQuestion(self, question: Question, isTeacher: bool, hasUnevaluatedAnswers: bool = False):
         item = QListWidgetItem()
 
         if self.enable_checkbox:
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
             item.setCheckState(Qt.Unchecked)
 
-        widget = QuestionItemWidget(question, item, isTeacher)
-        widget.questionUpdated.connect(self.questionUpdated)
+        widget = QuestionItemWidget(question, item, isTeacher, hasUnevaluatedAnswers)
         item.setSizeHint(widget.sizeHint())
         item.setData(Qt.UserRole, question)
         self.insertItem(0, item)
@@ -107,6 +100,18 @@ class QuestionListWidget(QListWidget):
 
         if rowToRemove > -1:
             self.takeItem(rowToRemove)
+
+    def updateHasUnevaluated(self, ids: list[str]):
+        for x in range(self.count()):
+            row = self.item(x)
+            rowWidget = self.itemWidget(row)
+            questionRow: Question = row.data(Qt.UserRole)
+            if questionRow.id in ids:
+                if isinstance(rowWidget, QuestionItemWidget):
+                    rowWidget.leftWidget.show()
+            else:
+                if isinstance(rowWidget, QuestionItemWidget):
+                    rowWidget.leftWidget.hide()
 
     def __clicked(self, item):
         potentialChkBoxWidgetInItem = QApplication.widgetAt(self.cursor().pos())

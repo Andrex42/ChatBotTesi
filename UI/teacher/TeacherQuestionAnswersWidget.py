@@ -25,7 +25,6 @@ class Worker(QtCore.QObject):
         self.config = config
 
     #QT signals - specify the method that the worker will be executing
-    call_start_ml = QtCore.pyqtSignal()
     call_add_question = QtCore.pyqtSignal()
 
     questions_ready_event = QtCore.pyqtSignal(object)
@@ -34,6 +33,8 @@ class Worker(QtCore.QObject):
     archived_questions_event = QtCore.pyqtSignal(list)
     recalculated_unevaluated_answers_event = QtCore.pyqtSignal(object)
     q_a_ready_event = QtCore.pyqtSignal(object, object)
+    unevaluated_answers_ids_ready_event = QtCore.pyqtSignal(list)
+    unevaluated_answers_ids_update_ready_event = QtCore.pyqtSignal(list)
 
     @QtCore.pyqtSlot()
     def get_teacher_questions(self):
@@ -50,6 +51,9 @@ class Worker(QtCore.QObject):
         )
 
         self.questions_ready_event.emit(query_result)
+
+        self.getToEvaluateAnswersId()
+
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
@@ -121,6 +125,30 @@ class Worker(QtCore.QObject):
         answer.voto_docente = voto
 
         self.answer_voted_event.emit(answer)
+
+        self.getToEvaluateAnswersId()
+
+        print(f'Execution time = {time.time() - start} seconds.')
+
+    @QtCore.pyqtSlot()
+    def getToEvaluateAnswersId(self, useUpdateEvent=False):
+        start = time.time()
+
+        init_chroma_client()
+
+        q_a_collection = get_chroma_q_a_collection()
+
+        answers_unevaluated = q_a_collection.get(
+            where={"$and": [{"id_docente": self.authorized_user['username']}, {"voto_docente": -1}]},
+            include=["metadatas"]
+        )
+
+        ids = [metadata["id_domanda"] for metadata in answers_unevaluated['metadatas']]
+
+        if not useUpdateEvent:
+            self.unevaluated_answers_ids_ready_event.emit(ids)
+        else:
+            self.unevaluated_answers_ids_update_ready_event.emit(ids)
 
         print(f'Execution time = {time.time() - start} seconds.')
 
@@ -197,6 +225,7 @@ class TeacherQuestionAnswersWidget(QWidget):
 
         self.authorized_user = authorized_user
         self.onCreatedWorker = onCreatedThread
+        self.questions = []
 
         self.__initWorker()
         self.__initUi()
@@ -230,7 +259,6 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.__leftSideBarWidget.on_add_question_clicked.connect(self.__onAddQuestionClicked)
         self.__leftSideBarWidget.changed.connect(self.__changedQuestion)
         self.__leftSideBarWidget.deleteRowsClicked.connect(self.__onArchiveQuestionsClicked)
-        self.__leftSideBarWidget.questionUpdated.connect(self.__updatedQuestion)
 
         lay = QVBoxLayout()
         lay.addWidget(mainWidget)
@@ -243,10 +271,13 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.config = {}
         self.db_worker = Worker(self.authorized_user, self.config)
 
-        self.db_worker.call_start_ml.connect(self.db_worker.get_teacher_questions)
         self.db_worker.questions_ready_event.connect(lambda data: self.on_questions_ready(data))
         self.db_worker.q_a_ready_event.connect(lambda question, result:
                                                self.on_question_details_ready(question, result))
+        self.db_worker.unevaluated_answers_ids_ready_event.connect(lambda ids:
+                                                                   self.unevaluated_answers_ids_ready(ids))
+        self.db_worker.unevaluated_answers_ids_update_ready_event.connect(lambda ids:
+                                                                          self.unevaluated_answers_ids_update_ready(ids))
         self.db_worker.question_added_event.connect(lambda question: self.on_question_added(question))
         self.db_worker.answer_voted_event.connect(lambda answer: self.on_answer_voted(answer))
         self.db_worker.recalculated_unevaluated_answers_event.connect(lambda votes: self.on_recalculated_unevaluated_answers(votes))
@@ -261,7 +292,6 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.db_worker.moveToThread(self.db_thread)
 
     def save_callback(self, categoria, question_text, ref_answer_text):
-        print(f"Nuova domanda: {categoria} {question_text} {ref_answer_text}")  # Aggiorna questa parte per modificare i dati effettivi
         if self.db_worker is not None:
             self.db_worker.add_question(categoria, question_text, ref_answer_text)
 
@@ -271,7 +301,7 @@ class TeacherQuestionAnswersWidget(QWidget):
 
     def __initQuestions(self):
         if self.db_worker is not None:
-            self.db_worker.call_start_ml.emit()
+            self.db_worker.get_teacher_questions()
 
     def __getQuestionDetails(self, question: Question):
         if self.db_worker is not None:
@@ -279,11 +309,25 @@ class TeacherQuestionAnswersWidget(QWidget):
 
     @QtCore.pyqtSlot()
     def on_questions_ready(self, data):
-        print("received", data)
+        print("[on_questions_ready]", data)
         data_array = extract_data(data)
         print("data converted", data_array)
 
-        for q in data_array:
+        self.questions = data_array
+
+    @QtCore.pyqtSlot()
+    def on_question_details_ready(self, question: Question, result):
+        print("[on_question_details_ready]", result)
+        data_array = extract_data(result)
+        print("data converted", data_array)
+
+        self.__questionDetailsWidget.replaceQuestion(question, data_array)
+
+    @QtCore.pyqtSlot()
+    def unevaluated_answers_ids_ready(self, ids: list[str]):
+        print("[unevaluated_answers_ids_ready]", ids)
+
+        for q in self.questions:
             question = Question(
                 q['id'],
                 q['document'],
@@ -293,30 +337,26 @@ class TeacherQuestionAnswersWidget(QWidget):
                 q['archived'],
                 q['data_creazione'],
             )
-
-            self.__leftSideBarWidget.addQuestionToList(question)
+            self.__leftSideBarWidget.addQuestionToList(question, question.id in ids)
 
     @QtCore.pyqtSlot()
-    def on_question_details_ready(self, question: Question, result):
-        print("received", result)
-        data_array = extract_data(result)
-        print("data converted", data_array)
-
-        self.__questionDetailsWidget.replaceQuestion(question, data_array)
+    def unevaluated_answers_ids_update_ready(self, ids: list[str]):
+        print("[unevaluated_answers_ids_update_ready]", ids)
+        self.__leftSideBarWidget.updateHasUnevaluated(ids)
 
     @QtCore.pyqtSlot()
     def on_question_added(self, question: Question):
-        print("received", question)
+        print("[on_question_added]", question)
 
-        self.__leftSideBarWidget.addQuestionToList(question)
+        self.__leftSideBarWidget.addQuestionToList(question, False)
 
     @QtCore.pyqtSlot()
     def on_answer_voted(self, answer: Answer):
         print("[on_answer_voted]", answer)
 
         self.__questionDetailsWidget.onEvaluatedAnswer(answer)
-
-        self.db_worker.recalc_question_unevaluated_answers_predictions(answer.id_domanda)
+        if self.db_worker is not None:
+            self.db_worker.recalc_question_unevaluated_answers_predictions(answer.id_domanda)
 
     @QtCore.pyqtSlot()
     def on_recalculated_unevaluated_answers(self, votes: list):
@@ -339,10 +379,6 @@ class TeacherQuestionAnswersWidget(QWidget):
     def __onAddQuestionClicked(self):
         self.add_question_dialog.show()
 
-    def __updatedQuestion(self, id, title=None):
-        if title:
-            print("update question", id, title)
-
     def __onArchiveQuestionsClicked(self, id_lst: list[Question]):
         def showAreYouSureDialog():
             message = f'Stai per archiviare {len(id_lst)} domande. Sei sicuro?'
@@ -355,7 +391,8 @@ class TeacherQuestionAnswersWidget(QWidget):
             if reply == QMessageBox.Cancel or reply == QMessageBox.No:
                 return True
             elif reply == QMessageBox.Yes:
-                self.db_worker.archiveQuestions(id_lst)
+                if self.db_worker is not None:
+                    self.db_worker.archiveQuestions(id_lst)
 
         # for id in id_lst:
         #     print("delete question", id)

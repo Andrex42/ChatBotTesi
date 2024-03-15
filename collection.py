@@ -52,7 +52,8 @@ def init_chroma_client():
     # Initializes the ChromaDB client with certain settings. These settings specify that the client should use DuckDB with Parquet for storage,
     # and it should store its data in a directory named 'database'.
     global chroma_client
-    chroma_client = chromadb.PersistentClient(path="./chroma/data")
+    if 'chroma_client' not in globals():
+        chroma_client = chromadb.PersistentClient(path="./chroma/data")
 
 
 def get_chroma_q_a_collection():
@@ -266,7 +267,7 @@ def generate_response_full(data):
         f"{Fore.GREEN}Test Label: {Fore.YELLOW}{Style.BRIGHT}{data['label']}{Style.RESET_ALL}"
     )
     print(
-        f"{Fore.GREEN}Result Detected: {Fore.YELLOW}{Style.BRIGHT}{risultato}{Style.RESET_ALL}"
+        f"{Fore.GREEN}Final Score: {Fore.YELLOW}{Style.BRIGHT}{risultato}{Style.RESET_ALL}"
     )
 
     if abs(risultato - data['label']) <= 1:
@@ -313,7 +314,10 @@ def get_ambito_classification_full(data, co):
 
 
 def calcola_voto_finale_ponderato(punteggi, voti):
-    if punteggi[0] == 0:
+    if len(punteggi) == 0:
+        raise ValueError("I punteggi non possono essere vuoti")
+
+    if punteggi[0] == 0 or len(punteggi) == 1:
         return voti[0]
 
     # Calcola l'inverso di ciascun punteggio
@@ -329,6 +333,58 @@ def calcola_voto_finale_ponderato(punteggi, voti):
     voto_finale_ponderato = sum(voto * peso for voto, peso in zip(voti, pesi))
 
     return voto_finale_ponderato
+
+
+def adjust_score(distances, score, reduction_start=0.25, reduction_end=1):
+    """
+        Corregge il punteggio basato sulla distanza minima da un punto di riferimento,
+        applicando una riduzione proporzionale all'interno di un intervallo definito.
+
+        Parametri:
+        - distances (list[float]): Una lista di distanze, dove il primo elemento è considerato
+          la distanza minima per la correzione del punteggio.
+        - score (float): Il punteggio originale da correggere basato sulla distanza minima.
+        - reduction_start (float, opzionale): La distanza a partire dalla quale iniziare la riduzione
+          del punteggio. Default a 0.15.
+        - reduction_end (float, opzionale): La distanza oltre la quale il punteggio viene ridotto a 0.
+          Default a 1.
+
+        Restituisce:
+        - float: Il punteggio corretto, arrotondato a una cifra decimale.
+
+        Solleva:
+        - ValueError: Se `distances` è vuoto oppure se `reduction_start` è minore di 0 o maggiore di `reduction_end`.
+
+        Note:
+        - La funzione calcola una percentuale di riduzione basata sulla posizione della distanza
+          minima rispetto all'intervallo definito da `reduction_start` e `reduction_end`.
+        - Per distanze inferiori a `reduction_start`, il punteggio rimane invariato. Per distanze
+          superiori a `reduction_end`, il punteggio viene impostato a 0. Per distanze intermedie,
+          il punteggio viene ridotto proporzionalmente.
+        """
+
+    if len(distances) == 0:
+        raise ValueError("Le distanze non possono essere vuote")
+
+    min_distance = distances[0]
+
+    if reduction_start < 0 or reduction_start > reduction_end:
+        raise ValueError("Valori di riduzione non validi")
+
+    # Se la distanza minima è maggiore di 1.5, il punteggio diventa 0
+    if min_distance > reduction_end:
+        return 0
+
+    # Se la distanza minima è sotto la soglia, il punteggio rimane invariato
+    if min_distance < reduction_start:
+        return score
+
+    # Calcola la percentuale da sottrarre basata sulla distanza
+    percentage_to_subtract = (min_distance - reduction_start) / (reduction_end - reduction_start)
+    print("percentage_to_subtract:", percentage_to_subtract)
+    adjusted_result = score * (1 - percentage_to_subtract)
+
+    return round(adjusted_result, 1)
 
 
 def get_similar_sentences(id_domanda: str, sentence_to_compare_text, sentence_to_compare_embeddings):
@@ -362,12 +418,17 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text, sentence_to
 
     voti = extract_metadata_from_query_result(results['metadatas'], 'voto_docente')
     voto_ponderato = round(calcola_voto_finale_ponderato(results['distances'][0], voti), 1)
+    final_score = adjust_score(results['distances'][0], voto_ponderato)
 
     print(
         f"{Fore.GREEN}Result Detected: {Fore.YELLOW}{Style.BRIGHT}{voto_ponderato}{Style.RESET_ALL}"
     )
 
-    return voto_ponderato
+    print(
+        f"{Fore.GREEN}Final score: {Fore.YELLOW}{Style.BRIGHT}{final_score}{Style.RESET_ALL}"
+    )
+
+    return final_score
 
 
 def add_answer_to_collection(authenticated_user, question: Question, answer_text: str):
@@ -521,8 +582,13 @@ def get_risultato_classification_full(data):
 
     voti = extract_metadata_from_query_result(results['metadatas'], 'voto_docente')
     voto_ponderato = round(calcola_voto_finale_ponderato(results['distances'][0], voti), 1)
+    final_score = adjust_score(results['distances'][0], voto_ponderato)
 
-    return voto_ponderato
+    print(
+        f"{Fore.GREEN}Result Detected: {Fore.YELLOW}{Style.BRIGHT}{voto_ponderato}{Style.RESET_ALL}"
+    )
+
+    return final_score
 
 
 def get_collections():

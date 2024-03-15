@@ -1,5 +1,6 @@
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QPushButton, QLabel, QSizePolicy, QStackedWidget, QToolBar, QWidgetAction, QMainWindow
+from PyQt5.QtWidgets import QPushButton, QLabel, QSizePolicy, QStackedWidget, QToolBar, QWidgetAction, QMainWindow, \
+    QWidget
 from UI.LoginFormApp import LoginFormApp
 from UI.teacher.TeacherQuestionAnswersWidget import TeacherQuestionAnswersWidget
 
@@ -38,7 +39,7 @@ class TeacherWindow(QStackedWidget):
 
         self.__logoutAction = QWidgetAction(self)
         self.__logoutButton = QPushButton("Logout")
-        self.__logoutButton.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
+        self.__logoutButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
         self.__logoutAction.setDefaultWidget(self.__logoutButton)
         self.__logoutButton.clicked.connect(self.logout)
 
@@ -46,6 +47,9 @@ class TeacherWindow(QStackedWidget):
         self.teacherToolBar = QToolBar()
         self.teacherToolBar.setMovable(False)
         self.teacherToolBar.addAction(self.__currentUserUsernameAction)
+        spacer = QWidget()  # Widget fittizio per creare uno spazio vuoto
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.teacherToolBar.addWidget(spacer)
         self.teacherToolBar.addAction(self.__logoutAction)
 
         self.main_window.addToolBar(self.teacherToolBar)
