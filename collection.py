@@ -6,7 +6,6 @@ import os
 import torch
 from chromadb import EmbeddingFunction, Documents, Embeddings
 from dotenv import load_dotenv
-from cohere.responses.classify import Example
 import pprint
 import pandas as pd
 import logging

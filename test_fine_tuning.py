@@ -55,7 +55,7 @@ for idx, item in enumerate(risposte_test_dict):
         test_dataset.append([risposta_riferimento, risposta, punteggio])
         # print(risposta_riferimento, "|", risposta, "|", punteggio / 5)
 
-train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=16)
+train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=4)
 
 print(test_dataset)
 evaluator = evaluation.EmbeddingSimilarityEvaluator(
@@ -67,9 +67,9 @@ evaluator = evaluation.EmbeddingSimilarityEvaluator(
 train_loss = losses.CosineSimilarityLoss(model=model)
 
 # fit the model
-num_epochs = 1
-evaluation_steps = 1
-steps_per_epoch = 1
+num_epochs = 2
+evaluation_steps = 10
+steps_per_epoch = 30
 
 warmup_steps = int(len(train_dataloader) * num_epochs * 0.05)  # 5% of train data
 model.fit(train_objectives=[(train_dataloader, train_loss)],
