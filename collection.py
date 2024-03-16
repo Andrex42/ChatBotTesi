@@ -35,8 +35,9 @@ model = AutoModel.from_pretrained(PRETRAINED_MODEL_NAME)
 
 
 class SentencesEmbeddingFunction(EmbeddingFunction):
+    # Mean Pooling - Take attention mask into account for correct averaging
     def mean_pooling(self, model_output, attention_mask):
-        token_embeddings = model_output.last_hidden_state  # Gli embeddings dei token sono nell'ultimo stato nascosto
+        token_embeddings = model_output[0]  # First element of model_output contains all token embeddings
         input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
         return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
@@ -74,7 +75,10 @@ def get_chroma_q_a_collection():
     # example_collection = chroma_client.get_or_create_collection(name="q_a", embedding_function=cohere_ef)
     # Gets or creates a ChromaDB collection named 'q_a',
     # using the SentenceTransformerEmbeddingFunction embedding function.
-    q_a_collection = chroma_client.get_or_create_collection(name="q_a", embedding_function=SentencesEmbeddingFunction())
+    q_a_collection = chroma_client.get_or_create_collection(
+        name="q_a",
+        metadata={"hnsw:space": "cosine"},
+        embedding_function=SentencesEmbeddingFunction())
     return q_a_collection
 
 
@@ -88,7 +92,11 @@ def get_chroma_questions_collection():
     # example_collection = chroma_client.get_or_create_collection(name="questions", embedding_function=cohere_ef)
     # Gets or creates a ChromaDB collection named 'questions',
     # using the SentenceTransformerEmbeddingFunction embedding function.
-    questions_collection = chroma_client.get_or_create_collection(name="questions", embedding_function=SentencesEmbeddingFunction())
+    questions_collection = chroma_client.get_or_create_collection(
+        name="questions",
+        metadata={"hnsw:space": "cosine"},
+        embedding_function=SentencesEmbeddingFunction()
+    )
     return questions_collection
 
 
@@ -318,7 +326,7 @@ def calcola_voto_finale_ponderato(punteggi, voti):
     return voto_finale_ponderato
 
 
-def adjust_score(distances, score, reduction_start=2.5, reduction_end=10):
+def adjust_score(distances, score, reduction_start=0.1, reduction_end=0.6):
     """
         Corregge il punteggio basato sulla distanza minima da un punto di riferimento,
         applicando una riduzione proporzionale all'interno di un intervallo definito.
@@ -414,7 +422,7 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
     return final_score
 
 
-def add_answer_to_collection(authenticated_user, question: Question, answer_text: str, fake_add = False):
+def add_answer_to_collection(authenticated_user, question: Question, answer_text: str, fake_add=False):
     voto_ponderato = get_similar_sentences(question.id, answer_text)
 
     # Ottieni la data e l'ora correnti
@@ -589,7 +597,7 @@ def get_collections():
 
     print("getting collections")
 
-    question_collection = chroma_client.get_or_create_collection(name="questions")
+    question_collection = get_chroma_questions_collection()
     q_a_collection = get_chroma_q_a_collection()
 
     return question_collection, q_a_collection

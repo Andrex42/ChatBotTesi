@@ -126,21 +126,7 @@ class Worker(QtCore.QObject):
 
         print("adding answer", answer_text)
 
-        answer = add_answer_to_collection(self.authorized_user, question, answer_text)
-
-        # answer = Answer(
-        #     'id',
-        #     'id_domanda',
-        #     'domanda',
-        #     'id_docente',
-        #     'document',
-        #     'id_autore',
-        #     5,
-        #     -1,
-        #     'commento',
-        #     'source',
-        #     'data_creazione',
-        # )
+        answer = add_answer_to_collection(self.authorized_user, question, answer_text, fake_add=True)
 
         self.answer_added_event.emit(question, answer)
         print(f'Execution time = {time.time() - start} seconds.')
