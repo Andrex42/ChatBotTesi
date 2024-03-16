@@ -2,18 +2,20 @@ from typing import Optional
 
 import chromadb
 import os
+
+import torch
+from chromadb import EmbeddingFunction, Documents, Embeddings
 from dotenv import load_dotenv
 from cohere.responses.classify import Example
 import pprint
 import pandas as pd
 import logging
-import spacy
 from halo import Halo
 from datetime import datetime
 from colorama import Fore, Style
 from model.answer_model import Answer
 from nltk.metrics import edit_distance
-import chromadb.utils.embedding_functions as embedding_functions
+from transformers import AutoModel, AutoTokenizer
 
 from model.question_model import Question
 
@@ -29,20 +31,27 @@ if PRETRAINED_MODEL_NAME is None:
     raise ValueError("Pretrained model name not found in the environment variables.")
 
 
-nlp = spacy.load("it_core_news_sm")
-lemmatizer = nlp.get_pipe("lemmatizer")
+tokenizer = AutoTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)
+model = AutoModel.from_pretrained(PRETRAINED_MODEL_NAME)
 
 
-# Initializes a CohereEmbeddingFunction, which is a specific function that generates embeddings
-# using the Cohere model.
-# These embeddings will be used to add and retrieve examples in the ChromaDB database.
-sentence_transformer_ef = embedding_functions.SentenceTransformerEmbeddingFunction(model_name=os.getenv("PRETRAINED_MODEL_NAME"))
-# cohere_ef = embedding_functions.CohereEmbeddingFunction(api_key=COHERE_KEY,  model_name=os.getenv('COHERE_MODEL_NAME'))
+class SentencesEmbeddingFunction(EmbeddingFunction):
+    def mean_pooling(self, model_output, attention_mask):
+        token_embeddings = model_output.last_hidden_state  # Gli embeddings dei token sono nell'ultimo stato nascosto
+        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+        return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
 
+    def __call__(self, input: Documents) -> Embeddings:
+        # embed the documents
+        sentences = input
+        encoded_inputs = tokenizer(sentences, padding=True, truncation=True, return_tensors='pt')
 
-def preprocess(text):
-    doc = nlp(text)
-    return " ".join([token.lemma_ for token in doc])
+        with torch.no_grad():
+            model_output = model(**encoded_inputs)
+
+        sentence_embeddings = self.mean_pooling(model_output, encoded_inputs['attention_mask'])
+
+        return sentence_embeddings.tolist()
 
 
 chroma_client: chromadb.ClientAPI
@@ -66,7 +75,7 @@ def get_chroma_q_a_collection():
     # example_collection = chroma_client.get_or_create_collection(name="q_a", embedding_function=cohere_ef)
     # Gets or creates a ChromaDB collection named 'q_a',
     # using the SentenceTransformerEmbeddingFunction embedding function.
-    q_a_collection = chroma_client.get_or_create_collection(name="q_a", embedding_function=sentence_transformer_ef)
+    q_a_collection = chroma_client.get_or_create_collection(name="q_a", embedding_function=SentencesEmbeddingFunction())
     return q_a_collection
 
 
@@ -80,7 +89,7 @@ def get_chroma_questions_collection():
     # example_collection = chroma_client.get_or_create_collection(name="questions", embedding_function=cohere_ef)
     # Gets or creates a ChromaDB collection named 'questions',
     # using the SentenceTransformerEmbeddingFunction embedding function.
-    questions_collection = chroma_client.get_or_create_collection(name="questions", embedding_function=sentence_transformer_ef)
+    questions_collection = chroma_client.get_or_create_collection(name="questions", embedding_function=SentencesEmbeddingFunction())
     return questions_collection
 
 
@@ -124,7 +133,6 @@ def init_model():
             iso_format = now.isoformat()
 
             domande_collection.add(
-                embeddings=sentence_transformer_ef([preprocess(item['text'])]),
                 documents=[item['text']],  # aggiunge la domanda ai documenti
                 metadatas=[{"id_domanda": item['id'],
                             "id_docente": item['id_docente'],
@@ -151,7 +159,6 @@ def init_model():
             iso_format = now.isoformat()
 
             q_a_collection.add(
-                embeddings=sentence_transformer_ef([preprocess(item['text'])]),
                 documents=[item['text']],  # aggiunge la risposta ai documenti
                 metadatas=[{"id_domanda": item['id_domanda'],
                             "domanda": item['title'],
@@ -184,7 +191,6 @@ def init_model():
             iso_format = now.isoformat()
 
             q_a_collection.add(
-                embeddings=sentence_transformer_ef([preprocess(item['text'])]),
                 documents=[item['text']],  # aggiunge la risposta ai documenti
                 metadatas=[{"id_domanda": item['id_domanda'],
                             "domanda": item['title'],
@@ -282,35 +288,7 @@ def generate_response_full(data):
 
     print("_________________________________")
 
-    return data['text'], risultato, "ambito"
-
-
-# Two helper functions to get mood and department classification. They query examples from the ChromaDB collection,
-# send a classification request to the Cohere API, and extract the prediction from the response.
-def get_ambito_classification_full(data, co):
-
-    department_examples = []
-
-    q_a_collection = get_chroma_q_a_collection()
-
-    results = q_a_collection.query(
-        query_texts=[data['text']],
-        n_results=10,
-        where={"domanda": data['title']}
-    )
-
-    for doc, md in zip(results['documents'][0], results['metadatas'][0]):
-        department_examples.append(Example(doc, md['ambito']))
-
-    department_response = co.classify(
-        model=os.getenv("COHERE_MODEL_NAME"),
-        inputs=[data['text']],
-        examples=department_examples
-    )  # Sends the classification request to the Cohere model
-
-    # Extracts the prediction from the response
-    ambito = department_response.classifications[0].prediction
-    return ambito
+    return data['text'], risultato
 
 
 def calcola_voto_finale_ponderato(punteggi, voti):
@@ -318,6 +296,8 @@ def calcola_voto_finale_ponderato(punteggi, voti):
         raise ValueError("I punteggi non possono essere vuoti")
 
     if punteggi[0] == 0 or len(punteggi) == 1:
+        # Se il primo punteggio è 0, abbiamo trovato una risposta identica, restituisci quindi il suo voto
+        # Se invece è presente solo una risposta, restituisci il suo voto
         return voti[0]
 
     # Calcola l'inverso di ciascun punteggio
@@ -329,13 +309,17 @@ def calcola_voto_finale_ponderato(punteggi, voti):
     # Calcola il peso di ciascun punteggio in base all'inverso
     pesi = [inverso / somma_totale_inversi for inverso in inversi]
 
-    # Calcola il voto finale ponderato come la somma dei prodotti dei voti per i loro pesi corrispondenti
-    voto_finale_ponderato = sum(voto * peso for voto, peso in zip(voti, pesi))
+    if pesi[0] >= 0.9:
+        # Ae il primo è almeno il 90% rispetto agli altri, assegna il suo voto
+        voto_finale_ponderato = voti[0]
+    else:
+        # Calcola il voto finale ponderato come la somma dei prodotti dei voti per i loro pesi corrispondenti
+        voto_finale_ponderato = sum(voto * peso for voto, peso in zip(voti, pesi))
 
     return voto_finale_ponderato
 
 
-def adjust_score(distances, score, reduction_start=0.25, reduction_end=1):
+def adjust_score(distances, score, reduction_start=2.5, reduction_end=10):
     """
         Corregge il punteggio basato sulla distanza minima da un punto di riferimento,
         applicando una riduzione proporzionale all'interno di un intervallo definito.
@@ -387,11 +371,11 @@ def adjust_score(distances, score, reduction_start=0.25, reduction_end=1):
     return round(adjusted_result, 1)
 
 
-def get_similar_sentences(id_domanda: str, sentence_to_compare_text, sentence_to_compare_embeddings):
+def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
     q_a_collection = get_chroma_q_a_collection()
 
     results = q_a_collection.query(
-        query_embeddings=sentence_to_compare_embeddings,
+        query_texts=[sentence_to_compare_text],
         n_results=20,
         where={"$and": [{"id_domanda": id_domanda},
                         {"voto_docente": {"$gt": -1}}]},  # seleziona solo le risposte valutate dal docente
@@ -431,63 +415,74 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text, sentence_to
     return final_score
 
 
-def add_answer_to_collection(authenticated_user, question: Question, answer_text: str):
-    answer_embeddings = sentence_transformer_ef([preprocess(answer_text)])
-
-    q_a_collection = get_chroma_q_a_collection()
-
-    voto_ponderato = get_similar_sentences(question.id, answer_text, answer_embeddings)
+def add_answer_to_collection(authenticated_user, question: Question, answer_text: str, fake_add = False):
+    voto_ponderato = get_similar_sentences(question.id, answer_text)
 
     # Ottieni la data e l'ora correnti
     now = datetime.now()
     # Converti in formato ISO 8601
     iso_format = now.isoformat()
 
-    q_a_collection.add(
-        embeddings=answer_embeddings,
-        documents=[answer_text],  # aggiunge la risposta ai documenti
-        metadatas=[{"id_domanda": question.id,
-                    "domanda": question.domanda,
-                    "id_docente": question.id_docente,
-                    "id_autore": authenticated_user['username'],
-                    "voto_docente": -1,
-                    "voto_predetto": voto_ponderato,
-                    "commento": "undefined",
-                    "source": "application",
-                    "data_creazione": iso_format}],
-        ids=[f"{question.id}_{authenticated_user['username']}"]
-    )
+    if not fake_add:
+        q_a_collection = get_chroma_q_a_collection()
 
-    added_answer_result = q_a_collection.get(ids=[f"{question.id}_{authenticated_user['username']}"])
-    added_answer_data_array = extract_data(added_answer_result)
+        q_a_collection.add(
+            documents=[answer_text],  # aggiunge la risposta ai documenti
+            metadatas=[{"id_domanda": question.id,
+                        "domanda": question.domanda,
+                        "id_docente": question.id_docente,
+                        "id_autore": authenticated_user['username'],
+                        "voto_docente": -1,
+                        "voto_predetto": voto_ponderato,
+                        "commento": "undefined",
+                        "source": "application",
+                        "data_creazione": iso_format}],
+            ids=[f"{question.id}_{authenticated_user['username']}"]
+        )
 
-    if len(added_answer_data_array):
+        added_answer_result = q_a_collection.get(ids=[f"{question.id}_{authenticated_user['username']}"])
+        added_answer_data_array = extract_data(added_answer_result)
+
+        if len(added_answer_data_array):
+            answer = Answer(
+                added_answer_data_array[0]['id'],
+                added_answer_data_array[0]['id_domanda'],
+                added_answer_data_array[0]['domanda'],
+                added_answer_data_array[0]['id_docente'],
+                added_answer_data_array[0]['document'],
+                added_answer_data_array[0]['id_autore'],
+                added_answer_data_array[0]['voto_docente'],
+                added_answer_data_array[0]['voto_predetto'],
+                added_answer_data_array[0]['commento'],
+                added_answer_data_array[0]['source'],
+                added_answer_data_array[0]['data_creazione'],
+            )
+
+            return answer
+
+        return None
+    else:
         answer = Answer(
-            added_answer_data_array[0]['id'],
-            added_answer_data_array[0]['id_domanda'],
-            added_answer_data_array[0]['domanda'],
-            added_answer_data_array[0]['id_docente'],
-            added_answer_data_array[0]['document'],
-            added_answer_data_array[0]['id_autore'],
-            added_answer_data_array[0]['voto_docente'],
-            added_answer_data_array[0]['voto_predetto'],
-            added_answer_data_array[0]['commento'],
-            added_answer_data_array[0]['source'],
-            added_answer_data_array[0]['data_creazione'],
+            f"{question.id}_{authenticated_user['username']}",
+            question.id,
+            question.domanda,
+            question.id_docente,
+            answer_text,
+            authenticated_user['username'],
+            -1,
+            voto_ponderato,
+            "undefined",
+            "application",
+            iso_format,
         )
 
         return answer
-
-    return None
 
 
 def add_question_to_collection(authenticated_user, categoria: str, question_text: str, ref_answer_text: str) \
         -> Optional[Question]:
     questions_collection = get_chroma_questions_collection()
     q_a_collection = get_chroma_q_a_collection()
-
-    question_embeddings = sentence_transformer_ef([preprocess(question_text)])
-    answer_embeddings = sentence_transformer_ef([preprocess(ref_answer_text)])
 
     # Ottieni la data e l'ora correnti
     now = datetime.now()
@@ -498,7 +493,6 @@ def add_question_to_collection(authenticated_user, categoria: str, question_text
     id_risposta = f"{authenticated_user['username']}_a_{iso_format}"
 
     questions_collection.add(
-        embeddings=question_embeddings,
         documents=[question_text],  # aggiunge la domanda ai documenti
         metadatas=[{"id_domanda": id_domanda,
                     "id_docente": authenticated_user['username'],
@@ -510,7 +504,6 @@ def add_question_to_collection(authenticated_user, categoria: str, question_text
     )
 
     q_a_collection.add(
-        embeddings=answer_embeddings,
         documents=[ref_answer_text],  # aggiunge la risposta ai documenti
         metadatas=[{"id_domanda": id_domanda,
                     "domanda": question_text,
@@ -548,7 +541,7 @@ def get_risultato_classification_full(data):
     q_a_collection = get_chroma_q_a_collection()
 
     results = q_a_collection.query(
-        query_embeddings=sentence_transformer_ef([preprocess(data['text'])]),
+        query_texts=[data['text']],
         n_results=20,
         where={"$and": [{"domanda": data['title']},
                         {"voto_docente": {"$gt": -1}}]},  # seleziona solo le risposte valutate dal docente
@@ -662,7 +655,7 @@ def test_model():
         print("Domanda test:", item['title'])
         print(f"Risposta test:", item['text'])
 
-        response, risultato, ambito = generate_response_full(item)
+        response, risultato = generate_response_full(item)
 
         if abs(risultato - item['label']) <= 1:
             correct += 1
