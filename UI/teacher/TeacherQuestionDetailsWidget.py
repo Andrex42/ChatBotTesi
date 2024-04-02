@@ -155,10 +155,15 @@ class QuestionDetailsWidget(QWidget):
                 self.students_answers_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
                 evaluated_answers_count += 1
 
+        not_evaluated_empty_state_label = QLabel("Non sono presenti risposte in attesa di valutazione")
+        not_evaluated_empty_state_label.setObjectName("not_evaluated_empty_state")
+        evaluated_empty_state_label = QLabel("Non sono presenti risposte già valutate")
+        evaluated_empty_state_label.setObjectName("evaluated_empty_state")
+
         if not_evaluated_answers_count == 0:
-            self.students_answers_not_evaluated_layout.addWidget(QLabel("Non sono presenti risposte in attesa di valutazione"))
+            self.students_answers_not_evaluated_layout.addWidget(not_evaluated_empty_state_label)
         if evaluated_answers_count == 0:
-            self.students_answers_evaluated_layout.addWidget(QLabel("Non sono presenti risposte già valutate"))
+            self.students_answers_evaluated_layout.addWidget(evaluated_empty_state_label)
 
         if self.isHidden():
             self.show()
@@ -184,14 +189,28 @@ class QuestionDetailsWidget(QWidget):
 
         show_confirm()
 
+        should_show_not_evaluated_empty_state_label = True
+
         for not_evaluated_item_index in range(self.students_answers_not_evaluated_layout.count()):
             item = self.students_answers_not_evaluated_layout.itemAt(not_evaluated_item_index)
             widget = item.widget()
-            if isinstance(widget, TeacherStudentAnswerPreviewItem):
+            if widget is not None and isinstance(widget, TeacherStudentAnswerPreviewItem):
                 print(widget)
                 if widget.answer.id == answer.id:
                     widget.deleteLater()
-                    break
+                else:
+                    should_show_not_evaluated_empty_state_label = False
+
+        if should_show_not_evaluated_empty_state_label:
+            not_evaluated_empty_state_label = QLabel("Non sono presenti risposte in attesa di valutazione")
+            self.students_answers_not_evaluated_layout.addWidget(not_evaluated_empty_state_label)
+
+        for evaluated_item_index in range(self.students_answers_evaluated_layout.count()):
+            item = self.students_answers_evaluated_layout.itemAt(evaluated_item_index)
+            widget = item.widget()
+            if widget is not None and widget.objectName() == "evaluated_empty_state":
+                widget.deleteLater()
+                break
 
         studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
             self.db_worker, self.authorized_user, answer, True)

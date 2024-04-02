@@ -31,6 +31,7 @@ class TeacherWorker(QtCore.QObject):
     question_added_event = QtCore.pyqtSignal(Question)
     answer_voted_event = QtCore.pyqtSignal(Answer)
     archived_questions_event = QtCore.pyqtSignal(list)
+    students_votes_ready_event = QtCore.pyqtSignal(list)
     recalculated_unevaluated_answers_event = QtCore.pyqtSignal(object)
     q_a_ready_event = QtCore.pyqtSignal(object, object)
     unevaluated_answers_ids_ready_event = QtCore.pyqtSignal(list)
@@ -70,6 +71,32 @@ class TeacherWorker(QtCore.QObject):
             print("[add_question]", "question added", question)
             self.question_added_event.emit(question)
 
+        print(f'Execution time = {time.time() - start} seconds.')
+
+    @QtCore.pyqtSlot()
+    def get_students_votes(self):
+        start = time.time()
+
+        # init_chroma_client()
+
+        q_a_collection = get_chroma_q_a_collection()
+
+        teacher_username = self.authorized_user['username']
+
+        print("getting students votes for", teacher_username)
+
+        result = q_a_collection.get(
+            where={"$and": [{"id_docente": teacher_username},
+                            {"id_autore": {"$ne": "undefined"}},
+                            {"id_autore": {"$ne": teacher_username}},
+                            {"voto_docente": {"$gt": -1}}]},
+            include=["metadatas"]
+        )
+
+        votes = [(metadata["id_autore"], metadata["voto_docente"]) for metadata in result['metadatas']]
+
+        self.students_votes_ready_event.emit(votes)
+        # print(query_result)
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
@@ -282,6 +309,7 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.db_worker.answer_voted_event.connect(lambda answer: self.on_answer_voted(answer))
         self.db_worker.recalculated_unevaluated_answers_event.connect(lambda votes: self.on_recalculated_unevaluated_answers(votes))
         self.db_worker.archived_questions_event.connect(lambda questions: self.on_archived_questions(questions))
+        self.db_worker.students_votes_ready_event.connect(lambda votes: self.on_students_votes_ready(votes))
 
         self.db_thread = QtCore.QThread()
         self.db_thread.start()
@@ -302,6 +330,7 @@ class TeacherQuestionAnswersWidget(QWidget):
     def __initQuestions(self):
         if self.db_worker is not None:
             self.db_worker.get_teacher_questions()
+            self.db_worker.get_students_votes()  # TODO
 
     def __getQuestionDetails(self, question: Question):
         if self.db_worker is not None:
@@ -314,6 +343,12 @@ class TeacherQuestionAnswersWidget(QWidget):
         print("data converted", data_array)
 
         self.questions = data_array
+
+    @QtCore.pyqtSlot()
+    def on_students_votes_ready(self, votes):
+        print("[on_students_votes_ready]", votes)
+        #data_array = extract_data(data)
+        #print("data converted", data_array)
 
     @QtCore.pyqtSlot()
     def on_question_details_ready(self, question: Question, result):
