@@ -391,25 +391,24 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
 
     print(f"{Fore.YELLOW}{Style.BRIGHT}Found {len(results['documents'][0])} similar documents{Style.RESET_ALL}:")
 
+    distances = [round(abs(x), 3) for x in results['distances'][0]]
+
     for idx, doc in enumerate(results['documents'][0]):
         it_metadata = results['metadatas'][0][idx]
-        it_distances = results['distances'][0][idx]
-        print(f" - Doc {idx}: ({it_metadata['voto_docente']}) ({it_distances})", doc)
+        it_distance = distances[idx]
+        print(f" - Doc {idx}: ({it_metadata['voto_docente']}) ({it_distance})", doc)
 
-    min_distance = min(results['distances'][0])
-    min_distance_index = results['distances'][0].index(min_distance)
-
-    levenshtein_distance = edit_distance(sentence_to_compare_text, results['documents'][0][min_distance_index])
+    levenshtein_distance = edit_distance(sentence_to_compare_text, results['documents'][0][0])
 
     print(f"\n{Fore.CYAN}Best similarity match{Style.RESET_ALL}:\n"
-          f"\tCosine Distance: {results['distances'][0][min_distance_index]}"
+          f"\tCosine Distance: {distances[0]}"
           f"\tLevenshtein Distance: {levenshtein_distance}"
-          f"\n\tRef. Result: {Fore.GREEN if results['metadatas'][0][min_distance_index]['voto_docente'] >= 3 else Fore.RED}{results['metadatas'][0][min_distance_index]['voto_docente']}{Style.RESET_ALL}"
-          f"\n\tDocument: {results['documents'][0][min_distance_index]}")
+          f"\n\tRef. Result: {Fore.GREEN if results['metadatas'][0][0]['voto_docente'] >= 3 else Fore.RED}{results['metadatas'][0][0]['voto_docente']}{Style.RESET_ALL}"
+          f"\n\tDocument: {results['documents'][0][0]}")
 
     voti = extract_metadata_from_query_result(results['metadatas'], 'voto_docente')
-    voto_ponderato = round(calcola_voto_finale_ponderato(results['distances'][0], voti), 1)
-    final_score = adjust_score(results['distances'][0], voto_ponderato)
+    voto_ponderato = round(calcola_voto_finale_ponderato(distances, voti), 1)
+    final_score = adjust_score(distances, voto_ponderato)
 
     print(
         f"{Fore.GREEN}Result Detected: {Fore.YELLOW}{Style.BRIGHT}{voto_ponderato}{Style.RESET_ALL}"
@@ -557,10 +556,12 @@ def get_risultato_classification_full(data):
 
     print(f"{Fore.YELLOW}{Style.BRIGHT}Found {len(results['documents'][0])} similar documents{Style.RESET_ALL}:")
 
+    distances = [round(abs(x), 3) for x in results['distances'][0]]
+
     for idx, doc in enumerate(results['documents'][0]):
         it_metadata = results['metadatas'][0][idx]
-        it_distances = results['distances'][0][idx]
-        print(f" - Doc {idx}: ({it_metadata['voto_docente']}) ({it_distances})", doc)
+        it_distance = distances[idx]
+        print(f" - Doc {idx}: ({it_metadata['voto_docente']}) ({it_distance})", doc)
 
     # correct_answers_results = example_collection.get(
     #     where={"$and": [{"domanda": data['title']}, {"risultato": "Corretta"}]}
@@ -569,20 +570,17 @@ def get_risultato_classification_full(data):
     # for doc, md in zip(results['documents'][0], results['metadatas'][0]):
     #     mood_examples.append(Example(doc, md['risultato']))
 
-    min_distance = min(results['distances'][0])
-    min_distance_index = results['distances'][0].index(min_distance)
-
-    levenshtein_distance = edit_distance(data['text'], results['documents'][0][min_distance_index])
+    levenshtein_distance = edit_distance(data['text'], results['documents'][0][0])
 
     print(f"\n{Fore.CYAN}Best similarity match{Style.RESET_ALL}:\n"
-          f"\tCosine Distance: {results['distances'][0][min_distance_index]}"
+          f"\tCosine Distance: {distances[0]}"
           f"\tLevenshtein Distance: {levenshtein_distance}"
-          f"\n\tRef. Result: {Fore.GREEN if results['metadatas'][0][min_distance_index]['voto_docente'] >= 3 else Fore.RED}{results['metadatas'][0][min_distance_index]['voto_docente']}{Style.RESET_ALL}"
-          f"\n\tDocument: {results['documents'][0][min_distance_index]}")
+          f"\n\tRef. Result: {Fore.GREEN if results['metadatas'][0][0]['voto_docente'] >= 3 else Fore.RED}{results['metadatas'][0][0]['voto_docente']}{Style.RESET_ALL}"
+          f"\n\tDocument: {results['documents'][0][0]}")
 
     voti = extract_metadata_from_query_result(results['metadatas'], 'voto_docente')
-    voto_ponderato = round(calcola_voto_finale_ponderato(results['distances'][0], voti), 1)
-    final_score = adjust_score(results['distances'][0], voto_ponderato)
+    voto_ponderato = round(calcola_voto_finale_ponderato(distances, voti), 1)
+    final_score = adjust_score(distances, voto_ponderato)
 
     print(
         f"{Fore.GREEN}Result Detected: {Fore.YELLOW}{Style.BRIGHT}{voto_ponderato}{Style.RESET_ALL}"

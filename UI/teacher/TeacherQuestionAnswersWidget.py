@@ -15,12 +15,12 @@ from model.answer_model import Answer
 from model.question_model import Question
 
 
-class Worker(QtCore.QObject):
+class TeacherWorker(QtCore.QObject):
     """
     Worker thread that handles the major program load. Allowing the gui to still be responsive.
     """
     def __init__(self, authorized_user, config):
-        super(Worker, self).__init__()
+        super(TeacherWorker, self).__init__()
         self.authorized_user = authorized_user
         self.config = config
 
@@ -269,7 +269,7 @@ class TeacherQuestionAnswersWidget(QWidget):
 
     def __initWorker(self):
         self.config = {}
-        self.db_worker = Worker(self.authorized_user, self.config)
+        self.db_worker = TeacherWorker(self.authorized_user, self.config)
 
         self.db_worker.questions_ready_event.connect(lambda data: self.on_questions_ready(data))
         self.db_worker.q_a_ready_event.connect(lambda question, result:

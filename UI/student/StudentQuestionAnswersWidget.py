@@ -15,12 +15,12 @@ from model.question_model import Question
 from users import RELATIONS
 
 
-class Worker(QtCore.QObject):
+class StudentWorker(QtCore.QObject):
     """
     Worker thread that handles the major program load. Allowing the gui to still be responsive.
     """
     def __init__(self, authorized_user, config):
-        super(Worker, self).__init__()
+        super(StudentWorker, self).__init__()
         self.authorized_user = authorized_user
         self.config = config
 
@@ -126,7 +126,7 @@ class Worker(QtCore.QObject):
 
         print("adding answer", answer_text)
 
-        answer = add_answer_to_collection(self.authorized_user, question, answer_text, fake_add=True)
+        answer = add_answer_to_collection(self.authorized_user, question, answer_text)
 
         self.answer_added_event.emit(question, answer)
         print(f'Execution time = {time.time() - start} seconds.')
@@ -189,7 +189,7 @@ class StudentQuestionAnswersWidget(QWidget):
 
     def __initWorker(self):
         self.config = {}
-        self.db_worker = Worker(self.authorized_user, self.config)
+        self.db_worker = StudentWorker(self.authorized_user, self.config)
 
         self.db_worker.unanswered_questions_ready_event.connect(lambda data: self.on_unanswered_questions_ready(data))
         self.db_worker.answered_questions_ready_event.connect(lambda data: self.on_answered_questions_ready(data))

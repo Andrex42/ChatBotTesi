@@ -12,4 +12,5 @@ TEACHERS = [
 RELATIONS = [
     {'studente.archeologia': ['docente.archeologia']},
     {'studente.archeologia2': ['docente.archeologia']},
+    {'studente.basidati': ['docente.basidati']},
 ]
