@@ -124,6 +124,9 @@ class QuestionDetailsWidget(QWidget):
         self.id_domanda = question.id
         self.question_label.setText(question.domanda)
 
+        not_evaluated_answers_count = 0
+        evaluated_answers_count = 0
+
         for answer_dict in data_array:
             answer = Answer(
                 answer_dict['id'],
@@ -145,10 +148,17 @@ class QuestionDetailsWidget(QWidget):
                 studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
                     self.db_worker, self.authorized_user, answer, False)
                 self.students_answers_not_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
+                not_evaluated_answers_count += 1
             else:
                 studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
                     self.db_worker, self.authorized_user, answer, True)
                 self.students_answers_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
+                evaluated_answers_count += 1
+
+        if not_evaluated_answers_count == 0:
+            self.students_answers_not_evaluated_layout.addWidget(QLabel("Non sono presenti risposte in attesa di valutazione"))
+        if evaluated_answers_count == 0:
+            self.students_answers_evaluated_layout.addWidget(QLabel("Non sono presenti risposte già valutate"))
 
         if self.isHidden():
             self.show()
