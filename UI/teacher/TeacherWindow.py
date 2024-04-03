@@ -37,6 +37,12 @@ class TeacherWindow(QStackedWidget):
         self.__currentUserUsernameLabel.setSizePolicy(QSizePolicy.MinimumExpanding, QSizePolicy.MinimumExpanding)
         self.__currentUserUsernameAction.setDefaultWidget(self.__currentUserUsernameLabel)
 
+        self.__statsAction = QWidgetAction(self)
+        self.__statsButton = QPushButton("Statistiche")
+        self.__statsButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
+        self.__statsAction.setDefaultWidget(self.__statsButton)
+        self.__statsButton.clicked.connect(self.open_stats)
+
         self.__logoutAction = QWidgetAction(self)
         self.__logoutButton = QPushButton("Logout")
         self.__logoutButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
@@ -50,9 +56,14 @@ class TeacherWindow(QStackedWidget):
         spacer = QWidget()  # Widget fittizio per creare uno spazio vuoto
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.teacherToolBar.addWidget(spacer)
+        self.teacherToolBar.addAction(self.__statsAction)
         self.teacherToolBar.addAction(self.__logoutAction)
 
         self.main_window.addToolBar(self.teacherToolBar)
+
+    def open_stats(self):
+        self.__teacherQuestionAnswersWidget.open_stats_window()
+
 
     def logout(self):
         for worker in self.activeWorkers:

@@ -3,10 +3,11 @@ import time
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem, QPushButton, QMessageBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem, QMessageBox
 
 from UI.LeftSidebar import LeftSideBar
 from UI.teacher.TeacherAddQuestionDialog import AddQuestionDialog
+from UI.teacher.TeacherStatsDialog import StatsDialog
 from UI.teacher.TeacherQuestionDetailsWidget import QuestionDetailsWidget
 
 from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, extract_data, \
@@ -93,7 +94,8 @@ class TeacherWorker(QtCore.QObject):
             include=["metadatas"]
         )
 
-        votes = [(metadata["id_autore"], metadata["voto_docente"]) for metadata in result['metadatas']]
+        votes = [(metadata["id_autore"], metadata["voto_docente"], metadata["data_creazione"])
+                 for metadata in result['metadatas']]
 
         self.students_votes_ready_event.emit(votes)
         # print(query_result)
@@ -283,6 +285,11 @@ class TeacherQuestionAnswersWidget(QWidget):
             save_callback=self.save_callback
         )
 
+        self.stats_dialog = StatsDialog(
+            parent=self,
+            votes_ready_event=self.db_worker.students_votes_ready_event
+        )
+
         self.__leftSideBarWidget.on_add_question_clicked.connect(self.__onAddQuestionClicked)
         self.__leftSideBarWidget.changed.connect(self.__changedQuestion)
         self.__leftSideBarWidget.deleteRowsClicked.connect(self.__onArchiveQuestionsClicked)
@@ -309,7 +316,6 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.db_worker.answer_voted_event.connect(lambda answer: self.on_answer_voted(answer))
         self.db_worker.recalculated_unevaluated_answers_event.connect(lambda votes: self.on_recalculated_unevaluated_answers(votes))
         self.db_worker.archived_questions_event.connect(lambda questions: self.on_archived_questions(questions))
-        self.db_worker.students_votes_ready_event.connect(lambda votes: self.on_students_votes_ready(votes))
 
         self.db_thread = QtCore.QThread()
         self.db_thread.start()
@@ -330,7 +336,6 @@ class TeacherQuestionAnswersWidget(QWidget):
     def __initQuestions(self):
         if self.db_worker is not None:
             self.db_worker.get_teacher_questions()
-            self.db_worker.get_students_votes()  # TODO
 
     def __getQuestionDetails(self, question: Question):
         if self.db_worker is not None:
@@ -344,11 +349,10 @@ class TeacherQuestionAnswersWidget(QWidget):
 
         self.questions = data_array
 
-    @QtCore.pyqtSlot()
-    def on_students_votes_ready(self, votes):
-        print("[on_students_votes_ready]", votes)
-        #data_array = extract_data(data)
-        #print("data converted", data_array)
+    def open_stats_window(self):
+        if self.db_worker is not None:
+            self.db_worker.get_students_votes()
+            self.stats_dialog.show()
 
     @QtCore.pyqtSlot()
     def on_question_details_ready(self, question: Question, result):
