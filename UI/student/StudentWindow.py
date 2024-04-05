@@ -1,6 +1,6 @@
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QLabel, QPushButton, QStackedWidget, QToolBar, \
-    QWidgetAction, QSizePolicy, QMainWindow, QWidget
+    QWidgetAction, QSizePolicy, QMainWindow, QWidget, QDesktopWidget
 from UI.LoginFormApp import LoginFormApp
 from UI.student.StudentQuestionAnswersWidget import StudentQuestionAnswersWidget
 
@@ -15,7 +15,6 @@ class StudentWindow(QStackedWidget):
         self.activeWorkers: list[QtCore.QObject] = []
 
         self.main_window.setWindowTitle("Area Studente")
-        self.main_window.resize(800, 500)
 
         self.__studentQuestionAnswersWidget = StudentQuestionAnswersWidget(authorized_user, self.__onCreatedThread)
         self.addWidget(self.__studentQuestionAnswersWidget)
@@ -23,7 +22,16 @@ class StudentWindow(QStackedWidget):
         self.__setActions()
         self.__setToolBar()
 
-        self.main_window.resize(800, 500)
+        # Ottieni le dimensioni dello schermo
+        screen_geometry = QDesktopWidget().screenGeometry()
+
+        # Imposta le dimensioni della finestra principale
+        window_width = screen_geometry.width() // 2
+        window_height = screen_geometry.height() // 2
+        self.main_window.resize(window_width, window_height)
+
+        self.main_window.center()
+
         self.main_window.setCentralWidget(self)
 
     def __onCreatedThread(self, worker):
@@ -68,6 +76,7 @@ class StudentWindow(QStackedWidget):
         self.main_window.removeToolBar(self.studentToolBar)
 
         window = LoginFormApp(self.main_window)
+        window.main_window.center()
         window.show()
 
         self.close()

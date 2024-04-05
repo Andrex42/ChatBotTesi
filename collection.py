@@ -317,7 +317,7 @@ def calcola_voto_finale_ponderato(punteggi, voti):
     pesi = [inverso / somma_totale_inversi for inverso in inversi]
 
     if pesi[0] >= 0.9:
-        # Ae il primo è almeno il 90% rispetto agli altri, assegna il suo voto
+        # Se il primo è almeno il 90% rispetto agli altri, assegna il suo voto
         voto_finale_ponderato = voti[0]
     else:
         # Calcola il voto finale ponderato come la somma dei prodotti dei voti per i loro pesi corrispondenti

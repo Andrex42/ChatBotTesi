@@ -1,6 +1,6 @@
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QPushButton, QLabel, QSizePolicy, QStackedWidget, QToolBar, QWidgetAction, QMainWindow, \
-    QWidget
+    QWidget, QDesktopWidget
 from UI.LoginFormApp import LoginFormApp
 from UI.teacher.TeacherQuestionAnswersWidget import TeacherQuestionAnswersWidget
 
@@ -22,7 +22,16 @@ class TeacherWindow(QStackedWidget):
         self.__setActions()
         self.__setToolBar()
 
-        self.main_window.resize(800, 500)
+        # Ottieni le dimensioni dello schermo
+        screen_geometry = QDesktopWidget().screenGeometry()
+
+        # Imposta le dimensioni della finestra principale
+        window_width = screen_geometry.width() // 2
+        window_height = screen_geometry.height() // 2
+        self.main_window.resize(window_width, window_height)
+
+        self.main_window.center()
+
         self.main_window.setCentralWidget(self)
 
     def __onCreatedThread(self, worker):
@@ -78,6 +87,7 @@ class TeacherWindow(QStackedWidget):
         self.main_window.removeToolBar(self.teacherToolBar)
 
         window = LoginFormApp(self.main_window)
+        window.main_window.center()
         window.show()
 
         self.close()

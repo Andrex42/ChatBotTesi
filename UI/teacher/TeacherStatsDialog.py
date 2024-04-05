@@ -2,8 +2,8 @@ import datetime
 import statistics
 from PyQt5.QtCore import Qt, QPointF, QDateTime, QSize
 from PyQt5.QtGui import QPainter
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QScrollArea, QFrame, QWidget, QHBoxLayout, QListWidget, \
-    QListWidgetItem
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QScrollArea, QWidget, QHBoxLayout, QListWidget, \
+    QListWidgetItem, QSplitter
 from PyQt5 import QtCore
 from PyQt5.QtChart import QChart, QChartView, QLineSeries, QDateTimeAxis, QValueAxis
 
@@ -17,22 +17,40 @@ class StatsDialog(QDialog):
 
         votes_ready_event.connect(lambda votes: self.on_students_votes_ready(votes))
 
-        horizontal_layout = QHBoxLayout()
+        mainWidget = QSplitter()
+        mainWidget.setSizes([300, 500])
+        mainWidget.setChildrenCollapsible(False)
+        mainWidget.setHandleWidth(2)
+        mainWidget.setStyleSheet(
+            '''
+            QSplitter::handle:horizontal
+            {
+                background: #CCC;
+                height: 1px;
+            }
+            ''')
+
+        # horizontal_layout = QHBoxLayout()
 
         self.students_avg_list = QListWidget()
         self.students_avg_list.currentItemChanged.connect(self.changed)
         self.students_avg_list.setStyleSheet("QListWidget { padding: 5px; } QListWidget::item { margin: 5px; }")
 
+        mainWidget.addWidget(self.students_avg_list)
 
-        horizontal_layout.addWidget(self.students_avg_list)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        #        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scroll_container = QWidget()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setWidget(self.scroll_container)
 
-        self.chart = QChart()
-        self.chart.legend().hide()
+        self.scroll_layout = QHBoxLayout(self.scroll_container)
+        self.scroll_layout.setContentsMargins(0, 0, 0, 0)
 
-        self._chart_view = QChartView(self.chart)
-        self._chart_view.setRenderHint(QPainter.Antialiasing)
+        self.create_chart()
 
-        horizontal_layout.addWidget(self._chart_view)
+        mainWidget.addWidget(self.scroll_area)
 
         # self.scroll_vertical_layout = QVBoxLayout()
         # scroll = QScrollArea()  # Scroll Area which contains the widgets, set as the centralWidget
@@ -51,7 +69,30 @@ class StatsDialog(QDialog):
         # lay.setContentsMargins(0, 0, 0, 0)
         # lay.addWidget(scroll)
 
-        self.setLayout(horizontal_layout)
+        lay = QVBoxLayout()
+        lay.addWidget(mainWidget)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(0)
+
+        self.setLayout(lay)
+
+
+    def create_chart(self):
+        self.chart_container = QWidget()                                          # +++
+        lay = QVBoxLayout(self.chart_container)                                   # +++
+        lay.setContentsMargins(0, 0, 0, 0)                             # +++
+
+        self.scroll_layout.addWidget(self.chart_container)                        # +++
+        self.chart_container.setMinimumWidth(800)
+
+        self.chart = QChart()
+        self.chart.legend().hide()
+        self.chart.setAnimationOptions(QChart.SeriesAnimations)
+
+        self._chart_view = QChartView(self.chart)
+        self._chart_view.setRenderHint(QPainter.Antialiasing)
+
+        lay.addWidget(self._chart_view)
 
     def convert_datetime(self, datetime_str):
         # Converte la stringa datetime nel formato desiderato
@@ -75,6 +116,7 @@ class StatsDialog(QDialog):
 
             for key, votes_and_dates in student_data.items():
                 self.chart.setTitle(key)
+                self.chart_container.setMinimumWidth(len(votes_and_dates) * 20)
 
                 for x in votes_and_dates:
                     date = x[1]
@@ -83,7 +125,10 @@ class StatsDialog(QDialog):
 
             self.chart.addSeries(series)
 
+            num_ticks = 4
+
             self.date_axis = QDateTimeAxis()
+            self.date_axis.setTickCount(num_ticks)
             self.date_axis.setFormat("dd/MM/yyyy HH:mm")
             self.chart.addAxis(self.date_axis, Qt.AlignBottom)
             series.attachAxis(self.date_axis)
@@ -113,13 +158,17 @@ class StatsDialog(QDialog):
 
             grouped[key].append([vote, date])
 
+        # Ordina l'array di valori per data crescente
+        for key in grouped:
+            grouped[key] = sorted(grouped[key], key=lambda x: x[1])
+
         res = [{key: votes_and_dates} for key, votes_and_dates in grouped.items()]
         print(res)
 
         for key, votes_and_dates in grouped.items():
             votes = [x[0] for x in votes_and_dates]
             item = QListWidgetItem()
-            widget = QLabel(key + ": " + str(round(statistics.mean(votes), 3)))
+            widget = QLabel(key + " - Risposte: " + str(len(votes)) + " Media: " + str(round(statistics.mean(votes), 3)))
             item.setData(Qt.UserRole, {key: votes_and_dates})
             item.setSizeHint(QSize(widget.sizeHint().width(), 50))
 

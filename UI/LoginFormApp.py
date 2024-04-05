@@ -12,7 +12,7 @@ class LoginFormApp(QWidget):
 
         # Set the window properties (title and initial size)
         self.main_window.setWindowTitle("Login Form")
-        self.main_window.setGeometry(100, 100, 300, 150)  # (x, y, width, height)
+        self.main_window.setGeometry(0, 0, 300, 150)  # (x, y, width, height)
 
         # Create a central widget for the main window
         central_widget = QWidget()

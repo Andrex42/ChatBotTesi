@@ -86,13 +86,23 @@ class TeacherWorker(QtCore.QObject):
 
         print("getting students votes for", teacher_username)
 
-        result = q_a_collection.get(
-            where={"$and": [{"id_docente": teacher_username},
-                            {"id_autore": {"$ne": "undefined"}},
-                            {"id_autore": {"$ne": teacher_username}},
-                            {"voto_docente": {"$gt": -1}}]},
-            include=["metadatas"]
-        )
+        USE_TRAIN_RESPONSES_DATA = os.getenv("USE_TRAIN_RESPONSES_DATA")
+
+        if USE_TRAIN_RESPONSES_DATA == "true":
+            result = q_a_collection.get(
+                where={"$and": [{"id_docente": teacher_username},
+                                {"id_autore": {"$ne": teacher_username}},
+                                {"voto_docente": {"$gt": -1}}]},
+                include=["metadatas"]
+            )
+        else:
+            result = q_a_collection.get(
+                where={"$and": [{"id_docente": teacher_username},
+                                {"id_autore": {"$ne": "undefined"}},
+                                {"id_autore": {"$ne": teacher_username}},
+                                {"voto_docente": {"$gt": -1}}]},
+                include=["metadatas"]
+            )
 
         votes = [(metadata["id_autore"], metadata["voto_docente"], metadata["data_creazione"])
                  for metadata in result['metadatas']]
