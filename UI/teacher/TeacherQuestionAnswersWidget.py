@@ -217,7 +217,7 @@ class TeacherWorker(QtCore.QObject):
         unevaluated_answers_result = q_a_collection.get(
             where={"$and": [{"id_domanda": id_domanda},
                             {"voto_docente": -1}]},
-            include=["documents", "embeddings", "metadatas"]
+            include=["documents", "metadatas"]
         )
 
         if len(unevaluated_answers_result['ids']) > 0:
@@ -225,10 +225,8 @@ class TeacherWorker(QtCore.QObject):
 
             for unevaluated_answers_array_index in range(len(unevaluated_answers_result['ids'])):
                 curr_document = unevaluated_answers_result['documents'][unevaluated_answers_array_index]
-                curr_embeddings = unevaluated_answers_result['embeddings'][unevaluated_answers_array_index]
                 voto_ponderato = get_similar_sentences(id_domanda,
-                                                       curr_document,
-                                                       curr_embeddings)
+                                                       curr_document)
                 voti_aggiornati.append(voto_ponderato)
 
             print("[recalc_question_unevaluated_answers_predictions]", "voti aggiornati", voti_aggiornati)
