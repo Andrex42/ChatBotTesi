@@ -1,6 +1,6 @@
 import datetime
 import statistics
-from PyQt5.QtCore import Qt, QPointF, QDateTime
+from PyQt5.QtCore import Qt, QPointF, QDateTime, QSize
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QScrollArea, QFrame, QWidget, QHBoxLayout, QListWidget, \
     QListWidgetItem
@@ -21,6 +21,8 @@ class StatsDialog(QDialog):
 
         self.students_avg_list = QListWidget()
         self.students_avg_list.currentItemChanged.connect(self.changed)
+        self.students_avg_list.setStyleSheet("QListWidget { padding: 5px; } QListWidget::item { margin: 5px; }")
+
 
         horizontal_layout.addWidget(self.students_avg_list)
 
@@ -58,6 +60,14 @@ class StatsDialog(QDialog):
 
     def changed(self, item: QListWidgetItem):
         self.chart.removeAllSeries()
+
+        try:
+            self.chart.removeAxis(self.date_axis)
+            self.chart.removeAxis(self.value_axis)
+        except AttributeError:
+            print("no axis to remove")
+            pass
+
         if item:
             student_data = item.data(Qt.UserRole)
             print("changed", student_data)
@@ -73,16 +83,16 @@ class StatsDialog(QDialog):
 
             self.chart.addSeries(series)
 
-            date_axis = QDateTimeAxis()
-            date_axis.setFormat("dd/MM/yyyy HH:mm")
-            self.chart.addAxis(date_axis, Qt.AlignBottom)
-            series.attachAxis(date_axis)
+            self.date_axis = QDateTimeAxis()
+            self.date_axis.setFormat("dd/MM/yyyy HH:mm")
+            self.chart.addAxis(self.date_axis, Qt.AlignBottom)
+            series.attachAxis(self.date_axis)
 
-            value_axis = QValueAxis()
-            value_axis.setMin(0.0)
-            value_axis.setMax(5.0)
-            self.chart.addAxis(value_axis, Qt.AlignLeft)
-            series.attachAxis(value_axis)
+            self.value_axis = QValueAxis()
+            self.value_axis.setMin(0.0)
+            self.value_axis.setMax(5.0)
+            self.chart.addAxis(self.value_axis, Qt.AlignLeft)
+            series.attachAxis(self.value_axis)
 
         else:
             print("reset")
@@ -109,8 +119,9 @@ class StatsDialog(QDialog):
         for key, votes_and_dates in grouped.items():
             votes = [x[0] for x in votes_and_dates]
             item = QListWidgetItem()
-            widget = QLabel(key + ": " + str(statistics.mean(votes)))
+            widget = QLabel(key + ": " + str(round(statistics.mean(votes), 3)))
             item.setData(Qt.UserRole, {key: votes_and_dates})
+            item.setSizeHint(QSize(widget.sizeHint().width(), 50))
 
             self.students_avg_list.addItem(item)
             self.students_avg_list.setItemWidget(item, widget)
