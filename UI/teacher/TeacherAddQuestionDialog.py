@@ -36,6 +36,13 @@ class AddQuestionDialog(QDialog):
         self.answerTextEdit.textChanged.connect(self.checkTextEdit)
         self.saveButton.clicked.connect(self.save)
 
+    def clearInputs(self):
+        self.categoriaLineEdit.clear()
+        self.questionTextEdit.clear()
+        self.answerTextEdit.clear()
+
+        self.categoriaLineEdit.setFocus()
+
     def checkTextEdit(self):
         # Controlla se il QTextEdit contiene del testo
         if self.categoriaLineEdit.text() and self.questionTextEdit.toPlainText() and self.answerTextEdit.toPlainText():

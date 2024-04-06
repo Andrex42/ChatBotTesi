@@ -1,6 +1,8 @@
+from datetime import datetime
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QLineEdit, QDoubleSpinBox, \
-    QSizePolicy
+    QSizePolicy, QSpacerItem, QGraphicsOpacityEffect
 
 from model.answer_model import Answer
 
@@ -16,6 +18,10 @@ class TeacherStudentAnswerPreviewItem(QWidget):
 
         self.__initUi()
 
+    def convert_datetime(self, datetime_str):
+        datetime_obj = datetime.fromisoformat(datetime_str)
+        return datetime_obj.strftime("%d/%m/%Y %H:%M")
+
     def __initUi(self):
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.setObjectName("answer_preview_item_container")
@@ -26,6 +32,7 @@ class TeacherStudentAnswerPreviewItem(QWidget):
                     }''')
 
         lay = QVBoxLayout()
+        lay.setSpacing(0)
 
         label_id_studente = QLabel("Studente: " + self.answer.id_autore)
         label_id_studente.setStyleSheet('''
@@ -34,6 +41,16 @@ class TeacherStudentAnswerPreviewItem(QWidget):
                                                 font-weight: bold;
                                             }
                                         ''')
+
+        label_data_risposta = QLabel(self.convert_datetime(self.answer.data_creazione))
+        label_data_risposta.setStyleSheet('''
+                                            QLabel {
+                                                font-size: 10px; 
+                                            }
+                                        ''')
+        opacity_effect = QGraphicsOpacityEffect()
+        opacity_effect.setOpacity(0.6)  # Imposta l'opacità al 60%
+        label_data_risposta.setGraphicsEffect(opacity_effect)
 
         answer_label = QLabel(self.answer.risposta)
         answer_label.setWordWrap(True)
@@ -74,7 +91,11 @@ class TeacherStudentAnswerPreviewItem(QWidget):
             confermaVotoLayout = QHBoxLayout()
 
             lay.addWidget(label_id_studente)
+            lay.addWidget(label_data_risposta)
+            lay.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Expanding))
             lay.addWidget(answer_label)
+            lay.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Expanding))
+
             risultatoLayout.addWidget(QLabel("Risultato predetto: "))
             risultatoLayout.addWidget(self.label_risultato)
             lay.addLayout(risultatoLayout)
@@ -107,7 +128,10 @@ class TeacherStudentAnswerPreviewItem(QWidget):
                                             ''')
 
             lay.addWidget(label_id_studente)
+            lay.addWidget(label_data_risposta)
+            lay.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Expanding))
             lay.addWidget(answer_label)
+            lay.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
             voto_finale_lbl = QLabel("Voto finale: ")
             risultatoLayout.addWidget(voto_finale_lbl)

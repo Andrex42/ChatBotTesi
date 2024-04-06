@@ -3,7 +3,7 @@ import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QDesktopWidget
 from UI.LoginFormApp import LoginFormApp
 
-from collection import init_model, check_answer_records, test_model
+from collection import init_model, init_model_with_exports, check_answer_records, test_model
 
 
 class Application(QMainWindow):
@@ -13,7 +13,8 @@ class Application(QMainWindow):
 
         self.setup_ui()
 
-        init_model()
+        init_model_with_exports()
+        # init_model()
         # check_answer_records()
         # test_model()
 

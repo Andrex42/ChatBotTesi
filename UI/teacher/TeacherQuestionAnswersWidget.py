@@ -21,10 +21,11 @@ class TeacherWorker(QtCore.QObject):
     """
     Worker thread that handles the major program load. Allowing the gui to still be responsive.
     """
-    def __init__(self, authorized_user, config):
+    def __init__(self, authorized_user, config, on_error):
         super(TeacherWorker, self).__init__()
         self.authorized_user = authorized_user
         self.config = config
+        self.on_error = on_error
 
     #QT signals - specify the method that the worker will be executing
     call_add_question = QtCore.pyqtSignal()
@@ -68,9 +69,14 @@ class TeacherWorker(QtCore.QObject):
 
         print("adding question", question_text, ref_answer_text)
 
-        question = add_question_to_collection(self.authorized_user, categoria, question_text, ref_answer_text)
+        question = add_question_to_collection(
+            self.authorized_user,
+            categoria,
+            question_text,
+            ref_answer_text,
+            error_callback=self.on_error)
 
-        if question:
+        if question is not None:
             print("[add_question]", "question added", question)
             self.question_added_event.emit(question)
 
@@ -167,7 +173,7 @@ class TeacherWorker(QtCore.QObject):
 
         self.answer_voted_event.emit(answer)
 
-        self.getToEvaluateAnswersId()
+        self.getToEvaluateAnswersId(useUpdateEvent=True)
 
         print(f'Execution time = {time.time() - start} seconds.')
 
@@ -220,6 +226,9 @@ class TeacherWorker(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def exportQuestions(self, questions: list[Question]):
+        if len(questions) == 0:
+            return
+
         start = time.time()
 
         init_chroma_client()
@@ -240,15 +249,25 @@ class TeacherWorker(QtCore.QObject):
         # Apri il file CSV in modalità di scrittura
         with open(output_path, mode='w', newline='', encoding='utf-8') as file:
             # Definisci il writer CSV
-            writer = csv.DictWriter(file, fieldnames=['id', 'text', 'label', 'id_docente'])
+            writer = csv.DictWriter(
+                file,
+                fieldnames=['id', 'text', 'label', 'id_docente', 'source', 'archived', 'data_creazione']
+            )
 
             # Scrivi l'intestazione del CSV
             writer.writeheader()
 
             # Scrivi i dati delle domande nel file CSV
             for question in questions:
-                writer.writerow({'id': question.id, 'text': question.domanda, 'label': question.categoria,
-                                 'id_docente': question.id_docente})
+                writer.writerow({
+                    'id': question.id,
+                    'text': question.domanda,
+                    'label': question.categoria,
+                    'id_docente': question.id_docente,
+                    'source': question.source,
+                    'archived': question.archived,
+                    'data_creazione': question.data_creazione,
+                })
 
         print(f"Il file CSV è stato generato con successo: {output_path}")
 
@@ -260,7 +279,8 @@ class TeacherWorker(QtCore.QObject):
             query_result = q_a_collection.get(
                 where={"$and": [
                     {"id_docente": self.authorized_user['username']},
-                    {"$or": [{'id_domanda': q.id} for q in questions]}
+                    {"$or": [{'id_domanda': q.id} for q in questions]} if len(questions) > 1
+                    else {'id_domanda': questions[0].id}
                 ]}
             )
         else:
@@ -268,7 +288,8 @@ class TeacherWorker(QtCore.QObject):
                 where={"$and": [
                     {"id_docente": self.authorized_user['username']},
                     {"id_autore": {"$ne": "undefined"}},
-                    {"$or": [{'id_domanda': q.id} for q in questions]}
+                    {"$or": [{'id_domanda': q.id} for q in questions]} if len(questions) > 1
+                    else {'id_domanda': questions[0].id}
                 ]}
             )
 
@@ -411,9 +432,20 @@ class TeacherQuestionAnswersWidget(QWidget):
 
         self.setLayout(lay)
 
+    def show_error_dialog(self, error_text):
+        message = error_text
+        closeMessageBox = QMessageBox(self)
+        closeMessageBox.setWindowTitle('Errore')
+        closeMessageBox.setText(message)
+        closeMessageBox.setStandardButtons(QMessageBox.Close)
+        closeMessageBox.exec()
+
     def __initWorker(self):
         self.config = {}
-        self.db_worker = TeacherWorker(self.authorized_user, self.config)
+        self.db_worker = TeacherWorker(
+            self.authorized_user,
+            self.config,
+            lambda error_text: self.show_error_dialog(error_text))
 
         self.db_worker.questions_ready_event.connect(lambda data: self.on_questions_ready(data))
         self.db_worker.q_a_ready_event.connect(lambda question, result:
@@ -458,6 +490,8 @@ class TeacherQuestionAnswersWidget(QWidget):
         data_array = extract_data(data)
         print("data converted", data_array)
 
+        data_array = sorted(data_array, key=lambda x: x['data_creazione'])
+
         self.questions = data_array
 
     def open_stats_window(self):
@@ -497,6 +531,17 @@ class TeacherQuestionAnswersWidget(QWidget):
     @QtCore.pyqtSlot()
     def on_question_added(self, question: Question):
         print("[on_question_added]", question)
+
+        def show_confirm():
+            message = 'Domanda inserita correttamente. Da questo momento in poi gli studenti potranno inserire la propria risposta.'
+            closeMessageBox = QMessageBox(self)
+            closeMessageBox.setWindowTitle('Domanda inserita con successo')
+            closeMessageBox.setText(message)
+            closeMessageBox.setStandardButtons(QMessageBox.Close)
+            closeMessageBox.exec()
+
+        show_confirm()
+        self.add_question_dialog.clearInputs()
 
         self.__leftSideBarWidget.addQuestionToList(question, False)
 

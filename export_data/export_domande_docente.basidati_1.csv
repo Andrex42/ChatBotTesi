@@ -1,0 +1,5 @@
+id,text,label,id_docente,source,archived,data_creazione
+6c54383a90aac9c612c427c5af8e941560517d36f385d2a0767ee149bb68639e,Qual è la differenza tra SQL e NoSQL?,NoSQL,docente.basidati,application,False,2024-04-06T13:53:40.974313
+cdc4ece5259091b48ce456a836ba5d2d71eef175089b5fa6f54fed81157d8089,Cosa significa la normalizzazione dei dati?,Normalizzazione,docente.basidati,application,False,2024-04-06T13:50:52.977706
+24f43dd9004367ea4dd5b824cb91fd2d75bfd90ba26d15783af7ace54d9d5156,Qual è la differenza tra una chiave primaria e una chiave esterna?,Chiavi primarie e esterne,docente.basidati,application,False,2024-04-06T13:41:19.465928
+2fe60b80cc1cd48d4f05451d68eedbc8445444cbe76505b08bfc7f526e670a3b,Cos'è un database relazionale?,Database relazionali,docente.basidati,application,False,2024-04-06T13:40:32.726376

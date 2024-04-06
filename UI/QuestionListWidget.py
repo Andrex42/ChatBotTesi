@@ -1,7 +1,9 @@
+from datetime import datetime
+
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPalette, QColor, QColorConstants
-from PyQt5.QtWidgets import QWidget, QListWidgetItem, QLabel, QVBoxLayout, QPushButton, QHBoxLayout, QListWidget, \
+from PyQt5.QtGui import QPalette
+from PyQt5.QtWidgets import QWidget, QListWidgetItem, QLabel, QVBoxLayout, QHBoxLayout, QListWidget, \
     QApplication
 
 from UI.dot_widget import DotWidget
@@ -17,9 +19,15 @@ class QuestionItemWidget(QWidget):
         self.__hasUnevaluatedAnswers = hasUnevaluatedAnswers
         self.__initUi(question)
 
+    def convert_datetime(self, datetime_str):
+        datetime_obj = datetime.fromisoformat(datetime_str)
+        return datetime_obj.strftime("%d/%m/%Y %H:%M")
+
     def __initUi(self, question: Question):
-        self.__topicLbl = QLabel(question.categoria + " (" + question.id_docente + ")"
-                                 if not self.__isTeacher else question.categoria)
+        upper_label_text = question.categoria + " (" + question.id_docente + ")" \
+            if not self.__isTeacher else question.categoria
+        upper_label_text += f" - {self.convert_datetime(question.data_creazione)}"
+        self.__topicLbl = QLabel(upper_label_text)
 
         palette = self.__topicLbl.palette()
         color = palette.color(QPalette.Text)

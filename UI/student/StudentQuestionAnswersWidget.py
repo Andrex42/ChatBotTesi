@@ -19,10 +19,11 @@ class StudentWorker(QtCore.QObject):
     """
     Worker thread that handles the major program load. Allowing the gui to still be responsive.
     """
-    def __init__(self, authorized_user, config):
+    def __init__(self, authorized_user, config, on_error):
         super(StudentWorker, self).__init__()
         self.authorized_user = authorized_user
         self.config = config
+        self.on_error = on_error
 
     #QT signals - specify the method that the worker will be executing
     call_add_question = QtCore.pyqtSignal()
@@ -126,9 +127,12 @@ class StudentWorker(QtCore.QObject):
 
         print("adding answer", answer_text)
 
-        answer = add_answer_to_collection(self.authorized_user, question, answer_text)
+        answer = add_answer_to_collection(self.authorized_user, question, answer_text, error_callback=self.on_error)
 
-        self.answer_added_event.emit(question, answer)
+        if answer is not None:
+            print("[add_answer]", "answer added", answer)
+            self.answer_added_event.emit(question, answer)
+
         print(f'Execution time = {time.time() - start} seconds.')
 
 
@@ -187,9 +191,20 @@ class StudentQuestionAnswersWidget(QWidget):
 
         self.setLayout(lay)
 
+    def show_error_dialog(self, error_text):
+        message = error_text
+        closeMessageBox = QMessageBox(self)
+        closeMessageBox.setWindowTitle('Errore')
+        closeMessageBox.setText(message)
+        closeMessageBox.setStandardButtons(QMessageBox.Close)
+        closeMessageBox.exec()
+
     def __initWorker(self):
         self.config = {}
-        self.db_worker = StudentWorker(self.authorized_user, self.config)
+        self.db_worker = StudentWorker(
+            self.authorized_user,
+            self.config,
+            lambda error_text: self.show_error_dialog(error_text))
 
         self.db_worker.unanswered_questions_ready_event.connect(lambda data: self.on_unanswered_questions_ready(data))
         self.db_worker.answered_questions_ready_event.connect(lambda data: self.on_answered_questions_ready(data))
@@ -218,6 +233,8 @@ class StudentQuestionAnswersWidget(QWidget):
         data_array = extract_data(data)
         print("on_unanswered_questions_ready", "data converted", data_array)
 
+        data_array = sorted(data_array, key=lambda x: x['data_creazione'])
+
         for q in data_array:
             question = Question(
                 q['id'],
@@ -240,6 +257,8 @@ class StudentQuestionAnswersWidget(QWidget):
         print("on_answered_questions_ready", "received", data)
         data_array = extract_data(data)
         print("on_answered_questions_ready", "data converted", data_array)
+
+        data_array = sorted(data_array, key=lambda x: x['data_creazione'])
 
         for q in data_array:
             question = Question(
@@ -269,6 +288,9 @@ class StudentQuestionAnswersWidget(QWidget):
         show_confirm()
 
         self.__leftSideBarWidget.moveQuestionToAnsweredList(question)
+
+        if self.__leftSideBarWidget.getUnansweredRowCount() == 0:
+            self.__rightSideWidget.hide()
 
     @QtCore.pyqtSlot()
     def on_answer_details_ready(self, question: Question, answer: Answer):

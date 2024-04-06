@@ -1,8 +1,7 @@
+import hashlib
 from typing import Optional
-
 import chromadb
 import os
-
 import torch
 from chromadb import EmbeddingFunction, Documents, Embeddings
 from dotenv import load_dotenv
@@ -15,7 +14,6 @@ from colorama import Fore, Style
 from model.answer_model import Answer
 from nltk.metrics import edit_distance
 from transformers import AutoModel, AutoTokenizer
-
 from model.question_model import Question
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -98,6 +96,113 @@ def get_chroma_questions_collection():
         embedding_function=SentencesEmbeddingFunction()
     )
     return questions_collection
+
+
+def generate_sha256_hash_from_text(text):
+    # Create a SHA256 hash object
+    sha256_hash = hashlib.sha256()
+    # Update the hash object with the text encoded to bytes
+    sha256_hash.update(text.encode('utf-8'))
+    # Return the hexadecimal representation of the hash
+    return sha256_hash.hexdigest()
+
+
+def init_model_with_exports():
+    init_chroma_client()
+
+    export_data_directory = './export_data'
+
+    files = os.listdir(export_data_directory)
+
+    export_domande = []
+    export_risposte = []
+
+    for file in files:
+        if not file.endswith(".csv"):
+            continue
+
+        if file.startswith("export_domande"):
+            export_domande.append(os.path.join(export_data_directory, file))
+        elif file.startswith("export_risposte"):
+            export_risposte.append(os.path.join(export_data_directory, file))
+
+    domande_collection = get_chroma_questions_collection()
+    domande_collection_count = domande_collection.count()
+    print(domande_collection_count, "documenti trovati in domande_collection")
+
+    q_a_collection = get_chroma_q_a_collection()
+    q_a_collection_count = q_a_collection.count()
+    print(q_a_collection_count, "documenti trovati in q_a_collection")
+
+    print("Initializing collections.")
+
+    for file_domande in export_domande:
+        # Reads the CSV data into pandas DataFrames.
+        df_domande = pd.read_csv(file_domande)
+        # Converts the DataFrames to lists of dictionaries.
+        domande_dict = df_domande.to_dict('records')
+
+        domande_collection_result = domande_collection.get(include=[])
+
+        for idx, item in enumerate(domande_dict):
+            id_domanda = item['id'] if not item['id'].startswith("id_") else generate_sha256_hash_from_text(item['id'])
+
+            if id_domanda not in domande_collection_result['ids']:
+                print(f"Adding question", idx, item['text'])
+
+                domande_collection.add(
+                    documents=[item['text']],  # aggiunge la domanda ai documenti
+                    metadatas=[{"id_domanda": id_domanda,
+                                "id_docente": item['id_docente'],
+                                "categoria": item['label'],
+                                "source": item['source'],
+                                "archived": item['archived'],
+                                "data_creazione": item['data_creazione']}],
+                    ids=[id_domanda]
+                )
+            else:
+                print(f"Question {idx} already existing.")
+
+    for file_risposte in export_risposte:
+        # Reads the CSV data into pandas DataFrames.
+        df_risposte = pd.read_csv(file_risposte)
+        # Converts the DataFrames to lists of dictionaries.
+        risposte_dict = df_risposte.to_dict('records')
+
+        q_a_collection_result = q_a_collection.get(include=[])
+
+        for idx, item in enumerate(risposte_dict):
+            id_domanda = item['id_domanda'] if not item['id_domanda'].startswith("id_") \
+                else generate_sha256_hash_from_text(item['id_domanda'])
+
+            id_risposta = item['id'] if not item['id'].startswith("id_") \
+                else generate_sha256_hash_from_text(item['id'])
+
+            if id_risposta not in q_a_collection_result['ids']:
+                print(f"Adding answer", idx, item['text'])
+
+                q_a_collection.add(
+                    documents=[item['text']],  # aggiunge la risposta ai documenti
+                    metadatas=[{"id_domanda": id_domanda,
+                                "domanda": item['title'],
+                                "id_docente": item['id_docente'],
+                                "id_autore": item['id_autore'],
+                                "voto_docente": item['label'],
+                                "voto_predetto": item['voto_predetto'],
+                                "commento": item['commento'],
+                                "source": item['source'],
+                                "data_creazione": item['data_creazione']}],
+                    ids=[id_risposta]
+                )
+            else:
+                print(f"Answer {idx} already existing.")
+
+    domande_collection_count = domande_collection.count()
+    q_a_collection_count = q_a_collection.count()
+
+    print(f"Collections initialized successfully. "
+          f"{domande_collection_count} questions. "
+          f"{q_a_collection_count} answers.")
 
 
 def init_model():
@@ -421,7 +526,8 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
     return final_score
 
 
-def add_answer_to_collection(authenticated_user, question: Question, answer_text: str, fake_add=False):
+def add_answer_to_collection(authenticated_user, question: Question, answer_text: str,
+                             error_callback=None, fake_add=False):
     voto_ponderato = get_similar_sentences(question.id, answer_text)
 
     # Ottieni la data e l'ora correnti
@@ -429,64 +535,50 @@ def add_answer_to_collection(authenticated_user, question: Question, answer_text
     # Converti in formato ISO 8601
     iso_format = now.isoformat()
 
+    id_risposta = generate_sha256_hash_from_text(f"{question.id}_{authenticated_user['username']}")
+
     if not fake_add:
         q_a_collection = get_chroma_q_a_collection()
 
-        q_a_collection.add(
-            documents=[answer_text],  # aggiunge la risposta ai documenti
-            metadatas=[{"id_domanda": question.id,
-                        "domanda": question.domanda,
-                        "id_docente": question.id_docente,
-                        "id_autore": authenticated_user['username'],
-                        "voto_docente": -1,
-                        "voto_predetto": voto_ponderato,
-                        "commento": "undefined",
-                        "source": "application",
-                        "data_creazione": iso_format}],
-            ids=[f"{question.id}_{authenticated_user['username']}"]
-        )
-
-        added_answer_result = q_a_collection.get(ids=[f"{question.id}_{authenticated_user['username']}"])
-        added_answer_data_array = extract_data(added_answer_result)
-
-        if len(added_answer_data_array):
-            answer = Answer(
-                added_answer_data_array[0]['id'],
-                added_answer_data_array[0]['id_domanda'],
-                added_answer_data_array[0]['domanda'],
-                added_answer_data_array[0]['id_docente'],
-                added_answer_data_array[0]['document'],
-                added_answer_data_array[0]['id_autore'],
-                added_answer_data_array[0]['voto_docente'],
-                added_answer_data_array[0]['voto_predetto'],
-                added_answer_data_array[0]['commento'],
-                added_answer_data_array[0]['source'],
-                added_answer_data_array[0]['data_creazione'],
+        try:
+            q_a_collection.add(
+                documents=[answer_text],  # aggiunge la risposta ai documenti
+                metadatas=[{"id_domanda": question.id,
+                            "domanda": question.domanda,
+                            "id_docente": question.id_docente,
+                            "id_autore": authenticated_user['username'],
+                            "voto_docente": -1,
+                            "voto_predetto": voto_ponderato,
+                            "commento": "undefined",
+                            "source": "application",
+                            "data_creazione": iso_format}],
+                ids=[id_risposta]
             )
+        except ValueError:
+            if error_callback is not None:
+                error_callback("Errore durante l'inserimento della risposta.")
 
-            return answer
+            return None
 
-        return None
-    else:
-        answer = Answer(
-            f"{question.id}_{authenticated_user['username']}",
-            question.id,
-            question.domanda,
-            question.id_docente,
-            answer_text,
-            authenticated_user['username'],
-            -1,
-            voto_ponderato,
-            "undefined",
-            "application",
-            iso_format,
-        )
+    answer = Answer(
+        id_risposta,
+        question.id,
+        question.domanda,
+        question.id_docente,
+        answer_text,
+        authenticated_user['username'],
+        -1,
+        voto_ponderato,
+        "undefined",
+        "application",
+        iso_format,
+    )
 
-        return answer
+    return answer
 
 
-def add_question_to_collection(authenticated_user, categoria: str, question_text: str, ref_answer_text: str) \
-        -> Optional[Question]:
+def add_question_to_collection(authenticated_user, categoria: str, question_text: str,
+                               ref_answer_text: str, error_callback=None) -> Optional[Question]:
     questions_collection = get_chroma_questions_collection()
     q_a_collection = get_chroma_q_a_collection()
 
@@ -495,51 +587,51 @@ def add_question_to_collection(authenticated_user, categoria: str, question_text
     # Converti in formato ISO 8601
     iso_format = now.isoformat()
 
-    id_domanda = f"{authenticated_user['username']}_q_{iso_format}"
-    id_risposta = f"{authenticated_user['username']}_a_{iso_format}"
+    id_domanda = generate_sha256_hash_from_text(f"{authenticated_user['username']}_q_{iso_format}")
+    id_risposta = generate_sha256_hash_from_text(f"{authenticated_user['username']}_a_{iso_format}")
 
-    questions_collection.add(
-        documents=[question_text],  # aggiunge la domanda ai documenti
-        metadatas=[{"id_domanda": id_domanda,
-                    "id_docente": authenticated_user['username'],
-                    "categoria": categoria,
-                    "source": "application",
-                    "archived": False,
-                    "data_creazione": iso_format}],
-        ids=[id_domanda]
-    )
-
-    q_a_collection.add(
-        documents=[ref_answer_text],  # aggiunge la risposta ai documenti
-        metadatas=[{"id_domanda": id_domanda,
-                    "domanda": question_text,
-                    "id_docente": authenticated_user['username'],
-                    "id_autore": authenticated_user['username'],
-                    "voto_docente": 5,
-                    "voto_predetto": -1,
-                    "commento": "undefined",
-                    "source": "application",
-                    "data_creazione": iso_format}],
-        ids=[id_risposta]
-    )
-
-    added_question_result = questions_collection.get(ids=[f"{authenticated_user['username']}_q_{iso_format}"])
-    added_question_data_array = extract_data(added_question_result)
-
-    if len(added_question_result):
-        question = Question(
-            added_question_data_array[0]['id'],
-            added_question_data_array[0]['document'],
-            added_question_data_array[0]['id_docente'],
-            added_question_data_array[0]['categoria'],
-            added_question_data_array[0]['source'],
-            added_question_data_array[0]['archived'],
-            added_question_data_array[0]['data_creazione'],
+    try:
+        questions_collection.add(
+            documents=[question_text],  # aggiunge la domanda ai documenti
+            metadatas=[{"id_domanda": id_domanda,
+                        "id_docente": authenticated_user['username'],
+                        "categoria": categoria,
+                        "source": "application",
+                        "archived": False,
+                        "data_creazione": iso_format}],
+            ids=[id_domanda]
         )
 
-        return question
+        q_a_collection.add(
+            documents=[ref_answer_text],  # aggiunge la risposta ai documenti
+            metadatas=[{"id_domanda": id_domanda,
+                        "domanda": question_text,
+                        "id_docente": authenticated_user['username'],
+                        "id_autore": authenticated_user['username'],
+                        "voto_docente": 5,
+                        "voto_predetto": -1,
+                        "commento": "undefined",
+                        "source": "application",
+                        "data_creazione": iso_format}],
+            ids=[id_risposta]
+        )
+    except ValueError:
+        if error_callback is not None:
+            error_callback("Errore durante l'inserimento della domanda.")
 
-    return None
+        return None
+
+    question = Question(
+        id_domanda,
+        question_text,
+        authenticated_user['username'],
+        categoria,
+        "application",
+        False,
+        iso_format,
+    )
+
+    return question
 
 
 def get_risultato_classification_full(data):
