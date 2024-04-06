@@ -10,6 +10,7 @@ class LeftSideBar(QWidget):
 
     on_add_question_clicked = QtCore.pyqtSignal()
     deleteRowsClicked = QtCore.pyqtSignal(list)
+    exportRowsClicked = QtCore.pyqtSignal(list)
     changed = QtCore.pyqtSignal(QListWidgetItem)
 
     def __init__(self, authorized_user):
@@ -26,7 +27,7 @@ class LeftSideBar(QWidget):
 
         self.__addBtn.clicked.connect(self.__addClicked)
         self.__archiveBtn.clicked.connect(self.__archiveClicked)
-        # self.__saveBtn.clicked.connect(self.__saveClicked)
+        self.__saveBtn.clicked.connect(self.__saveClicked)
 
         self.__allCheckBox = QCheckBox('Seleziona tutto')
         self.__allCheckBox.stateChanged.connect(self.__stateChanged)
@@ -71,6 +72,12 @@ class LeftSideBar(QWidget):
         # get the ID of row, not actual index (because list is in a stacked form)
         rows = self.__questionListWidget.getCheckedRowsIds()
         self.deleteRowsClicked.emit(rows)
+        self.__allCheckBox.setChecked(False)
+
+    def __saveClicked(self):
+        # get the ID of row, not actual index (because list is in a stacked form)
+        rows = self.__questionListWidget.getCheckedRowsIds()
+        self.exportRowsClicked.emit(rows)
         self.__allCheckBox.setChecked(False)
 
     def updateHasUnevaluated(self, ids: list[str]):

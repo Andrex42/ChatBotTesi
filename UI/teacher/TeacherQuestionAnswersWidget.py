@@ -1,3 +1,4 @@
+import csv
 import os
 import time
 
@@ -32,6 +33,7 @@ class TeacherWorker(QtCore.QObject):
     question_added_event = QtCore.pyqtSignal(Question)
     answer_voted_event = QtCore.pyqtSignal(Answer)
     archived_questions_event = QtCore.pyqtSignal(list)
+    exported_questions_event = QtCore.pyqtSignal(list)
     students_votes_ready_event = QtCore.pyqtSignal(list)
     recalculated_unevaluated_answers_event = QtCore.pyqtSignal(object)
     q_a_ready_event = QtCore.pyqtSignal(object, object)
@@ -217,6 +219,105 @@ class TeacherWorker(QtCore.QObject):
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
+    def exportQuestions(self, questions: list[Question]):
+        start = time.time()
+
+        init_chroma_client()
+
+        q_a_collection = get_chroma_q_a_collection()
+
+        # Determina il numero di esportazioni già effettuate
+        export_count = len([name for name in os.listdir("export_data")
+                            if name.startswith(f"export_domande_{self.authorized_user['username']}_")])
+
+        # Incrementa il numero di esportazioni per ottenere il nome del file
+        export_count += 1
+        file_name = f"export_domande_{self.authorized_user['username']}_{export_count}.csv"
+
+        # Percorso completo per il file CSV di output
+        output_path = os.path.join("export_data", file_name)
+
+        # Apri il file CSV in modalità di scrittura
+        with open(output_path, mode='w', newline='', encoding='utf-8') as file:
+            # Definisci il writer CSV
+            writer = csv.DictWriter(file, fieldnames=['id', 'text', 'label', 'id_docente'])
+
+            # Scrivi l'intestazione del CSV
+            writer.writeheader()
+
+            # Scrivi i dati delle domande nel file CSV
+            for question in questions:
+                writer.writerow({'id': question.id, 'text': question.domanda, 'label': question.categoria,
+                                 'id_docente': question.id_docente})
+
+        print(f"Il file CSV è stato generato con successo: {output_path}")
+
+        print("getting answers for", self.authorized_user['username'])
+
+        USE_TRAIN_RESPONSES_DATA = os.getenv("USE_TRAIN_RESPONSES_DATA")
+
+        if USE_TRAIN_RESPONSES_DATA == "true":
+            query_result = q_a_collection.get(
+                where={"$and": [
+                    {"id_docente": self.authorized_user['username']},
+                    {"$or": [{'id_domanda': q.id} for q in questions]}
+                ]}
+            )
+        else:
+            query_result = q_a_collection.get(
+                where={"$and": [
+                    {"id_docente": self.authorized_user['username']},
+                    {"id_autore": {"$ne": "undefined"}},
+                    {"$or": [{'id_domanda': q.id} for q in questions]}
+                ]}
+            )
+
+        print("[exportQuestions_answersReady]", query_result)
+        data_array = extract_data(query_result)
+        print("data converted", data_array)
+
+        # Determina il numero di esportazioni già effettuate
+        export_count = len([name for name in os.listdir("export_data")
+                            if name.startswith(f"export_risposte_{self.authorized_user['username']}_")])
+
+        # Incrementa il numero di esportazioni per ottenere il nome del file
+        export_count += 1
+        file_name = f"export_risposte_{self.authorized_user['username']}_{export_count}.csv"
+
+        # Percorso completo per il file CSV di output
+        output_path = os.path.join("export_data", file_name)
+
+        # Apri il file CSV in modalità di scrittura
+        with open(output_path, mode='w', newline='', encoding='utf-8') as file:
+            # Definisci il writer CSV
+            writer = csv.DictWriter(file, fieldnames=['id', 'id_domanda', 'title', 'id_docente', 'text', 'id_autore', 'label', 'voto_predetto', 'commento', 'source', 'data_creazione'])
+
+            # Scrivi l'intestazione del CSV
+            writer.writeheader()
+
+            # Scrivi i dati delle domande nel file CSV
+            for answer_dict in data_array:
+                writer.writerow({
+                    'id': answer_dict['id'],
+                    'id_domanda': answer_dict['id_domanda'],
+                    'title': answer_dict['domanda'],
+                    'id_docente': answer_dict['id_docente'],
+                    'text': answer_dict['document'],
+                    'id_autore': answer_dict['id_autore'],
+                    'label': answer_dict['voto_docente'],
+                    'voto_predetto': answer_dict['voto_predetto'],
+                    'commento': answer_dict['commento'],
+                    'source': answer_dict['source'],
+                    'data_creazione': answer_dict['data_creazione'],
+                })
+
+        print(f"Il file CSV è stato generato con successo: {output_path}")
+
+        self.exported_questions_event.emit(questions)
+
+        print(f'Execution time = {time.time() - start} seconds.')
+
+    @QtCore.pyqtSlot()
     def recalc_question_unevaluated_answers_predictions(self, id_domanda: str):
         start = time.time()
 
@@ -301,6 +402,7 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.__leftSideBarWidget.on_add_question_clicked.connect(self.__onAddQuestionClicked)
         self.__leftSideBarWidget.changed.connect(self.__changedQuestion)
         self.__leftSideBarWidget.deleteRowsClicked.connect(self.__onArchiveQuestionsClicked)
+        self.__leftSideBarWidget.exportRowsClicked.connect(self.__onExportQuestionsClicked)
 
         lay = QVBoxLayout()
         lay.addWidget(mainWidget)
@@ -324,6 +426,7 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.db_worker.answer_voted_event.connect(lambda answer: self.on_answer_voted(answer))
         self.db_worker.recalculated_unevaluated_answers_event.connect(lambda votes: self.on_recalculated_unevaluated_answers(votes))
         self.db_worker.archived_questions_event.connect(lambda questions: self.on_archived_questions(questions))
+        self.db_worker.exported_questions_event.connect(lambda questions: self.on_exported_questions(questions))
 
         self.db_thread = QtCore.QThread()
         self.db_thread.start()
@@ -415,6 +518,20 @@ class TeacherQuestionAnswersWidget(QWidget):
         print("[on_archived_questions]", archivedQuestions)
         self.__leftSideBarWidget.removeRows(archivedQuestions)
 
+    @QtCore.pyqtSlot()
+    def on_exported_questions(self, exportedQuestions: list[Question]):
+        print("[on_exported_questions]", exportedQuestions)
+
+        def show_confirm():
+            message = str(len(exportedQuestions)) + ' domande esportate con successo.'
+            closeMessageBox = QMessageBox(self)
+            closeMessageBox.setWindowTitle('Successo')
+            closeMessageBox.setText(message)
+            closeMessageBox.setStandardButtons(QMessageBox.Close)
+            reply = closeMessageBox.exec()
+
+        show_confirm()
+
     def __changedQuestion(self, item: QListWidgetItem):
         if item:
             question: Question = item.data(Qt.UserRole)
@@ -444,3 +561,10 @@ class TeacherQuestionAnswersWidget(QWidget):
         # for id in id_lst:
         #     print("delete question", id)
         showAreYouSureDialog()
+
+    def __onExportQuestionsClicked(self, questions: list[Question]):
+        for q in questions:
+            print("export question", q)
+
+        if self.db_worker is not None:
+            self.db_worker.exportQuestions(questions)
