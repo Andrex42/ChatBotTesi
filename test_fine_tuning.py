@@ -14,7 +14,7 @@ model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
 df_risposte = pd.read_csv('./training_data/risposte_archeologia_storia_arte.csv')
 df_risposte_docente = pd.read_csv('./training_data/risposte_docente_archeologia_storia_arte.csv')
-df_risposte_test = pd.read_csv('./training_data/risposte_test_archeologia_storia_arte.csv')
+df_risposte_test = pd.read_csv('training_data/risposte_test.csv')
 
 risposte_dict = df_risposte.to_dict('records')
 risposte_docente_dict = df_risposte_docente.to_dict('records')

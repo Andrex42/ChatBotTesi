@@ -5,10 +5,7 @@ import os
 import re
 
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
-from gensim.utils import simple_preprocess
-from chromadb import EmbeddingFunction, Documents, Embeddings
 from chromadb.utils import embedding_functions
 nltk.download('punkt')
 
@@ -57,7 +54,7 @@ else:
     print("Il modello non è presente. Eseguire l'addestramento.")
     # Carica il dataset delle risposte
     df = pd.read_csv('./training_data/risposte_archeologia_storia_arte.csv')
-    df_test = pd.read_csv('./training_data/risposte_test_archeologia_storia_arte.csv')
+    df_test = pd.read_csv('training_data/risposte_test.csv')
     # TaggedDocument per ogni riga nel dataset di addestramento
     tagged_train_data = [TaggedDocument(words=row['text'],
                                         tags=[row['title'], row['label']]) for index, row in df.iterrows()]
@@ -73,7 +70,7 @@ client = chromadb.PersistentClient(path="./chroma_doc2vec/data")
 collection = client.get_or_create_collection(name="sentences_collection", embedding_function=sentence_transformer_ef)
 
 df = pd.read_csv('./training_data/risposte_archeologia_storia_arte.csv')
-df_test = pd.read_csv('./training_data/risposte_test_archeologia_storia_arte.csv')
+df_test = pd.read_csv('training_data/risposte_test.csv')
 
 risposte_dict = df.to_dict('records')
 
@@ -194,7 +191,7 @@ print("Accuracy:", accuracy)
 #     model = Doc2Vec.load("doc2vec_arch_model")
 #     print("Il modello è stato caricato dalla memoria.")
 #
-#     df_test = pd.read_csv('./training_data/risposte_test_archeologia_storia_arte.csv')
+#     df_test = pd.read_csv('./training_data/risposte_test.csv')
 #
 #     # TaggedDocument per ogni riga nel dataset di test
 #     tagged_test_data = [TaggedDocument(words=preprocess_text(row['text']),
@@ -209,7 +206,7 @@ print("Accuracy:", accuracy)
 #
 #     # Carica il dataset delle risposte
 #     df = pd.read_csv('./training_data/risposte_archeologia_storia_arte.csv')
-#     df_test = pd.read_csv('./training_data/risposte_test_archeologia_storia_arte.csv')
+#     df_test = pd.read_csv('./training_data/risposte_test.csv')
 #
 #     # TaggedDocument per ogni riga nel dataset di addestramento
 #     tagged_train_data = [TaggedDocument(words=preprocess_text(row['text']),

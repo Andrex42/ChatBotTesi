@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 import pprint
 import pandas as pd
 import logging
-from halo import Halo
 from datetime import datetime
 from colorama import Fore, Style
 from model.answer_model import Answer
@@ -364,45 +363,6 @@ def check_answer_records():
 
     print("check_answer_records", ok)
 
-
-def generate_response_full(data):
-    spinner = Halo(text='Loading...', spinner='dots')  # Creates a loading animation
-    spinner.start()
-
-    risultato = get_risultato_classification_full(data)
-
-    spinner.stop()  # Stops the loading animation after receiving the response
-
-    # Prints the user's mood, its priority level, and the responsible department
-    print(
-        f"\n{Fore.CYAN}Question Received: {Fore.WHITE}{Style.BRIGHT}{data['text']}{Style.RESET_ALL}"
-        #f"\n{Fore.GREEN}Mood Detected: {Fore.YELLOW}{Style.BRIGHT}{risultato}{Style.RESET_ALL}"
-        #f"\n{Fore.GREEN}Priority Level: {Fore.RED if mood_priority[risultato] == 1 else Fore.CYAN}{Style.BRIGHT}{mood_priority[risultato]}{Style.RESET_ALL}"
-        #f"\n{Fore.GREEN}Department to handle your request: {Fore.MAGENTA}{Style.BRIGHT}{ambito}{Style.RESET_ALL}"
-    )
-
-    print(
-        f"{Fore.GREEN}Test Label: {Fore.YELLOW}{Style.BRIGHT}{data['label']}{Style.RESET_ALL}"
-    )
-    print(
-        f"{Fore.GREEN}Final Score: {Fore.YELLOW}{Style.BRIGHT}{risultato}{Style.RESET_ALL}"
-    )
-
-    if abs(risultato - data['label']) <= 1:
-        print(
-            f"{Fore.GREEN}Final Result: {Fore.GREEN}{Style.BRIGHT}[PASSED]{Style.RESET_ALL}"
-        )
-    else:
-        print(
-            f"{Fore.GREEN}Final Result: {Fore.RED}{Style.BRIGHT}[FAILED]{Style.RESET_ALL}"
-        )
-
-
-    print("_________________________________")
-
-    return data['text'], risultato
-
-
 def calcola_voto_finale_ponderato(punteggi, voti):
     if len(punteggi) == 0:
         raise ValueError("I punteggi non possono essere vuoti")
@@ -420,6 +380,8 @@ def calcola_voto_finale_ponderato(punteggi, voti):
 
     # Calcola il peso di ciascun punteggio in base all'inverso
     pesi = [inverso / somma_totale_inversi for inverso in inversi]
+
+    print("Document distances weights:", pesi)
 
     if pesi[0] >= 0.9:
         # Se il primo è almeno il 90% rispetto agli altri, assegna il suo voto
@@ -467,7 +429,7 @@ def adjust_score(distances, score, reduction_start=0.1, reduction_end=0.6):
     if reduction_start < 0 or reduction_start > reduction_end:
         raise ValueError("Valori di riduzione non validi")
 
-    # Se la distanza minima è maggiore di 1.5, il punteggio diventa 0
+    # Se la distanza minima è maggiore di 0.6, il punteggio diventa 0
     if min_distance > reduction_end:
         return 0
 
@@ -488,7 +450,7 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
 
     results = q_a_collection.query(
         query_texts=[sentence_to_compare_text],
-        n_results=20,
+        n_results=10,
         where={"$and": [{"id_domanda": id_domanda},
                         {"voto_docente": {"$gt": -1}}]},  # seleziona solo le risposte valutate dal docente
         include=["documents", "metadatas", "distances"]
@@ -501,7 +463,7 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
     for idx, doc in enumerate(results['documents'][0]):
         it_metadata = results['metadatas'][0][idx]
         it_distance = distances[idx]
-        print(f" - Doc {idx}: ({it_metadata['voto_docente']}) ({it_distance})", doc)
+        print(f" - Doc {idx} ({it_metadata['id_autore']}): Vote: {it_metadata['voto_docente']} | Distance: {it_distance}", doc)
 
     levenshtein_distance = edit_distance(sentence_to_compare_text, results['documents'][0][0])
 
@@ -509,7 +471,8 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
           f"\tCosine Distance: {distances[0]}"
           f"\tLevenshtein Distance: {levenshtein_distance}"
           f"\n\tRef. Result: {Fore.GREEN if results['metadatas'][0][0]['voto_docente'] >= 3 else Fore.RED}{results['metadatas'][0][0]['voto_docente']}{Style.RESET_ALL}"
-          f"\n\tDocument: {results['documents'][0][0]}")
+          f"\n\tDocument: {results['documents'][0][0]}"
+          f"\n\tAuthor: {results['metadatas'][0][0]['id_autore']}")
 
     voti = extract_metadata_from_query_result(results['metadatas'], 'voto_docente')
     voto_ponderato = round(calcola_voto_finale_ponderato(distances, voti), 1)
@@ -520,7 +483,7 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
     )
 
     print(
-        f"{Fore.GREEN}Final score: {Fore.YELLOW}{Style.BRIGHT}{final_score}{Style.RESET_ALL}"
+        f"{Fore.GREEN}Fixed score: {Fore.YELLOW}{Style.BRIGHT}{final_score}{Style.RESET_ALL}"
     )
 
     return final_score
@@ -634,53 +597,6 @@ def add_question_to_collection(authenticated_user, categoria: str, question_text
     return question
 
 
-def get_risultato_classification_full(data):
-
-    q_a_collection = get_chroma_q_a_collection()
-
-    results = q_a_collection.query(
-        query_texts=[data['text']],
-        n_results=20,
-        where={"$and": [{"domanda": data['title']},
-                        {"voto_docente": {"$gt": -1}}]},  # seleziona solo le risposte valutate dal docente
-        include=["documents", "embeddings", "metadatas", "distances"]
-    )
-
-    print(f"{Fore.YELLOW}{Style.BRIGHT}Found {len(results['documents'][0])} similar documents{Style.RESET_ALL}:")
-
-    distances = [round(abs(x), 3) for x in results['distances'][0]]
-
-    for idx, doc in enumerate(results['documents'][0]):
-        it_metadata = results['metadatas'][0][idx]
-        it_distance = distances[idx]
-        print(f" - Doc {idx}: ({it_metadata['voto_docente']}) ({it_distance})", doc)
-
-    # correct_answers_results = example_collection.get(
-    #     where={"$and": [{"domanda": data['title']}, {"risultato": "Corretta"}]}
-    # )
-
-    # for doc, md in zip(results['documents'][0], results['metadatas'][0]):
-    #     mood_examples.append(Example(doc, md['risultato']))
-
-    levenshtein_distance = edit_distance(data['text'], results['documents'][0][0])
-
-    print(f"\n{Fore.CYAN}Best similarity match{Style.RESET_ALL}:\n"
-          f"\tCosine Distance: {distances[0]}"
-          f"\tLevenshtein Distance: {levenshtein_distance}"
-          f"\n\tRef. Result: {Fore.GREEN if results['metadatas'][0][0]['voto_docente'] >= 3 else Fore.RED}{results['metadatas'][0][0]['voto_docente']}{Style.RESET_ALL}"
-          f"\n\tDocument: {results['documents'][0][0]}")
-
-    voti = extract_metadata_from_query_result(results['metadatas'], 'voto_docente')
-    voto_ponderato = round(calcola_voto_finale_ponderato(distances, voti), 1)
-    final_score = adjust_score(distances, voto_ponderato)
-
-    print(
-        f"{Fore.GREEN}Result Detected: {Fore.YELLOW}{Style.BRIGHT}{voto_ponderato}{Style.RESET_ALL}"
-    )
-
-    return final_score
-
-
 def get_collections():
     if chroma_client is None:
         raise Exception("Chroma client not initialized")
@@ -738,25 +654,3 @@ def extract_metadata_from_get_result(data, key):
 
     # Restituisci la lista dei valori di status
     return metadata_values
-
-
-def test_model():
-    df_risposte = pd.read_csv('./training_data/risposte_test_archeologia_storia_arte.csv')
-
-    risposte_dict = df_risposte.to_dict('records')
-
-    correct = 0
-    total = 0
-
-    for id, item in enumerate(risposte_dict):  # per ogni risposta
-        print("Domanda test:", item['title'])
-        print(f"Risposta test:", item['text'])
-
-        response, risultato = generate_response_full(item)
-
-        if abs(risultato - item['label']) <= 1:
-            correct += 1
-
-        total += 1
-
-    print("Accuracy:", correct / total)

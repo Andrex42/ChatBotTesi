@@ -468,7 +468,7 @@ risposte = [
         "Quali erano le funzioni sociali e religiose dell'arte nella società Maya?",
         "docente.archeologia",
         "Nella società Maya, l'arte era puramente decorativa, senza alcuna funzione sociale o religiosa, e veniva usata solo per abbellire gli ambienti abitativi.",
-        1,
+        0,
     ),
     (
         "In che modo le armi e gli strumenti vengono utilizzati per datare i siti archeologici?",
@@ -876,13 +876,13 @@ risposte += [
         "In che modo l'arte e l'architettura riflettono il potere e la religione nell'Impero Bizantino?",
         "docente.archeologia",
         "Nell'Impero Bizantino, l'arte e l'architettura erano strumenti potenti per esprimere il potere e la religione, ma in modo differente rispetto ad altre culture. Le opere riflettevano un'estetica distinta, spesso caratterizzata da un utilizzo deliberato di materiali rustici e un design che poteva apparire disordinato agli occhi di chi osservava dall'esterno. Le chiese, ad esempio, potevano essere costruite con legno che mostrava segni di degrado, mentre le icone dipinte potevano presentare colori vivaci e linee disordinate, intese a rappresentare simbolicamente la complessità e il mistero del potere imperiale.",
-        1,
+        0,
     ),
     (
         "Quali erano le funzioni sociali e religiose dell'arte nella società Maya?",
         "docente.archeologia",
         "Nella società Maya, l'arte serviva principalmente come mezzo di intrattenimento per le classi nobili, che apprezzavano opere d'arte elaborate e riccamente decorate per adornare i loro palazzi e templi. Inoltre, l'arte veniva utilizzata per scopi pratici come la decorazione di vasi cerimoniali e utensili domestici. Dal punto di vista religioso, l'arte maya non giocava alcun ruolo significativo, poiché le divinità maya preferivano evitare le rappresentazioni artistiche e le offerte materiali, concentrandosi invece sulla comunicazione spirituale attraverso la preghiera e i rituali.",
-        1,
+        0.5,
     ),
 ]
 
@@ -1067,5 +1067,5 @@ df_risposte.to_csv(csv_risposte_file_path, index=False)
 csv_risposte_docente_file_path = os.path.join(training_data_folder_path, "risposte_docente_archeologia_storia_arte.csv")
 df_risposte_docente.to_csv(csv_risposte_docente_file_path, index=False)
 
-csv_risposte_test_file_path = os.path.join(training_data_folder_path, "risposte_test_archeologia_storia_arte.csv")
+csv_risposte_test_file_path = os.path.join(training_data_folder_path, "risposte_test.csv")
 df_risposte_test.to_csv(csv_risposte_test_file_path, index=False)
