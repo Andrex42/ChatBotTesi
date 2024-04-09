@@ -1,3 +1,4 @@
+import csv
 import hashlib
 from typing import Optional
 import chromadb
@@ -67,8 +68,6 @@ def init_chroma_client():
 def get_chroma_q_a_collection():
     if chroma_client is None:
         raise Exception("Chroma client not initialized")
-
-    print("getting get_chroma_q_a_collection")
 
     # Gets or creates a ChromaDB collection named 'q_a', using the Cohere embedding function.
     # example_collection = chroma_client.get_or_create_collection(name="q_a", embedding_function=cohere_ef)
@@ -407,15 +406,15 @@ def calcola_voto_finale_ponderato(punteggi, voti):
     pesi_modificati = pesi_modificati / np.sum(pesi_modificati)
 
     print(
-        f"{Fore.LIGHTBLACK_EX}Reduced threshold: {reduced_threshold}"
+        f"\t{Fore.LIGHTBLACK_EX}Reduced threshold: {reduced_threshold}"
     )
 
     print(
-        f"{Fore.LIGHTBLACK_EX}Document distances weights: {pesi}"
+        f"\t{Fore.LIGHTBLACK_EX}Document distances weights: {pesi}"
     )
 
     print(
-        f"{Fore.LIGHTBLACK_EX}Document distances weights modified: {pesi_modificati}"
+        f"\t{Fore.LIGHTBLACK_EX}Document distances weights modified: {pesi_modificati}"
     )
 
     if pesi_modificati[0] >= 0.9:
@@ -476,12 +475,119 @@ def adjust_score(distances, score, reduction_start=0.1, reduction_end=0.6):
     percentage_to_subtract = (min_distance - reduction_start) / (reduction_end - reduction_start)
 
     print(
-        f"{Fore.LIGHTBLACK_EX}Percentage to subtract: {percentage_to_subtract}"
+        f"\t{Fore.LIGHTBLACK_EX}Percentage to subtract: {percentage_to_subtract}"
     )
 
     adjusted_result = score * (1 - percentage_to_subtract)
 
     return round(adjusted_result, 1)
+
+
+def calc_jaccard_distance(embedding1, embedding2):
+    # Calcola la similarità coseno tra gli embeddings dei documenti
+    # cos_sim = np.dot(embedding1, embedding2) / (np.linalg.norm(embedding1) * np.linalg.norm(embedding2))
+    #print("Cosine Similarity:", cos_sim)
+
+    # Calcola la distanza di Jaccard tra le rappresentazioni binarie degli embeddings
+    set1 = set(np.where(embedding1 > 0)[0])
+    set2 = set(np.where(embedding2 > 0)[0])
+    jaccard_distance = 1 - len(set1.intersection(set2)) / len(set1.union(set2))
+
+    return jaccard_distance
+
+
+def predict_vote(id_domanda: str, sentence_to_compare_text, accuracy_output_path='', expected_vote=-1):
+    results = get_similar_sentences(id_domanda, sentence_to_compare_text)
+
+    if accuracy_output_path != '' and not os.path.exists(accuracy_output_path):
+        # Apri il file CSV in modalità di scrittura
+        with open(accuracy_output_path, mode='w', newline='', encoding='utf-8') as file:
+            # Definisci il writer CSV
+            writer = csv.DictWriter(
+                file,
+                fieldnames=['question', 'answer', 'most_similar_answer', 'most_similar_answer_author_id', 'most_similar_answer_vote', 'cosine_distance', 'jaccard_distance', 'combined_distance', 'expected_vote', 'predicted_vote', 'result']
+            )
+
+            # Scrivi l'intestazione del CSV
+            writer.writeheader()
+
+    distances = [round(abs(x), 3) for x in results['distances'][0]]
+
+    sentence_to_compare_embeddings = SentencesEmbeddingFunction().__call__([sentence_to_compare_text])
+    embedding1 = np.array(sentence_to_compare_embeddings[0])
+
+    similar_dict_list = []
+
+    for idx, doc in enumerate(results['documents'][0]):
+        it_metadata = results['metadatas'][0][idx]
+        it_distance = distances[idx]
+
+        embedding2 = np.array(results['embeddings'][0][idx])
+        jaccard_distance = calc_jaccard_distance(embedding1, embedding2)
+        cos_similarity = 1 - distances[idx]
+
+        # Combinazione delle metriche: media pesata della similarità coseno e della distanza di Jaccard
+        combined_sim = (cos_similarity + (1 - jaccard_distance)) / 2
+        combined_distance = 1 - combined_sim
+
+        similar_dict_list.append({
+            "document": doc,
+            "metadata": it_metadata,
+            "cosine_distance": it_distance,
+            "jaccard_distance": jaccard_distance,
+            "combined_distance": combined_distance
+        })
+
+        print(
+            f"\t - Doc {idx}: ({it_metadata['id_autore']}) Cosine Distance: {it_distance} | Jaccard Distance: {jaccard_distance} | Combined Distance: {combined_distance} | Vote: {it_metadata['voto_docente']}",
+            "'" + doc + "'")
+
+    # Sort by increasing combined distance
+    similar_dict_list = sorted(similar_dict_list, key=lambda x: x['combined_distance'])
+
+    best_similar = similar_dict_list[0]
+    levenshtein_distance = edit_distance(sentence_to_compare_text, best_similar['document'])
+
+    print(f"\n\t{Fore.CYAN}Best similarity match{Style.RESET_ALL}:\n"
+          f"\t\tCosine Distance: {best_similar['cosine_distance']}"
+          f"\t\tJaccard Distance: {best_similar['jaccard_distance']}"
+          f"\t\tLevenshtein Distance: {levenshtein_distance}"
+          f"\n\t\tRef. Result: {Fore.GREEN if best_similar['metadata']['voto_docente'] >= 3 else Fore.RED}{best_similar['metadata']['voto_docente']}{Style.RESET_ALL}"
+          f"\n\t\tDocument: {best_similar['document']}"
+          f"\n\t\tAuthor: {best_similar['metadata']['id_autore']}\n")
+
+    voti = [x['metadata']['voto_docente'] for x in similar_dict_list]
+    combined_distances = [x['combined_distance'] for x in similar_dict_list]
+
+    voto_ponderato = round(calcola_voto_finale_ponderato(combined_distances, voti), 1)
+
+    print(
+        f"\t{Fore.LIGHTBLACK_EX}Weighted avg: {Fore.YELLOW}{Style.BRIGHT}{voto_ponderato}{Style.RESET_ALL}"
+    )
+
+    final_score = adjust_score(combined_distances, voto_ponderato)
+
+    print("")
+
+    if accuracy_output_path != '':
+        with open(accuracy_output_path, mode='a', newline='', encoding='utf-8') as file:  # Apri il file in modalità di aggiunta (append)
+            writer = csv.writer(file)
+
+            writer.writerow([
+                best_similar['metadata']['domanda'],
+                sentence_to_compare_text,
+                best_similar['document'],
+                best_similar['metadata']['id_autore'],
+                best_similar['metadata']['voto_docente'],
+                best_similar['cosine_distance'],
+                best_similar['jaccard_distance'],
+                best_similar['combined_distance'],
+                expected_vote,
+                final_score,
+                "PASSED" if abs(final_score - expected_vote) <= 1 else "FAILED"
+            ])
+
+    return final_score
 
 
 def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
@@ -492,45 +598,17 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
         n_results=10,
         where={"$and": [{"id_domanda": id_domanda},
                         {"voto_docente": {"$gt": -1}}]},  # seleziona solo le risposte valutate dal docente
-        include=["documents", "metadatas", "distances"]
+        include=["documents", "metadatas", "embeddings", "distances"]
     )
 
-    print(f"{Fore.YELLOW}{Style.BRIGHT}Found {len(results['documents'][0])} similar documents{Style.RESET_ALL}:")
+    print(f"\t{Fore.YELLOW}{Style.BRIGHT}Found {len(results['documents'][0])} similar documents{Style.RESET_ALL}:")
 
-    distances = [round(abs(x), 3) for x in results['distances'][0]]
-
-    for idx, doc in enumerate(results['documents'][0]):
-        it_metadata = results['metadatas'][0][idx]
-        it_distance = distances[idx]
-        print(f" - Doc {idx}: ({it_metadata['id_autore']}) | Distance: {it_distance} | Vote: {it_metadata['voto_docente']}", "'" + doc + "'")
-
-    levenshtein_distance = edit_distance(sentence_to_compare_text, results['documents'][0][0])
-
-    print(f"\n{Fore.CYAN}Best similarity match{Style.RESET_ALL}:\n"
-          f"\tCosine Distance: {distances[0]}"
-          f"\tLevenshtein Distance: {levenshtein_distance}"
-          f"\n\tRef. Result: {Fore.GREEN if results['metadatas'][0][0]['voto_docente'] >= 3 else Fore.RED}{results['metadatas'][0][0]['voto_docente']}{Style.RESET_ALL}"
-          f"\n\tDocument: {results['documents'][0][0]}"
-          f"\n\tAuthor: {results['metadatas'][0][0]['id_autore']}")
-
-    voti = extract_metadata_from_query_result(results['metadatas'], 'voto_docente')
-    voto_ponderato = round(calcola_voto_finale_ponderato(distances, voti), 1)
-    final_score = adjust_score(distances, voto_ponderato)
-
-    print(
-        f"{Fore.LIGHTBLACK_EX}Weighted avg: {Fore.YELLOW}{Style.BRIGHT}{voto_ponderato}{Style.RESET_ALL}"
-    )
-
-    print(
-        f"{Fore.LIGHTBLACK_EX}Fixed score: {Fore.YELLOW}{Style.BRIGHT}{final_score}{Style.RESET_ALL}"
-    )
-
-    return final_score
+    return results
 
 
 def add_answer_to_collection(authenticated_user, question: Question, answer_text: str,
                              error_callback=None, fake_add=False):
-    voto_ponderato = get_similar_sentences(question.id, answer_text)
+    predicted_vote = get_similar_sentences(question.id, answer_text)
 
     # Ottieni la data e l'ora correnti
     now = datetime.now()
@@ -550,7 +628,7 @@ def add_answer_to_collection(authenticated_user, question: Question, answer_text
                             "id_docente": question.id_docente,
                             "id_autore": authenticated_user['username'],
                             "voto_docente": -1,
-                            "voto_predetto": voto_ponderato,
+                            "voto_predetto": predicted_vote,
                             "commento": "undefined",
                             "source": "application",
                             "data_creazione": iso_format}],
@@ -570,7 +648,7 @@ def add_answer_to_collection(authenticated_user, question: Question, answer_text
         answer_text,
         authenticated_user['username'],
         -1,
-        voto_ponderato,
+        predicted_vote,
         "undefined",
         "application",
         iso_format,

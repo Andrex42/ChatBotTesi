@@ -12,7 +12,7 @@ from UI.teacher.TeacherStatsDialog import StatsDialog
 from UI.teacher.TeacherQuestionDetailsWidget import QuestionDetailsWidget
 
 from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, extract_data, \
-    add_question_to_collection, get_similar_sentences, get_chroma_questions_collection
+    add_question_to_collection, predict_vote, get_chroma_questions_collection
 from model.answer_model import Answer
 from model.question_model import Question
 
@@ -357,9 +357,9 @@ class TeacherWorker(QtCore.QObject):
 
             for unevaluated_answers_array_index in range(len(unevaluated_answers_result['ids'])):
                 curr_document = unevaluated_answers_result['documents'][unevaluated_answers_array_index]
-                voto_ponderato = get_similar_sentences(id_domanda,
-                                                       curr_document)
-                voti_aggiornati.append(voto_ponderato)
+                predicted_vote = predict_vote(id_domanda,
+                                              curr_document)
+                voti_aggiornati.append(predicted_vote)
 
             print("[recalc_question_unevaluated_answers_predictions]", "voti aggiornati", voti_aggiornati)
 
