@@ -2,6 +2,8 @@ import hashlib
 from typing import Optional
 import chromadb
 import os
+
+import numpy as np
 import torch
 from chromadb import EmbeddingFunction, Documents, Embeddings
 from dotenv import load_dotenv
@@ -381,14 +383,47 @@ def calcola_voto_finale_ponderato(punteggi, voti):
     # Calcola il peso di ciascun punteggio in base all'inverso
     pesi = [inverso / somma_totale_inversi for inverso in inversi]
 
-    print("Document distances weights:", pesi)
+    distanze = np.array(punteggi)
+    initial_threshold = 0.1
 
-    if pesi[0] >= 0.9:
+    # Calcolo del numero di distanze
+    num_distanze = len(distanze)
+
+    # Soglia iniziale per i valori più bassi di num_distanze
+    reduced_threshold = initial_threshold
+    num_distanze_minime = 2
+
+    # Fattore di riduzione esponenziale
+    fattore_riduzione = 0.1  # Puoi regolare questo valore in base alla velocità di riduzione desiderata
+
+    # Calcolo della soglia ridotta in modo esponenziale solo per i valori più alti di num_distanze
+    if num_distanze > num_distanze_minime:
+        reduced_threshold = initial_threshold * np.exp(-fattore_riduzione * (num_distanze - num_distanze_minime))
+
+    # Calcolo dei pesi modificati utilizzando una funzione di esponenziazione
+    pesi_modificati = np.exp(-distanze / reduced_threshold)
+
+    # Normalizzazione dei pesi in modo che la somma sia uguale a 1
+    pesi_modificati = pesi_modificati / np.sum(pesi_modificati)
+
+    print(
+        f"{Fore.LIGHTBLACK_EX}Reduced threshold: {reduced_threshold}"
+    )
+
+    print(
+        f"{Fore.LIGHTBLACK_EX}Document distances weights: {pesi}"
+    )
+
+    print(
+        f"{Fore.LIGHTBLACK_EX}Document distances weights modified: {pesi_modificati}"
+    )
+
+    if pesi_modificati[0] >= 0.9:
         # Se il primo è almeno il 90% rispetto agli altri, assegna il suo voto
         voto_finale_ponderato = voti[0]
     else:
         # Calcola il voto finale ponderato come la somma dei prodotti dei voti per i loro pesi corrispondenti
-        voto_finale_ponderato = sum(voto * peso for voto, peso in zip(voti, pesi))
+        voto_finale_ponderato = sum(voto * peso for voto, peso in zip(voti, pesi_modificati))
 
     return voto_finale_ponderato
 
@@ -439,7 +474,11 @@ def adjust_score(distances, score, reduction_start=0.1, reduction_end=0.6):
 
     # Calcola la percentuale da sottrarre basata sulla distanza
     percentage_to_subtract = (min_distance - reduction_start) / (reduction_end - reduction_start)
-    print("percentage_to_subtract:", percentage_to_subtract)
+
+    print(
+        f"{Fore.LIGHTBLACK_EX}Percentage to subtract: {percentage_to_subtract}"
+    )
+
     adjusted_result = score * (1 - percentage_to_subtract)
 
     return round(adjusted_result, 1)
@@ -463,7 +502,7 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
     for idx, doc in enumerate(results['documents'][0]):
         it_metadata = results['metadatas'][0][idx]
         it_distance = distances[idx]
-        print(f" - Doc {idx} ({it_metadata['id_autore']}): Vote: {it_metadata['voto_docente']} | Distance: {it_distance}", doc)
+        print(f" - Doc {idx}: ({it_metadata['id_autore']}) | Distance: {it_distance} | Vote: {it_metadata['voto_docente']}", "'" + doc + "'")
 
     levenshtein_distance = edit_distance(sentence_to_compare_text, results['documents'][0][0])
 
@@ -479,11 +518,11 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
     final_score = adjust_score(distances, voto_ponderato)
 
     print(
-        f"{Fore.GREEN}Result Detected: {Fore.YELLOW}{Style.BRIGHT}{voto_ponderato}{Style.RESET_ALL}"
+        f"{Fore.LIGHTBLACK_EX}Weighted avg: {Fore.YELLOW}{Style.BRIGHT}{voto_ponderato}{Style.RESET_ALL}"
     )
 
     print(
-        f"{Fore.GREEN}Fixed score: {Fore.YELLOW}{Style.BRIGHT}{final_score}{Style.RESET_ALL}"
+        f"{Fore.LIGHTBLACK_EX}Fixed score: {Fore.YELLOW}{Style.BRIGHT}{final_score}{Style.RESET_ALL}"
     )
 
     return final_score

@@ -76,7 +76,6 @@ class StatsDialog(QDialog):
 
         self.setLayout(lay)
 
-
     def create_chart(self):
         self.chart_container = QWidget()                                          # +++
         lay = QVBoxLayout(self.chart_container)                                   # +++
