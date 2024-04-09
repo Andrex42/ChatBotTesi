@@ -608,7 +608,7 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
 
 def add_answer_to_collection(authenticated_user, question: Question, answer_text: str,
                              error_callback=None, fake_add=False):
-    predicted_vote = get_similar_sentences(question.id, answer_text)
+    predicted_vote = predict_vote(question.id, answer_text)
 
     # Ottieni la data e l'ora correnti
     now = datetime.now()
