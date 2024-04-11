@@ -9,6 +9,7 @@ logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=lo
 
 pp = pprint.PrettyPrinter(indent=4)  # PrettyPrinter makes dictionary output easier to read
 
+export_folder = "export_accuracy_test"
 df_risposte = pd.read_csv('training_data/risposte_test.csv')
 
 risposte_dict = df_risposte.to_dict('records')
@@ -19,13 +20,8 @@ error_tolerance = 1
 
 init_chroma_client()
 
-export_count = len([name for name in os.listdir("export_accuracy_test")
-                        if name.endswith(".csv")])
-export_count += 1
-file_name = f"export_accuracy_test_{export_count}.csv"
-
-# Percorso completo per il file CSV di output
-output_path = os.path.join("export_accuracy_test", file_name)
+exported_count = len([name for name in os.listdir(export_folder) if name.endswith(".csv")])
+exported_count += 1
 
 for idx, item in enumerate(risposte_dict):  # per ogni risposta
     id_domanda = item['id_domanda']
@@ -36,7 +32,7 @@ for idx, item in enumerate(risposte_dict):  # per ogni risposta
     print("Risposta test:", item['text'])
     print("")
 
-    voto_predetto = predict_vote(id_domanda, item['text'], output_path, voto_giudice)
+    voto_predetto = predict_vote(id_domanda, item['text'], export_folder, exported_count, voto_giudice)
 
     print(
         f"\t{Fore.GREEN}Test Label: {Fore.YELLOW}{Style.BRIGHT}{voto_giudice}{Style.RESET_ALL}"

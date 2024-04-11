@@ -496,20 +496,43 @@ def calc_jaccard_distance(embedding1, embedding2):
     return jaccard_distance
 
 
-def predict_vote(id_domanda: str, sentence_to_compare_text, accuracy_output_path='', expected_vote=-1):
+def predict_vote(id_domanda: str, sentence_to_compare_text, export_folder='', exported_count=0, expected_vote=-1):
     results = get_similar_sentences(id_domanda, sentence_to_compare_text)
 
-    if accuracy_output_path != '' and not os.path.exists(accuracy_output_path):
-        # Apri il file CSV in modalità di scrittura
-        with open(accuracy_output_path, mode='w', newline='', encoding='utf-8') as file:
-            # Definisci il writer CSV
-            writer = csv.DictWriter(
-                file,
-                fieldnames=['question', 'answer', 'most_similar_answer', 'most_similar_answer_author_id', 'most_similar_answer_vote', 'cosine_distance', 'jaccard_distance', 'combined_distance', 'expected_vote', 'predicted_vote', 'result']
-            )
+    accuracy_output_path = ''
+    distances_output_path = ''
 
-            # Scrivi l'intestazione del CSV
-            writer.writeheader()
+    if export_folder != '':
+        accuracy_file_name = f"export_accuracy_test_{exported_count}.csv"
+        distances_file_name = f"export_distances_test_{exported_count}.csv"
+
+        # Percorso completo per il file CSV di output
+        accuracy_output_path = os.path.join(export_folder, accuracy_file_name)
+        distances_output_path = os.path.join(export_folder, distances_file_name)
+
+        if not os.path.exists(accuracy_output_path):
+            # Apri il file CSV in modalità di scrittura
+            with open(accuracy_output_path, mode='w', newline='', encoding='utf-8') as file:
+                # Definisci il writer CSV
+                writer = csv.DictWriter(
+                    file,
+                    fieldnames=['question', 'answer', 'most_similar_answer', 'most_similar_answer_author_id', 'cosine_distance', 'jaccard_distance', 'combined_distance', 'most_similar_answer_vote', 'expected_vote', 'predicted_vote', 'result']
+                )
+
+                # Scrivi l'intestazione del CSV
+                writer.writeheader()
+
+        if not os.path.exists(distances_output_path):
+            # Apri il file CSV in modalità di scrittura
+            with open(distances_output_path, mode='w', newline='', encoding='utf-8') as file:
+                # Definisci il writer CSV
+                writer = csv.DictWriter(
+                    file,
+                    fieldnames=['question', 'answer', 'similar_answer', 'similar_answer_author_id', 'cosine_distance', 'jaccard_distance', 'combined_distance', 'similar_answer_vote', 'expected_vote']
+                )
+
+                # Scrivi l'intestazione del CSV
+                writer.writeheader()
 
     distances = [round(abs(x), 3) for x in results['distances'][0]]
 
@@ -541,6 +564,23 @@ def predict_vote(id_domanda: str, sentence_to_compare_text, accuracy_output_path
         print(
             f"\t - Doc {idx}: ({it_metadata['id_autore']}) Cosine Distance: {it_distance} | Jaccard Distance: {jaccard_distance} | Combined Distance: {combined_distance} | Vote: {it_metadata['voto_docente']}",
             "'" + doc + "'")
+
+        if distances_output_path != '':
+            with open(distances_output_path, mode='a', newline='',
+                      encoding='utf-8') as file:  # Apri il file in modalità di aggiunta (append)
+                writer = csv.writer(file)
+
+                writer.writerow([
+                    it_metadata['domanda'],
+                    sentence_to_compare_text,
+                    doc,
+                    it_metadata['id_autore'],
+                    it_distance,
+                    jaccard_distance,
+                    combined_distance,
+                    it_metadata['voto_docente'],
+                    expected_vote
+                ])
 
     # Sort by increasing combined distance
     similar_dict_list = sorted(similar_dict_list, key=lambda x: x['combined_distance'])
@@ -578,10 +618,10 @@ def predict_vote(id_domanda: str, sentence_to_compare_text, accuracy_output_path
                 sentence_to_compare_text,
                 best_similar['document'],
                 best_similar['metadata']['id_autore'],
-                best_similar['metadata']['voto_docente'],
                 best_similar['cosine_distance'],
                 best_similar['jaccard_distance'],
                 best_similar['combined_distance'],
+                best_similar['metadata']['voto_docente'],
                 expected_vote,
                 final_score,
                 "PASSED" if abs(final_score - expected_vote) <= 1 else "FAILED"
