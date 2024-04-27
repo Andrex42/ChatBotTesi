@@ -1,3 +1,4 @@
+from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QMessageBox, QPushButton, QHBoxLayout, QFrame
 
@@ -6,12 +7,24 @@ from model.answer_model import Answer
 from model.question_model import Question
 
 
+class RunnableTask(QtCore.QRunnable):
+    def __init__(self, task, *args, **kwargs):
+        super().__init__()
+        self.task = task
+        self.args = args
+        self.kwargs = kwargs
+
+    def run(self):
+        self.task(*self.args, **self.kwargs)
+
+
 class QuestionDetailsWidget(QWidget):
 
-    def __init__(self, authorized_user, db_worker):
+    def __init__(self, authorized_user, threadpool, db_worker):
         super().__init__()
 
         self.authorized_user = authorized_user
+        self.threadpool = threadpool
         self.db_worker = db_worker
         self.id_domanda = None
 
@@ -43,8 +56,9 @@ class QuestionDetailsWidget(QWidget):
         self.answer_label.setWordWrap(True)
 
         self.btnRecalc = QPushButton("Ricalcola")
-        self.btnRecalc.clicked.connect(lambda:
-                                       self.db_worker.recalc_question_unevaluated_answers_predictions(self.id_domanda))
+
+        task = RunnableTask(self.db_worker.recalc_question_unevaluated_answers_predictions, self.id_domanda)
+        self.btnRecalc.clicked.connect(lambda: self.threadpool.start(task))
 
         lbl = QLabel("DOMANDA")
         lbl.setStyleSheet('''
@@ -146,12 +160,12 @@ class QuestionDetailsWidget(QWidget):
                 self.answer_label.setText(answer.risposta)
             elif answer.voto_docente == -1:
                 studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
-                    self.db_worker, self.authorized_user, answer, False)
+                    self.threadpool, self.db_worker, self.authorized_user, answer, False)
                 self.students_answers_not_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
                 not_evaluated_answers_count += 1
             else:
                 studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
-                    self.db_worker, self.authorized_user, answer, True)
+                    self.threadpool, self.db_worker, self.authorized_user, answer, True)
                 self.students_answers_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
                 evaluated_answers_count += 1
 
@@ -213,7 +227,7 @@ class QuestionDetailsWidget(QWidget):
                 break
 
         studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
-            self.db_worker, self.authorized_user, answer, True)
+            self.threadpool, self.db_worker, self.authorized_user, answer, True)
         self.students_answers_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
 
     def cleanup(self):

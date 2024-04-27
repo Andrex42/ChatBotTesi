@@ -1,11 +1,13 @@
 import csv
 import hashlib
+import time
 from typing import Optional
 import chromadb
 import os
 
 import numpy as np
 import torch
+from PyQt5.QtCore import QThread
 from chromadb import EmbeddingFunction, Documents, Embeddings
 from dotenv import load_dotenv
 import pprint
@@ -373,15 +375,6 @@ def calcola_voto_finale_ponderato(punteggi, voti):
         # Se invece è presente solo una risposta, restituisci il suo voto
         return voti[0]
 
-    # Calcola l'inverso di ciascun punteggio
-    inversi = [1 / punteggio for punteggio in punteggi]
-
-    # Calcola la somma totale degli inversi
-    somma_totale_inversi = sum(inversi)
-
-    # Calcola il peso di ciascun punteggio in base all'inverso
-    pesi = [inverso / somma_totale_inversi for inverso in inversi]
-
     distanze = np.array(punteggi)
     initial_threshold = 0.1
 
@@ -407,10 +400,6 @@ def calcola_voto_finale_ponderato(punteggi, voti):
 
     print(
         f"\t{Fore.LIGHTBLACK_EX}Reduced threshold: {reduced_threshold}"
-    )
-
-    print(
-        f"\t{Fore.LIGHTBLACK_EX}Document distances weights: {pesi}"
     )
 
     print(
@@ -658,6 +647,10 @@ def add_answer_to_collection(authenticated_user, question: Question, answer_text
     id_risposta = generate_sha256_hash_from_text(f"{question.id}_{authenticated_user['username']}")
 
     if not fake_add:
+        print(
+            f"WARNING: {Fore.YELLOW}{Style.BRIGHT}FAKE ADD {fake_add}{Style.RESET_ALL}"
+        )
+
         q_a_collection = get_chroma_q_a_collection()
 
         try:
@@ -679,6 +672,8 @@ def add_answer_to_collection(authenticated_user, question: Question, answer_text
                 error_callback("Errore durante l'inserimento della risposta.")
 
             return None
+    else:
+        time.sleep(3)
 
     answer = Answer(
         id_risposta,
@@ -698,9 +693,7 @@ def add_answer_to_collection(authenticated_user, question: Question, answer_text
 
 
 def add_question_to_collection(authenticated_user, categoria: str, question_text: str,
-                               ref_answer_text: str, error_callback=None) -> Optional[Question]:
-    questions_collection = get_chroma_questions_collection()
-    q_a_collection = get_chroma_q_a_collection()
+                               ref_answer_text: str, error_callback=None, fake_add=False) -> Optional[Question]:
 
     # Ottieni la data e l'ora correnti
     now = datetime.now()
@@ -710,36 +703,46 @@ def add_question_to_collection(authenticated_user, categoria: str, question_text
     id_domanda = generate_sha256_hash_from_text(f"{authenticated_user['username']}_q_{iso_format}")
     id_risposta = generate_sha256_hash_from_text(f"{authenticated_user['username']}_a_{iso_format}")
 
-    try:
-        questions_collection.add(
-            documents=[question_text],  # aggiunge la domanda ai documenti
-            metadatas=[{"id_domanda": id_domanda,
-                        "id_docente": authenticated_user['username'],
-                        "categoria": categoria,
-                        "source": "application",
-                        "archived": False,
-                        "data_creazione": iso_format}],
-            ids=[id_domanda]
+    if not fake_add:
+        print(
+            f"\t{Fore.YELLOW}{Style.BRIGHT}FAKE ADD {fake_add}{Style.RESET_ALL}"
         )
 
-        q_a_collection.add(
-            documents=[ref_answer_text],  # aggiunge la risposta ai documenti
-            metadatas=[{"id_domanda": id_domanda,
-                        "domanda": question_text,
-                        "id_docente": authenticated_user['username'],
-                        "id_autore": authenticated_user['username'],
-                        "voto_docente": 5,
-                        "voto_predetto": -1,
-                        "commento": "undefined",
-                        "source": "application",
-                        "data_creazione": iso_format}],
-            ids=[id_risposta]
-        )
-    except ValueError:
-        if error_callback is not None:
-            error_callback("Errore durante l'inserimento della domanda.")
+        questions_collection = get_chroma_questions_collection()
+        q_a_collection = get_chroma_q_a_collection()
 
-        return None
+        try:
+            questions_collection.add(
+                documents=[question_text],  # aggiunge la domanda ai documenti
+                metadatas=[{"id_domanda": id_domanda,
+                            "id_docente": authenticated_user['username'],
+                            "categoria": categoria,
+                            "source": "application",
+                            "archived": False,
+                            "data_creazione": iso_format}],
+                ids=[id_domanda]
+            )
+
+            q_a_collection.add(
+                documents=[ref_answer_text],  # aggiunge la risposta ai documenti
+                metadatas=[{"id_domanda": id_domanda,
+                            "domanda": question_text,
+                            "id_docente": authenticated_user['username'],
+                            "id_autore": authenticated_user['username'],
+                            "voto_docente": 5,
+                            "voto_predetto": -1,
+                            "commento": "undefined",
+                            "source": "application",
+                            "data_creazione": iso_format}],
+                ids=[id_risposta]
+            )
+        except ValueError:
+            if error_callback is not None:
+                error_callback("Errore durante l'inserimento della domanda.")
+
+            return None
+    else:
+        time.sleep(3)
 
     question = Question(
         id_domanda,

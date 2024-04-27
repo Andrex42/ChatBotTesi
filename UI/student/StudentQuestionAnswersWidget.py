@@ -1,8 +1,9 @@
+import os
 import time
 
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem, QMessageBox
+from PyQt5.QtCore import Qt, QThreadPool
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem, QMessageBox, QMainWindow, QProgressDialog
 
 from UI.AnswerToQuestionWidget import AnswerToQuestionWidget
 from UI.student.StudentAnswerDetailsWidget import AnswerDetailsWidget
@@ -15,18 +16,28 @@ from model.question_model import Question
 from users import RELATIONS
 
 
+class RunnableTask(QtCore.QRunnable):
+    def __init__(self, task, *args, **kwargs):
+        super().__init__()
+        self.task = task
+        self.args = args
+        self.kwargs = kwargs
+
+    def run(self):
+        self.task(*self.args, **self.kwargs)
+
+
 class StudentWorker(QtCore.QObject):
     """
     Worker thread that handles the major program load. Allowing the gui to still be responsive.
     """
+    finished = QtCore.pyqtSignal()
+
     def __init__(self, authorized_user, config, on_error):
         super(StudentWorker, self).__init__()
         self.authorized_user = authorized_user
         self.config = config
         self.on_error = on_error
-
-    #QT signals - specify the method that the worker will be executing
-    call_add_question = QtCore.pyqtSignal()
 
     unanswered_questions_ready_event = QtCore.pyqtSignal(object)
     answered_questions_ready_event = QtCore.pyqtSignal(object)
@@ -127,7 +138,10 @@ class StudentWorker(QtCore.QObject):
 
         print("adding answer", answer_text)
 
-        answer = add_answer_to_collection(self.authorized_user, question, answer_text, error_callback=self.on_error)
+        answer = add_answer_to_collection(self.authorized_user,
+                                          question, answer_text,
+                                          error_callback=self.on_error,
+                                          fake_add=os.getenv("FAKE_ADD").lower() == "true")
 
         if answer is not None:
             print("[add_answer]", "answer added", answer)
@@ -137,20 +151,26 @@ class StudentWorker(QtCore.QObject):
 
 
 class StudentQuestionAnswersWidget(QWidget):
-    def __init__(self, authorized_user, onCreatedThread):
+    def __init__(self, parent: QMainWindow, authorized_user, onCreatedThread):
         super().__init__()
 
         self.authorized_user = authorized_user
         self.onCreatedWorker = onCreatedThread
 
         self.__initWorker()
-        self.__initUi()
+        self.__initUi(parent)
         self.__initQuestions()
 
-    def __initUi(self):
+    def __initUi(self, parent: QMainWindow):
         self.__leftSideBarWidget = StudentLeftSideBar(self.authorized_user)
         self.__answerToQuestionWidget = AnswerToQuestionWidget(self.authorized_user)
         self.__answerDetailsWidget = AnswerDetailsWidget(self.authorized_user)
+
+        self.loading_dialog = QProgressDialog(self)
+        self.loading_dialog.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        self.loading_dialog.setRange(0, 0)
+        self.loading_dialog.setCancelButton(None)
+        self.hide_loading_dialog()
 
         lay = QVBoxLayout()
         lay.addWidget(self.__answerToQuestionWidget)
@@ -192,6 +212,8 @@ class StudentQuestionAnswersWidget(QWidget):
         self.setLayout(lay)
 
     def show_error_dialog(self, error_text):
+        self.hide_loading_dialog()
+
         message = error_text
         closeMessageBox = QMessageBox(self)
         closeMessageBox.setWindowTitle('Errore')
@@ -206,18 +228,17 @@ class StudentQuestionAnswersWidget(QWidget):
             self.config,
             lambda error_text: self.show_error_dialog(error_text))
 
+        self.db_worker.finished.connect(self.on_finished_thread)
+
         self.db_worker.unanswered_questions_ready_event.connect(lambda data: self.on_unanswered_questions_ready(data))
         self.db_worker.answered_questions_ready_event.connect(lambda data: self.on_answered_questions_ready(data))
         self.db_worker.answer_added_event.connect(lambda question, answer: self.on_answer_added(question, answer))
         self.db_worker.answer_details_ready_event.connect(lambda question, answer: self.on_answer_details_ready(question, answer))
 
-        self.db_thread = QtCore.QThread()
-        self.db_thread.start()
+        self.threadpool = QThreadPool()
+        self.threadpool.setMaxThreadCount(1)
 
-        self.db_thread.finished.connect(self.on_finished_thread)
         self.onCreatedWorker(self.db_worker)
-
-        self.db_worker.moveToThread(self.db_thread)
 
     def on_finished_thread(self):
         self.db_worker.deleteLater()
@@ -225,7 +246,8 @@ class StudentQuestionAnswersWidget(QWidget):
 
     def __initQuestions(self):
         if self.db_worker is not None:
-            self.db_worker.get_student_answers()
+            task = RunnableTask(self.db_worker.get_student_answers)
+            self.threadpool.start(task)
 
     @QtCore.pyqtSlot()
     def on_unanswered_questions_ready(self, data):
@@ -276,6 +298,7 @@ class StudentQuestionAnswersWidget(QWidget):
     @QtCore.pyqtSlot()
     def on_answer_added(self, question: Question, answer: Answer):
         print("[on_answer_added]", answer)
+        self.hide_loading_dialog()
 
         def show_confirm():
             message = 'Risposta inviata correttamente. Puoi verificare lo stato della valutazione nella sezione "Già risposte"'
@@ -307,11 +330,20 @@ class StudentQuestionAnswersWidget(QWidget):
         else:
             print("reset")
 
+    def show_loading_dialog(self):
+        self.loading_dialog.exec()
+
+    def hide_loading_dialog(self):
+        self.loading_dialog.cancel()
+
     def __onSendAnswerClicked(self, question: Question, answer_text: str):
         print("Domanda", question)
         print("Risposta", answer_text)
         if self.db_worker is not None:
-            self.db_worker.add_answer(question, answer_text)
+            task = RunnableTask(self.db_worker.add_answer, question, answer_text)
+            self.threadpool.start(task)
+
+            self.show_loading_dialog()
 
     def __answeredQuestionSelectionChanged(self, item: QListWidgetItem):
         if item:
@@ -346,4 +378,5 @@ class StudentQuestionAnswersWidget(QWidget):
 
     def __getAnswerDetails(self, question: Question):
         if self.db_worker is not None:
-            self.db_worker.get_student_answer(question)
+            task = RunnableTask(self.db_worker.get_student_answer, question)
+            self.threadpool.start(task)

@@ -16,7 +16,7 @@ class StudentWindow(QStackedWidget):
 
         self.main_window.setWindowTitle("Area Studente")
 
-        self.__studentQuestionAnswersWidget = StudentQuestionAnswersWidget(authorized_user, self.__onCreatedThread)
+        self.__studentQuestionAnswersWidget = StudentQuestionAnswersWidget(parent, authorized_user, self.__onCreatedThread)
         self.addWidget(self.__studentQuestionAnswersWidget)
 
         self.__setActions()
@@ -64,11 +64,11 @@ class StudentWindow(QStackedWidget):
         self.main_window.addToolBar(self.studentToolBar)
 
     def logout(self):
-        for worker in self.activeWorkers:
-            thread = worker.thread()
-            if thread is not None:
-                thread.quit()
-                thread.deleteLater()
+        # for worker in self.activeWorkers:
+        #     thread = worker.thread()
+        #     if thread is not None:
+        #         thread.quit()
+        #         thread.deleteLater()
 
         self.activeWorkers = []
 

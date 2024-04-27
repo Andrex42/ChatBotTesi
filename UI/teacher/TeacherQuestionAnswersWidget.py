@@ -3,33 +3,45 @@ import os
 import time
 
 from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem, QMessageBox
+from PyQt5.QtCore import Qt, QThreadPool
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem, QMessageBox, QMainWindow, QProgressDialog
+from colorama import Fore, Style
 
 from UI.LeftSidebar import LeftSideBar
 from UI.teacher.TeacherAddQuestionDialog import AddQuestionDialog
+from UI.teacher.TeacherArchivedDialog import ArchivedDialog
 from UI.teacher.TeacherStatsDialog import StatsDialog
 from UI.teacher.TeacherQuestionDetailsWidget import QuestionDetailsWidget
-
 from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, extract_data, \
     add_question_to_collection, predict_vote, get_chroma_questions_collection
 from model.answer_model import Answer
 from model.question_model import Question
 
 
+class RunnableTask(QtCore.QRunnable):
+    def __init__(self, task, *args, **kwargs):
+        super().__init__()
+        self.task = task
+        self.args = args
+        self.kwargs = kwargs
+
+    def run(self):
+        self.task(*self.args, **self.kwargs)
+
+
 class TeacherWorker(QtCore.QObject):
     """
     Worker thread that handles the major program load. Allowing the gui to still be responsive.
     """
+    finished = QtCore.pyqtSignal()
+
     def __init__(self, authorized_user, config, on_error):
         super(TeacherWorker, self).__init__()
         self.authorized_user = authorized_user
         self.config = config
         self.on_error = on_error
 
-    #QT signals - specify the method that the worker will be executing
-    call_add_question = QtCore.pyqtSignal()
-
+    archived_questions_ready_event = QtCore.pyqtSignal(object)
     questions_ready_event = QtCore.pyqtSignal(object)
     question_added_event = QtCore.pyqtSignal(Question)
     answer_voted_event = QtCore.pyqtSignal(Answer)
@@ -74,7 +86,8 @@ class TeacherWorker(QtCore.QObject):
             categoria,
             question_text,
             ref_answer_text,
-            error_callback=self.on_error)
+            error_callback=self.on_error,
+            fake_add=os.getenv("FAKE_ADD").lower() == "true")
 
         if question is not None:
             print("[add_question]", "question added", question)
@@ -94,7 +107,7 @@ class TeacherWorker(QtCore.QObject):
 
         print("getting students votes for", teacher_username)
 
-        USE_TRAIN_RESPONSES_DATA = os.getenv("USE_TRAIN_RESPONSES_DATA")
+        USE_TRAIN_RESPONSES_DATA = os.getenv("USE_TRAIN_RESPONSES_DATA").lower()
 
         if USE_TRAIN_RESPONSES_DATA == "true":
             result = q_a_collection.get(
@@ -120,6 +133,24 @@ class TeacherWorker(QtCore.QObject):
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
+    def get_archived_questions(self):
+        start = time.time()
+
+        init_chroma_client()
+
+        question_collection = get_chroma_questions_collection()
+
+        print("getting archived questions of teacher", self.authorized_user)
+
+        query_result = question_collection.get(
+            where={"$and": [{"id_docente": self.authorized_user['username']}, {"archived": True}]},
+        )
+
+        self.archived_questions_ready_event.emit(query_result)
+
+        print(f'Execution time = {time.time() - start} seconds.')
+
+    @QtCore.pyqtSlot()
     def get_students_answers(self, question: Question):
         start = time.time()
 
@@ -129,7 +160,7 @@ class TeacherWorker(QtCore.QObject):
 
         print("getting answers for", question.id)
 
-        USE_TRAIN_RESPONSES_DATA = os.getenv("USE_TRAIN_RESPONSES_DATA")
+        USE_TRAIN_RESPONSES_DATA = os.getenv("USE_TRAIN_RESPONSES_DATA").lower()
 
         if USE_TRAIN_RESPONSES_DATA == "true":
             query_result = q_a_collection.get(
@@ -152,22 +183,31 @@ class TeacherWorker(QtCore.QObject):
 
         id = answer.id
 
-        q_a_collection = get_chroma_q_a_collection()
-
         print("updating answer with evaluation", answer)
 
-        q_a_collection.update(
-            ids=[id],
-            metadatas=[{"id_domanda": answer.id_domanda,
-                        "domanda": answer.domanda,
-                        "id_docente": answer.id_docente,
-                        "id_autore": answer.id_autore,
-                        "voto_docente": voto,
-                        "voto_predetto": answer.voto_predetto,
-                        "commento": answer.commento,
-                        "source": answer.source,
-                        "data_creazione": answer.data_creazione}],
-        )
+        fake_add = os.getenv("FAKE_ADD").lower() == "true"
+
+        if not fake_add:
+            print(
+                f"WARNING: {Fore.YELLOW}{Style.BRIGHT}FAKE ADD {fake_add}{Style.RESET_ALL}"
+            )
+
+            q_a_collection = get_chroma_q_a_collection()
+
+            q_a_collection.update(
+                ids=[id],
+                metadatas=[{"id_domanda": answer.id_domanda,
+                            "domanda": answer.domanda,
+                            "id_docente": answer.id_docente,
+                            "id_autore": answer.id_autore,
+                            "voto_docente": voto,
+                            "voto_predetto": answer.voto_predetto,
+                            "commento": answer.commento,
+                            "source": answer.source,
+                            "data_creazione": answer.data_creazione}],
+            )
+        else:
+            time.sleep(1)
 
         answer.voto_docente = voto
 
@@ -205,20 +245,29 @@ class TeacherWorker(QtCore.QObject):
 
         init_chroma_client()
 
-        questions_collection = get_chroma_questions_collection()
+        fake_add = os.getenv("FAKE_ADD").lower() == "true"
 
-        ids = [q.id for q in domande]
-        metadatas = [{"id_domanda": q.id,
-                      "id_docente": q.id_docente,
-                      "categoria": q.categoria,
-                      "source": q.source,
-                      "archived": True,
-                      "data_creazione": q.data_creazione} for q in domande]
+        if not fake_add:
+            print(
+                f"WARNING: {Fore.YELLOW}{Style.BRIGHT}FAKE ADD {fake_add}{Style.RESET_ALL}"
+            )
 
-        questions_collection.update(
-            ids=ids,
-            metadatas=metadatas
-        )
+            questions_collection = get_chroma_questions_collection()
+
+            ids = [q.id for q in domande]
+            metadatas = [{"id_domanda": q.id,
+                          "id_docente": q.id_docente,
+                          "categoria": q.categoria,
+                          "source": q.source,
+                          "archived": True,
+                          "data_creazione": q.data_creazione} for q in domande]
+
+            questions_collection.update(
+                ids=ids,
+                metadatas=metadatas
+            )
+        else:
+            time.sleep(1)
 
         self.archived_questions_event.emit(domande)
 
@@ -273,7 +322,7 @@ class TeacherWorker(QtCore.QObject):
 
         print("getting answers for", self.authorized_user['username'])
 
-        USE_TRAIN_RESPONSES_DATA = os.getenv("USE_TRAIN_RESPONSES_DATA")
+        USE_TRAIN_RESPONSES_DATA = os.getenv("USE_TRAIN_RESPONSES_DATA").lower()
 
         if USE_TRAIN_RESPONSES_DATA == "true":
             query_result = q_a_collection.get(
@@ -366,10 +415,19 @@ class TeacherWorker(QtCore.QObject):
             for i, metadata in enumerate(unevaluated_answers_result['metadatas']):
                 metadata['voto_predetto'] = voti_aggiornati[i]
 
-            q_a_collection.update(
-                ids=unevaluated_answers_result['ids'],
-                metadatas=unevaluated_answers_result['metadatas'],
-            )
+            fake_add = os.getenv("FAKE_ADD").lower() == "true"
+
+            if not fake_add:
+                print(
+                    f"WARNING: {Fore.YELLOW}{Style.BRIGHT}FAKE ADD {fake_add}{Style.RESET_ALL}"
+                )
+
+                q_a_collection.update(
+                    ids=unevaluated_answers_result['ids'],
+                    metadatas=unevaluated_answers_result['metadatas'],
+                )
+            else:
+                time.sleep(1)
 
             print("voti predetti aggiornati")
 
@@ -379,7 +437,7 @@ class TeacherWorker(QtCore.QObject):
 
 
 class TeacherQuestionAnswersWidget(QWidget):
-    def __init__(self, authorized_user, onCreatedThread):
+    def __init__(self, parent: QMainWindow, authorized_user, onCreatedThread):
         super().__init__()
 
         self.authorized_user = authorized_user
@@ -387,12 +445,18 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.questions = []
 
         self.__initWorker()
-        self.__initUi()
+        self.__initUi(parent)
         self.__initQuestions()
 
-    def __initUi(self):
+    def __initUi(self, parent: QMainWindow):
         self.__leftSideBarWidget = LeftSideBar(self.authorized_user)
-        self.__questionDetailsWidget = QuestionDetailsWidget(self.authorized_user, self.db_worker)
+        self.__questionDetailsWidget = QuestionDetailsWidget(self.authorized_user, self.threadpool, self.db_worker)
+
+        self.loading_dialog = QProgressDialog(self)
+        self.loading_dialog.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        self.loading_dialog.setRange(0, 0)
+        self.loading_dialog.setCancelButton(None)
+        self.hide_loading_dialog()
 
         mainWidget = QSplitter()
         mainWidget.addWidget(self.__leftSideBarWidget)
@@ -420,6 +484,11 @@ class TeacherQuestionAnswersWidget(QWidget):
             votes_ready_event=self.db_worker.students_votes_ready_event
         )
 
+        self.archived_dialog = ArchivedDialog(
+            parent=self,
+            archived_questions_ready_event=self.db_worker.archived_questions_ready_event
+        )
+
         self.__leftSideBarWidget.on_add_question_clicked.connect(self.__onAddQuestionClicked)
         self.__leftSideBarWidget.changed.connect(self.__changedQuestion)
         self.__leftSideBarWidget.deleteRowsClicked.connect(self.__onArchiveQuestionsClicked)
@@ -433,6 +502,8 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.setLayout(lay)
 
     def show_error_dialog(self, error_text):
+        self.hide_loading_dialog()
+
         message = error_text
         closeMessageBox = QMessageBox(self)
         closeMessageBox.setWindowTitle('Errore')
@@ -447,6 +518,8 @@ class TeacherQuestionAnswersWidget(QWidget):
             self.config,
             lambda error_text: self.show_error_dialog(error_text))
 
+        self.db_worker.finished.connect(self.on_finished_thread)
+
         self.db_worker.questions_ready_event.connect(lambda data: self.on_questions_ready(data))
         self.db_worker.q_a_ready_event.connect(lambda question, result:
                                                self.on_question_details_ready(question, result))
@@ -460,17 +533,17 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.db_worker.archived_questions_event.connect(lambda questions: self.on_archived_questions(questions))
         self.db_worker.exported_questions_event.connect(lambda questions: self.on_exported_questions(questions))
 
-        self.db_thread = QtCore.QThread()
-        self.db_thread.start()
+        self.threadpool = QThreadPool()
+        self.threadpool.setMaxThreadCount(1)
 
-        self.db_thread.finished.connect(self.on_finished_thread)
         self.onCreatedWorker(self.db_worker)
-
-        self.db_worker.moveToThread(self.db_thread)
 
     def save_callback(self, categoria, question_text, ref_answer_text):
         if self.db_worker is not None:
-            self.db_worker.add_question(categoria, question_text, ref_answer_text)
+            task = RunnableTask(self.db_worker.add_question, categoria, question_text, ref_answer_text)
+            self.threadpool.start(task)
+
+            self.show_loading_dialog()
 
     def on_finished_thread(self):
         self.db_worker.deleteLater()
@@ -478,11 +551,13 @@ class TeacherQuestionAnswersWidget(QWidget):
 
     def __initQuestions(self):
         if self.db_worker is not None:
-            self.db_worker.get_teacher_questions()
+            task = RunnableTask(self.db_worker.get_teacher_questions)
+            self.threadpool.start(task)
 
     def __getQuestionDetails(self, question: Question):
         if self.db_worker is not None:
-            self.db_worker.get_students_answers(question)
+            task = RunnableTask(self.db_worker.get_students_answers, question)
+            self.threadpool.start(task)
 
     @QtCore.pyqtSlot()
     def on_questions_ready(self, data):
@@ -496,8 +571,17 @@ class TeacherQuestionAnswersWidget(QWidget):
 
     def open_stats_window(self):
         if self.db_worker is not None:
-            self.db_worker.get_students_votes()
+            task = RunnableTask(self.db_worker.get_students_votes)
+            self.threadpool.start(task)
+
             self.stats_dialog.show()
+
+    def open_archived_window(self):
+        if self.db_worker is not None:
+            task = RunnableTask(self.db_worker.get_archived_questions)
+            self.threadpool.start(task)
+
+            self.archived_dialog.show()
 
     @QtCore.pyqtSlot()
     def on_question_details_ready(self, question: Question, result):
@@ -531,6 +615,7 @@ class TeacherQuestionAnswersWidget(QWidget):
     @QtCore.pyqtSlot()
     def on_question_added(self, question: Question):
         print("[on_question_added]", question)
+        self.hide_loading_dialog()
 
         def show_confirm():
             message = 'Domanda inserita correttamente. Da questo momento in poi gli studenti potranno inserire la propria risposta.'
@@ -551,7 +636,8 @@ class TeacherQuestionAnswersWidget(QWidget):
 
         self.__questionDetailsWidget.onEvaluatedAnswer(answer)
         if self.db_worker is not None:
-            self.db_worker.recalc_question_unevaluated_answers_predictions(answer.id_domanda)
+            task = RunnableTask(self.db_worker.recalc_question_unevaluated_answers_predictions, answer.id_domanda)
+            self.threadpool.start(task)
 
     @QtCore.pyqtSlot()
     def on_recalculated_unevaluated_answers(self, votes: list):
@@ -601,7 +687,8 @@ class TeacherQuestionAnswersWidget(QWidget):
                 return True
             elif reply == QMessageBox.Yes:
                 if self.db_worker is not None:
-                    self.db_worker.archiveQuestions(id_lst)
+                    task = RunnableTask(self.db_worker.archiveQuestions, id_lst)
+                    self.threadpool.start(task)
 
         # for id in id_lst:
         #     print("delete question", id)
@@ -612,4 +699,11 @@ class TeacherQuestionAnswersWidget(QWidget):
             print("export question", q)
 
         if self.db_worker is not None:
-            self.db_worker.exportQuestions(questions)
+            task = RunnableTask(self.db_worker.exportQuestions, questions)
+            self.threadpool.start(task)
+
+    def show_loading_dialog(self):
+        self.loading_dialog.exec()
+
+    def hide_loading_dialog(self):
+        self.loading_dialog.cancel()

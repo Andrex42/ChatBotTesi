@@ -16,6 +16,7 @@ class StatsDialog(QDialog):
         self.setModal(True)
 
         votes_ready_event.connect(lambda votes: self.on_students_votes_ready(votes))
+        self.closeEvent = self.clear_list
 
         mainWidget = QSplitter()
         mainWidget.setSizes([300, 500])
@@ -177,3 +178,8 @@ class StatsDialog(QDialog):
             #self.scroll_vertical_layout.addWidget(lbl)
 
         #self.scroll_vertical_layout.addStretch()
+
+    def clear_list(self, event):
+        if self.students_avg_list:
+            self.students_avg_list.clear()
+            print("Clear success")

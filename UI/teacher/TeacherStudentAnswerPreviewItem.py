@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QLineEdit, QDoubleSpinBox, \
     QSizePolicy, QSpacerItem, QGraphicsOpacityEffect
@@ -7,11 +8,23 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButt
 from model.answer_model import Answer
 
 
+class RunnableTask(QtCore.QRunnable):
+    def __init__(self, task, *args, **kwargs):
+        super().__init__()
+        self.task = task
+        self.args = args
+        self.kwargs = kwargs
+
+    def run(self):
+        self.task(*self.args, **self.kwargs)
+
+
 class TeacherStudentAnswerPreviewItem(QWidget):
-    def __init__(self, db_worker, authorized_user, answer: Answer, evaluated):
+    def __init__(self, threadpool, db_worker, authorized_user, answer: Answer, evaluated):
         super().__init__()
 
         self.db_worker = db_worker
+        self.threadpool = threadpool
         self.authorized_user = authorized_user
         self.answer = answer
         self.evaluated = evaluated
@@ -142,4 +155,5 @@ class TeacherStudentAnswerPreviewItem(QWidget):
 
     def __assignVote(self):
         if self.db_worker is not None:
-            self.db_worker.assign_vote(self.answer, self.votoCustomSpinBox.value())
+            task = RunnableTask(self.db_worker.assign_vote, self.answer, self.votoCustomSpinBox.value())
+            self.threadpool.start(task)

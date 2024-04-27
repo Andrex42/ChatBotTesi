@@ -50,7 +50,7 @@ class LoginFormApp(QWidget):
             self.username_field.setText("docente.archeologia")
             self.password_field.setText("docente123")
         elif type == "student":
-            self.username_field.setText("studente.archeologia")
+            self.username_field.setText("studente.basidati")
             self.password_field.setText("studente123")
 
     def check_login(self, username, password):

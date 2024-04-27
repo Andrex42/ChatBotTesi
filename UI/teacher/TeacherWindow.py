@@ -16,7 +16,7 @@ class TeacherWindow(QStackedWidget):
 
         self.main_window.setWindowTitle("Area Docente")
 
-        self.__teacherQuestionAnswersWidget = TeacherQuestionAnswersWidget(authorized_user, self.__onCreatedThread)
+        self.__teacherQuestionAnswersWidget = TeacherQuestionAnswersWidget(parent, authorized_user, self.__onCreatedThread)
         self.addWidget(self.__teacherQuestionAnswersWidget)
 
         self.__setActions()
@@ -52,6 +52,12 @@ class TeacherWindow(QStackedWidget):
         self.__statsAction.setDefaultWidget(self.__statsButton)
         self.__statsButton.clicked.connect(self.open_stats)
 
+        self.__archivedAction = QWidgetAction(self)
+        self.__archivedButton = QPushButton("Archiviate")
+        self.__archivedButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
+        self.__archivedAction.setDefaultWidget(self.__archivedButton)
+        self.__archivedButton.clicked.connect(self.open_archived)
+
         self.__logoutAction = QWidgetAction(self)
         self.__logoutButton = QPushButton("Logout")
         self.__logoutButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
@@ -65,6 +71,7 @@ class TeacherWindow(QStackedWidget):
         spacer = QWidget()  # Widget fittizio per creare uno spazio vuoto
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.teacherToolBar.addWidget(spacer)
+        self.teacherToolBar.addAction(self.__archivedAction)
         self.teacherToolBar.addAction(self.__statsAction)
         self.teacherToolBar.addAction(self.__logoutAction)
 
@@ -73,13 +80,15 @@ class TeacherWindow(QStackedWidget):
     def open_stats(self):
         self.__teacherQuestionAnswersWidget.open_stats_window()
 
+    def open_archived(self):
+        self.__teacherQuestionAnswersWidget.open_archived_window()
 
     def logout(self):
-        for worker in self.activeWorkers:
-            thread = worker.thread()
-            if thread is not None:
-                thread.quit()
-                thread.deleteLater()
+        # for worker in self.activeWorkers:
+        #     thread = worker.thread()
+        #     if thread is not None:
+        #         thread.quit()
+        #         thread.deleteLater()
 
         self.activeWorkers = []
 
