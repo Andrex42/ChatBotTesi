@@ -49,6 +49,12 @@ class StudentWindow(QStackedWidget):
         self.__logoutAction = QWidgetAction(self)
         self.__logoutButton = QPushButton("Logout")
         self.__logoutButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
+        self.__logoutButton.setStyleSheet('''
+            QPushButton {
+                margin-right: 10px;
+                margin-top: 3px;
+                margin-bottom: 3px;
+            }''')
         self.__logoutAction.setDefaultWidget(self.__logoutButton)
         self.__logoutButton.clicked.connect(self.logout)
 

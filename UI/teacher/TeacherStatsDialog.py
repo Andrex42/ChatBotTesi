@@ -1,7 +1,7 @@
 import datetime
 import statistics
 from PyQt5.QtCore import Qt, QPointF, QDateTime, QSize
-from PyQt5.QtGui import QPainter
+from PyQt5.QtGui import QPainter, QBrush, QColor
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QScrollArea, QWidget, QHBoxLayout, QListWidget, \
     QListWidgetItem, QSplitter
 from PyQt5 import QtCore
@@ -91,6 +91,9 @@ class StatsDialog(QDialog):
 
         self._chart_view = QChartView(self.chart)
         self._chart_view.setRenderHint(QPainter.Antialiasing)
+        self._chart_view.chart().setTheme(QChart.ChartTheme(2))
+        # self._chart_view.chart().setBackgroundVisible(False)
+        self._chart_view.chart().setBackgroundBrush(QBrush(QColor(225, 225, 225, 25)))
 
         lay.addWidget(self._chart_view)
 
@@ -135,7 +138,7 @@ class StatsDialog(QDialog):
 
             self.value_axis = QValueAxis()
             self.value_axis.setMin(0.0)
-            self.value_axis.setMax(5.0)
+            self.value_axis.setMax(10.0)
             self.chart.addAxis(self.value_axis, Qt.AlignLeft)
             series.attachAxis(self.value_axis)
 

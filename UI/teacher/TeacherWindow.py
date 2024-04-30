@@ -49,25 +49,42 @@ class TeacherWindow(QStackedWidget):
         self.__statsAction = QWidgetAction(self)
         self.__statsButton = QPushButton("Statistiche")
         self.__statsButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
+        self.__statsButton.setStyleSheet('''
+            QPushButton {
+                margin-right: 3px;
+                margin-top: 3px;
+                margin-bottom: 3px;
+            }''')
         self.__statsAction.setDefaultWidget(self.__statsButton)
         self.__statsButton.clicked.connect(self.open_stats)
 
         self.__archivedAction = QWidgetAction(self)
         self.__archivedButton = QPushButton("Archiviate")
         self.__archivedButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
+        self.__archivedButton.setStyleSheet('''
+            QPushButton {
+                margin-right: 3px;
+                margin-top: 3px;
+                margin-bottom: 3px;
+            }''')
         self.__archivedAction.setDefaultWidget(self.__archivedButton)
         self.__archivedButton.clicked.connect(self.open_archived)
 
         self.__logoutAction = QWidgetAction(self)
         self.__logoutButton = QPushButton("Logout")
         self.__logoutButton.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.MinimumExpanding)
+        self.__logoutButton.setStyleSheet('''
+            QPushButton {
+                margin-right: 10px;
+                margin-top: 3px;
+                margin-bottom: 3px;
+            }''')
         self.__logoutAction.setDefaultWidget(self.__logoutButton)
         self.__logoutButton.clicked.connect(self.logout)
 
     def __setToolBar(self):
         self.teacherToolBar = QToolBar()
         self.teacherToolBar.setMovable(False)
-        self.teacherToolBar.setStyleSheet("QToolBar > QToolButton { margin-right: 10px; }")
         self.teacherToolBar.addAction(self.__currentUserUsernameAction)
         spacer = QWidget()  # Widget fittizio per creare uno spazio vuoto
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)

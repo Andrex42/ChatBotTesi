@@ -64,11 +64,11 @@ def main():
             background-color: #4682b4;
             border-width: 0px;
             border-style: solid;
+            margin: 0;
             padding-top: 5px;
             padding-bottom: 5px;
             padding-left: 10px;
             padding-right: 10px;
-            margin: 3px;
             border-radius: 4px;
             /* outline: none; */
             /* min-width: 40px; */
@@ -77,16 +77,6 @@ def main():
         QPushButton:disabled {
             color: white;
             background-color: #1c3448;
-            border-width: 0px;
-            border-style: solid;
-            padding-top: 5px;
-            padding-bottom: 5px;
-            padding-left: 10px;
-            padding-right: 10px;
-            margin: 3px;
-            border-radius: 4px;
-            /* outline: none; */
-            /* min-width: 40px; */
         }
         
         QLineEdit {

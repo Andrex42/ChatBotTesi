@@ -3,7 +3,7 @@ from collections import defaultdict
 from PyQt5 import QtCore
 from PyQt5.QtChart import QChart, QChartView, QBarSeries, QBarSet, QBarCategoryAxis, QValueAxis
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPainter
+from PyQt5.QtGui import QPainter, QPalette, QColor, QBrush
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QMessageBox, QPushButton, QFrame
 
 from UI.teacher.TeacherStudentAnswerPreviewItem import TeacherStudentAnswerPreviewItem
@@ -150,6 +150,9 @@ class QuestionDetailsWidget(QWidget):
 
         _chart_view = QChartView(self.unevaluated_chart)
         _chart_view.setRenderHint(QPainter.Antialiasing)
+        _chart_view.chart().setTheme(QChart.ChartTheme(2))
+        #_chart_view.chart().setBackgroundVisible(False)
+        _chart_view.chart().setBackgroundBrush(QBrush(QColor(225, 225, 225, 25)))
 
         lay.addWidget(_chart_view)
 
@@ -169,6 +172,9 @@ class QuestionDetailsWidget(QWidget):
 
         _chart_view = QChartView(self.evaluated_chart)
         _chart_view.setRenderHint(QPainter.Antialiasing)
+        _chart_view.chart().setTheme(QChart.ChartTheme(2))
+        # _chart_view.chart().setBackgroundVisible(False)
+        _chart_view.chart().setBackgroundBrush(QBrush(QColor(225, 225, 225, 25)))
 
         lay.addWidget(_chart_view)
 
