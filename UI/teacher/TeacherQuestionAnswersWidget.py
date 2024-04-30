@@ -13,7 +13,7 @@ from UI.teacher.TeacherArchivedDialog import ArchivedDialog
 from UI.teacher.TeacherStatsDialog import StatsDialog
 from UI.teacher.TeacherQuestionDetailsWidget import QuestionDetailsWidget
 from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, extract_data, \
-    add_question_to_collection, predict_vote, get_chroma_questions_collection
+    add_question_to_collection, predict_vote, predict_vote_from_ref, get_chroma_questions_collection
 from model.answer_model import Answer
 from model.question_model import Question
 
@@ -44,7 +44,7 @@ class TeacherWorker(QtCore.QObject):
     archived_questions_ready_event = QtCore.pyqtSignal(object)
     questions_ready_event = QtCore.pyqtSignal(object)
     question_added_event = QtCore.pyqtSignal(Question)
-    answer_voted_event = QtCore.pyqtSignal(Answer)
+    answer_voted_event = QtCore.pyqtSignal(Question, Answer)
     archived_questions_event = QtCore.pyqtSignal(list)
     exported_questions_event = QtCore.pyqtSignal(list)
     students_votes_ready_event = QtCore.pyqtSignal(list)
@@ -152,6 +152,13 @@ class TeacherWorker(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def get_students_answers(self, question: Question):
+        def check_need_recalc(qr):
+            if qr is not None:
+                for i, metadata in enumerate(qr['metadatas']):
+                    if metadata['voto_docente'] == -1 and (metadata['voto_predetto'] == -1 or metadata['voto_predetto_all'] == -1):
+                        return True
+            return False
+
         start = time.time()
 
         # init_chroma_client()
@@ -171,12 +178,24 @@ class TeacherWorker(QtCore.QObject):
                 where={"$and": [{"id_domanda": question.id}, {"id_autore": {"$ne": "undefined"}}]}
             )
 
+        if check_need_recalc(query_result):
+            self.recalc_question_unevaluated_answers_predictions_with_ref(question.id, question.id_docente)
+
+            if USE_TRAIN_RESPONSES_DATA == "true":
+                query_result = q_a_collection.get(
+                    where={"id_domanda": question.id}
+                )
+            else:
+                query_result = q_a_collection.get(
+                    where={"$and": [{"id_domanda": question.id}, {"id_autore": {"$ne": "undefined"}}]}
+                )
+
         self.q_a_ready_event.emit(question, query_result)
         # print(query_result)
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
-    def assign_vote(self, answer: Answer, voto):
+    def assign_vote(self, question: Question, answer: Answer, voto: int):
         start = time.time()
 
         init_chroma_client()
@@ -202,6 +221,7 @@ class TeacherWorker(QtCore.QObject):
                             "id_autore": answer.id_autore,
                             "voto_docente": voto,
                             "voto_predetto": answer.voto_predetto,
+                            "voto_predetto_all": answer.voto_predetto_all,
                             "commento": answer.commento,
                             "source": answer.source,
                             "data_creazione": answer.data_creazione}],
@@ -211,8 +231,12 @@ class TeacherWorker(QtCore.QObject):
 
         answer.voto_docente = voto
 
-        self.answer_voted_event.emit(answer)
+        self.answer_voted_event.emit(question, answer)
 
+        # riottiene le risposte degli studenti alla domanda,
+        # sostituisce al termine la vista aggiornando i dati e gli istogrammi
+        self.get_students_answers(question)
+        # ottiene le risposte che richiedono attenzione da parte del docente
         self.getToEvaluateAnswersId(useUpdateEvent=True)
 
         print(f'Execution time = {time.time() - start} seconds.')
@@ -360,7 +384,7 @@ class TeacherWorker(QtCore.QObject):
         # Apri il file CSV in modalità di scrittura
         with open(output_path, mode='w', newline='', encoding='utf-8') as file:
             # Definisci il writer CSV
-            writer = csv.DictWriter(file, fieldnames=['id', 'id_domanda', 'title', 'id_docente', 'text', 'id_autore', 'label', 'voto_predetto', 'commento', 'source', 'data_creazione'])
+            writer = csv.DictWriter(file, fieldnames=['id', 'id_domanda', 'title', 'id_docente', 'text', 'id_autore', 'label', 'voto_predetto', 'voto_predetto_all', 'commento', 'source', 'data_creazione'])
 
             # Scrivi l'intestazione del CSV
             writer.writeheader()
@@ -376,6 +400,7 @@ class TeacherWorker(QtCore.QObject):
                     'id_autore': answer_dict['id_autore'],
                     'label': answer_dict['voto_docente'],
                     'voto_predetto': answer_dict['voto_predetto'],
+                    'voto_predetto_all': answer_dict['voto_predetto_all'],
                     'commento': answer_dict['commento'],
                     'source': answer_dict['source'],
                     'data_creazione': answer_dict['data_creazione'],
@@ -402,18 +427,74 @@ class TeacherWorker(QtCore.QObject):
         )
 
         if len(unevaluated_answers_result['ids']) > 0:
-            voti_aggiornati = []
+            voti_all_aggiornati = []
 
             for unevaluated_answers_array_index in range(len(unevaluated_answers_result['ids'])):
                 curr_document = unevaluated_answers_result['documents'][unevaluated_answers_array_index]
                 predicted_vote = predict_vote(id_domanda,
                                               curr_document)
-                voti_aggiornati.append(predicted_vote)
+                voti_all_aggiornati.append(predicted_vote)
 
-            print("[recalc_question_unevaluated_answers_predictions]", "voti aggiornati", voti_aggiornati)
+            print("[recalc_question_unevaluated_answers_predictions]", "voti all aggiornati", voti_all_aggiornati)
 
             for i, metadata in enumerate(unevaluated_answers_result['metadatas']):
-                metadata['voto_predetto'] = voti_aggiornati[i]
+                metadata['voto_predetto_all'] = voti_all_aggiornati[i]
+
+            fake_add = os.getenv("FAKE_ADD").lower() == "true"
+
+            if not fake_add:
+                print(
+                    f"WARNING: {Fore.YELLOW}{Style.BRIGHT}FAKE ADD {fake_add}{Style.RESET_ALL}"
+                )
+
+                q_a_collection.update(
+                    ids=unevaluated_answers_result['ids'],
+                    metadatas=unevaluated_answers_result['metadatas'],
+                )
+            else:
+                time.sleep(1)
+
+            print("voti predetti da tutte le risposte aggiornati")
+
+            self.recalculated_unevaluated_answers_event.emit(voti_all_aggiornati)
+
+        print(f'Execution time = {time.time() - start} seconds.')
+
+    @QtCore.pyqtSlot()
+    def recalc_question_unevaluated_answers_predictions_with_ref(self, id_domanda: str, teacher_username: str) -> object:
+        start = time.time()
+
+        init_chroma_client()
+
+        q_a_collection = get_chroma_q_a_collection()
+
+        unevaluated_answers_result = q_a_collection.get(
+            where={"$and": [{"id_domanda": id_domanda},
+                            {"voto_docente": -1}]},
+            include=["documents", "metadatas"]
+        )
+
+        voti_ref_aggiornati = []
+        voti_all_aggiornati = []
+
+        if len(unevaluated_answers_result['ids']) > 0:
+            for unevaluated_answers_array_index in range(len(unevaluated_answers_result['ids'])):
+                curr_document = unevaluated_answers_result['documents'][unevaluated_answers_array_index]
+                predicted_vote_from_ref = predict_vote_from_ref(id_domanda,
+                                                                teacher_username,
+                                                                curr_document)
+                predicted_vote_from_all = predict_vote(id_domanda,
+                                                       curr_document)
+
+                voti_ref_aggiornati.append(predicted_vote_from_ref)
+                voti_all_aggiornati.append(predicted_vote_from_all)
+
+            print("[recalc_question_unevaluated_answers_predictions_with_ref]", "voti ref aggiornati", voti_ref_aggiornati)
+            print("[recalc_question_unevaluated_answers_predictions_with_ref]", "voti all aggiornati", voti_all_aggiornati)
+
+            for i, metadata in enumerate(unevaluated_answers_result['metadatas']):
+                metadata['voto_predetto'] = voti_ref_aggiornati[i]
+                metadata['voto_predetto_all'] = voti_all_aggiornati[i]
 
             fake_add = os.getenv("FAKE_ADD").lower() == "true"
 
@@ -431,9 +512,12 @@ class TeacherWorker(QtCore.QObject):
 
             print("voti predetti aggiornati")
 
-            self.recalculated_unevaluated_answers_event.emit(voti_aggiornati)
-
         print(f'Execution time = {time.time() - start} seconds.')
+
+        return {
+            'ref': voti_ref_aggiornati,
+            'all': voti_all_aggiornati
+        }
 
 
 class TeacherQuestionAnswersWidget(QWidget):
@@ -528,7 +612,7 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.db_worker.unevaluated_answers_ids_update_ready_event.connect(lambda ids:
                                                                           self.unevaluated_answers_ids_update_ready(ids))
         self.db_worker.question_added_event.connect(lambda question: self.on_question_added(question))
-        self.db_worker.answer_voted_event.connect(lambda answer: self.on_answer_voted(answer))
+        self.db_worker.answer_voted_event.connect(lambda question, answer: self.on_answer_voted(question, answer))
         self.db_worker.recalculated_unevaluated_answers_event.connect(lambda votes: self.on_recalculated_unevaluated_answers(votes))
         self.db_worker.archived_questions_event.connect(lambda questions: self.on_archived_questions(questions))
         self.db_worker.exported_questions_event.connect(lambda questions: self.on_exported_questions(questions))
@@ -631,10 +715,10 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.__leftSideBarWidget.addQuestionToList(question, False)
 
     @QtCore.pyqtSlot()
-    def on_answer_voted(self, answer: Answer):
+    def on_answer_voted(self, question: Question, answer: Answer):
         print("[on_answer_voted]", answer)
 
-        self.__questionDetailsWidget.onEvaluatedAnswer(answer)
+        self.__questionDetailsWidget.onEvaluatedAnswer(question, answer)
         if self.db_worker is not None:
             task = RunnableTask(self.db_worker.recalc_question_unevaluated_answers_predictions, answer.id_domanda)
             self.threadpool.start(task)

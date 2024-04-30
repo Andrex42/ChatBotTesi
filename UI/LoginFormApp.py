@@ -48,10 +48,10 @@ class LoginFormApp(QWidget):
     def prefill_creds(self, type: str):
         if type == "teacher":
             self.username_field.setText("docente.archeologia")
-            self.password_field.setText("docente123")
+            self.password_field.setText("tesi123")
         elif type == "student":
-            self.username_field.setText("studente.basidati")
-            self.password_field.setText("studente123")
+            self.username_field.setText("studente.archeologia")
+            self.password_field.setText("tesi123")
 
     def check_login(self, username, password):
         authorized_user = None

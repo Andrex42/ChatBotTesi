@@ -53,6 +53,9 @@ class QuestionItemWidget(QWidget):
         rightWidget = QWidget()
         rightWidget.setLayout(lay)
 
+        self.leftWidget.setStyleSheet("background-color: transparent;")
+        rightWidget.setStyleSheet("background-color: transparent;")
+
         lay = QHBoxLayout()
         lay.addWidget(self.leftWidget)
         lay.addWidget(rightWidget)

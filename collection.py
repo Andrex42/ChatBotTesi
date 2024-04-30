@@ -7,7 +7,6 @@ import os
 
 import numpy as np
 import torch
-from PyQt5.QtCore import QThread
 from chromadb import EmbeddingFunction, Documents, Embeddings
 from dotenv import load_dotenv
 import pprint
@@ -189,8 +188,9 @@ def init_model_with_exports():
                                 "domanda": item['title'],
                                 "id_docente": item['id_docente'],
                                 "id_autore": item['id_autore'],
-                                "voto_docente": item['label'],
-                                "voto_predetto": item['voto_predetto'],
+                                "voto_docente": int(item['label']),
+                                "voto_predetto": int(item['voto_predetto']),
+                                "voto_predetto_all": int(item['voto_predetto_all']),
                                 "commento": item['commento'],
                                 "source": item['source'],
                                 "data_creazione": item['data_creazione']}],
@@ -278,8 +278,9 @@ def init_model():
                             "domanda": item['title'],
                             "id_docente": item['id_docente'],
                             "id_autore": item['id_docente'],
-                            "voto_docente": 5,
+                            "voto_docente": 10,
                             "voto_predetto": -1,
+                            "voto_predetto_all": -1,
                             "commento": "undefined",
                             "source": "internal__training",
                             "data_creazione": iso_format}],
@@ -310,8 +311,9 @@ def init_model():
                             "domanda": item['title'],
                             "id_docente": item['id_docente'],
                             "id_autore": "undefined",
-                            "voto_docente": item['label'],  # voto del docente che va da 0 a 5
+                            "voto_docente": int(item['label']),  # voto del docente che va da 1 a 10
                             "voto_predetto": -1,  # voto non disponibile per i dati di addestramento, default -1
+                            "voto_predetto_all": -1,  # voto non disponibile per i dati di addestramento, default -1
                             "commento": "undefined",
                             "source": "internal__training",
                             "data_creazione": iso_format}],
@@ -366,6 +368,7 @@ def check_answer_records():
 
     print("check_answer_records", ok)
 
+
 def calcola_voto_finale_ponderato(punteggi, voti):
     if len(punteggi) == 0:
         raise ValueError("I punteggi non possono essere vuoti")
@@ -373,6 +376,7 @@ def calcola_voto_finale_ponderato(punteggi, voti):
     if punteggi[0] == 0 or len(punteggi) == 1:
         # Se il primo punteggio è 0, abbiamo trovato una risposta identica, restituisci quindi il suo voto
         # Se invece è presente solo una risposta, restituisci il suo voto
+        # (è, ad esempio, il caso dove il confronto avviene solo con la risposta di riferimento del docente)
         return voti[0]
 
     distanze = np.array(punteggi)
@@ -416,7 +420,7 @@ def calcola_voto_finale_ponderato(punteggi, voti):
     return voto_finale_ponderato
 
 
-def adjust_score(distances, score, reduction_start=0.1, reduction_end=0.6):
+def adjust_score(distances, score, reduction_start=0.1, reduction_end=0.6) -> int:
     """
         Corregge il punteggio basato sulla distanza minima da un punto di riferimento,
         applicando una riduzione proporzionale all'interno di un intervallo definito.
@@ -427,11 +431,11 @@ def adjust_score(distances, score, reduction_start=0.1, reduction_end=0.6):
         - score (float): Il punteggio originale da correggere basato sulla distanza minima.
         - reduction_start (float, opzionale): La distanza a partire dalla quale iniziare la riduzione
           del punteggio. Default a 0.15.
-        - reduction_end (float, opzionale): La distanza oltre la quale il punteggio viene ridotto a 0.
-          Default a 1.
+        - reduction_end (float, opzionale): La distanza oltre la quale il punteggio viene ridotto a 1.
+          Default a 0.6.
 
         Restituisce:
-        - float: Il punteggio corretto, arrotondato a una cifra decimale.
+        - int: Il punteggio corretto, arrotondato all'intero più vicino.
 
         Solleva:
         - ValueError: Se `distances` è vuoto oppure se `reduction_start` è minore di 0 o maggiore di `reduction_end`.
@@ -452,11 +456,11 @@ def adjust_score(distances, score, reduction_start=0.1, reduction_end=0.6):
     if reduction_start < 0 or reduction_start > reduction_end:
         raise ValueError("Valori di riduzione non validi")
 
-    # Se la distanza minima è maggiore di 0.6, il punteggio diventa 0
+    # Se la distanza minima è maggiore di 0.6, il punteggio diventa 1 (voto minimo)
     if min_distance > reduction_end:
-        return 0
+        return 1
 
-    # Se la distanza minima è sotto la soglia, il punteggio rimane invariato
+    # Se la distanza minima è sotto la soglia di riduzione iniziale, il punteggio rimane invariato
     if min_distance < reduction_start:
         return score
 
@@ -467,9 +471,9 @@ def adjust_score(distances, score, reduction_start=0.1, reduction_end=0.6):
         f"\t{Fore.LIGHTBLACK_EX}Percentage to subtract: {percentage_to_subtract}"
     )
 
-    adjusted_result = score * (1 - percentage_to_subtract)
+    adjusted_result = max(score * (1 - percentage_to_subtract), 1)  # valore ridotto dalla percentuale, 1 se la riduzione è totale
 
-    return round(adjusted_result, 1)
+    return round(adjusted_result)  # arrotondamento all'intero più vicino
 
 
 def calc_jaccard_distance(embedding1, embedding2):
@@ -483,6 +487,140 @@ def calc_jaccard_distance(embedding1, embedding2):
     jaccard_distance = 1 - len(set1.intersection(set2)) / len(set1.union(set2))
 
     return jaccard_distance
+
+
+def predict_vote_from_ref(id_domanda: str, teacher_username: str, sentence_to_compare_text, export_folder='', exported_count=0, expected_vote=-1):
+    results = get_ref_sentence(id_domanda, teacher_username, sentence_to_compare_text)
+
+    accuracy_output_path = ''
+    distances_output_path = ''
+
+    if export_folder != '':
+        accuracy_file_name = f"export_ref_only_accuracy_test_{exported_count}.csv"
+        distances_file_name = f"export_ref_only_distances_test_{exported_count}.csv"
+
+        # Percorso completo per il file CSV di output
+        accuracy_output_path = os.path.join(export_folder, accuracy_file_name)
+        distances_output_path = os.path.join(export_folder, distances_file_name)
+
+        if not os.path.exists(accuracy_output_path):
+            # Apri il file CSV in modalità di scrittura
+            with open(accuracy_output_path, mode='w', newline='', encoding='utf-8') as file:
+                # Definisci il writer CSV
+                writer = csv.DictWriter(
+                    file,
+                    fieldnames=['question', 'answer', 'most_similar_answer', 'most_similar_answer_author_id', 'cosine_distance', 'jaccard_distance', 'combined_distance', 'most_similar_answer_vote', 'expected_vote', 'predicted_vote', 'result']
+                )
+
+                # Scrivi l'intestazione del CSV
+                writer.writeheader()
+
+        if not os.path.exists(distances_output_path):
+            # Apri il file CSV in modalità di scrittura
+            with open(distances_output_path, mode='w', newline='', encoding='utf-8') as file:
+                # Definisci il writer CSV
+                writer = csv.DictWriter(
+                    file,
+                    fieldnames=['question', 'answer', 'similar_answer', 'similar_answer_author_id', 'cosine_distance', 'jaccard_distance', 'combined_distance', 'similar_answer_vote', 'expected_vote']
+                )
+
+                # Scrivi l'intestazione del CSV
+                writer.writeheader()
+
+    distances = [round(abs(x), 3) for x in results['distances'][0]]
+
+    sentence_to_compare_embeddings = SentencesEmbeddingFunction().__call__([sentence_to_compare_text])
+    embedding1 = np.array(sentence_to_compare_embeddings[0])
+
+    similar_dict_list = []
+
+    for idx, doc in enumerate(results['documents'][0]):
+        it_metadata = results['metadatas'][0][idx]
+        it_distance = distances[idx]
+
+        embedding2 = np.array(results['embeddings'][0][idx])
+        jaccard_distance = calc_jaccard_distance(embedding1, embedding2)
+        cos_similarity = 1 - distances[idx]
+
+        # Combinazione delle metriche: media pesata della similarità coseno e della distanza di Jaccard
+        combined_sim = (cos_similarity + (1 - jaccard_distance)) / 2
+        combined_distance = 1 - combined_sim
+
+        similar_dict_list.append({
+            "document": doc,
+            "metadata": it_metadata,
+            "cosine_distance": it_distance,
+            "jaccard_distance": jaccard_distance,
+            "combined_distance": combined_distance
+        })
+
+        print(
+            f"\t - Doc {idx}: ({it_metadata['id_autore']}) Cosine Distance: {it_distance} | Jaccard Distance: {jaccard_distance} | Combined Distance: {combined_distance} | Vote: {it_metadata['voto_docente']}",
+            "'" + doc + "'")
+
+        if distances_output_path != '':
+            with open(distances_output_path, mode='a', newline='',
+                      encoding='utf-8') as file:  # Apri il file in modalità di aggiunta (append)
+                writer = csv.writer(file)
+
+                writer.writerow([
+                    it_metadata['domanda'],
+                    sentence_to_compare_text,
+                    doc,
+                    it_metadata['id_autore'],
+                    it_distance,
+                    jaccard_distance,
+                    combined_distance,
+                    it_metadata['voto_docente'],
+                    expected_vote
+                ])
+
+    # Sort by increasing combined distance
+    similar_dict_list = sorted(similar_dict_list, key=lambda x: x['combined_distance'])
+
+    best_similar = similar_dict_list[0]
+    levenshtein_distance = edit_distance(sentence_to_compare_text, best_similar['document'])
+
+    print(f"\n\t{Fore.CYAN}Best similarity match{Style.RESET_ALL}:\n"
+          f"\t\tCosine Distance: {best_similar['cosine_distance']}"
+          f"\t\tJaccard Distance: {best_similar['jaccard_distance']}"
+          f"\t\tLevenshtein Distance: {levenshtein_distance}"
+          f"\n\t\tRef. Result: {Fore.GREEN if best_similar['metadata']['voto_docente'] >= 6 else Fore.RED}{best_similar['metadata']['voto_docente']}{Style.RESET_ALL}"
+          f"\n\t\tDocument: {best_similar['document']}"
+          f"\n\t\tAuthor: {best_similar['metadata']['id_autore']}\n")
+
+    voti = [x['metadata']['voto_docente'] for x in similar_dict_list]
+    combined_distances = [x['combined_distance'] for x in similar_dict_list]
+
+    voto_ponderato = round(calcola_voto_finale_ponderato(combined_distances, voti), 1)
+
+    print(
+        f"\t{Fore.LIGHTBLACK_EX}Weighted avg: {Fore.YELLOW}{Style.BRIGHT}{voto_ponderato}{Style.RESET_ALL}"
+    )
+
+    final_score = adjust_score(combined_distances, voto_ponderato)
+
+    print("")
+
+    if accuracy_output_path != '':
+        with open(accuracy_output_path, mode='a', newline='', encoding='utf-8') as file:  # Apri il file in modalità di aggiunta (append)
+            writer = csv.writer(file)
+
+            writer.writerow([
+                best_similar['metadata']['domanda'],
+                sentence_to_compare_text,
+                best_similar['document'],
+                best_similar['metadata']['id_autore'],
+                best_similar['cosine_distance'],
+                best_similar['jaccard_distance'],
+                best_similar['combined_distance'],
+                best_similar['metadata']['voto_docente'],
+                expected_vote,
+                final_score,
+                "PASSED" if abs(final_score - expected_vote) <= 1 else "FAILED"
+            ])
+
+    return final_score
 
 
 def predict_vote(id_domanda: str, sentence_to_compare_text, export_folder='', exported_count=0, expected_vote=-1):
@@ -581,7 +719,7 @@ def predict_vote(id_domanda: str, sentence_to_compare_text, export_folder='', ex
           f"\t\tCosine Distance: {best_similar['cosine_distance']}"
           f"\t\tJaccard Distance: {best_similar['jaccard_distance']}"
           f"\t\tLevenshtein Distance: {levenshtein_distance}"
-          f"\n\t\tRef. Result: {Fore.GREEN if best_similar['metadata']['voto_docente'] >= 3 else Fore.RED}{best_similar['metadata']['voto_docente']}{Style.RESET_ALL}"
+          f"\n\t\tRef. Result: {Fore.GREEN if best_similar['metadata']['voto_docente'] >= 6 else Fore.RED}{best_similar['metadata']['voto_docente']}{Style.RESET_ALL}"
           f"\n\t\tDocument: {best_similar['document']}"
           f"\n\t\tAuthor: {best_similar['metadata']['id_autore']}\n")
 
@@ -619,7 +757,7 @@ def predict_vote(id_domanda: str, sentence_to_compare_text, export_folder='', ex
     return final_score
 
 
-def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
+def get_similar_sentences(id_domanda: str, sentence_to_compare_text: str):
     q_a_collection = get_chroma_q_a_collection()
 
     results = q_a_collection.query(
@@ -635,9 +773,28 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text):
     return results
 
 
+def get_ref_sentence(id_domanda: str, teacher_username: str, sentence_to_compare_text: str):
+    q_a_collection = get_chroma_q_a_collection()
+
+    # seleziona solo la risposta di riferimento del docente
+    results = q_a_collection.query(
+        query_texts=[sentence_to_compare_text],
+        n_results=1,
+        where={"$and": [{"id_domanda": id_domanda},
+                        {"id_autore": teacher_username}]},
+        include=["documents", "metadatas", "embeddings", "distances"]
+    )
+
+    print(f"\t{Fore.YELLOW}{Style.BRIGHT}Found {len(results['documents'][0])} ref document for {id_domanda}{Style.RESET_ALL}:")
+
+    return results
+
+
 def add_answer_to_collection(authenticated_user, question: Question, answer_text: str,
                              error_callback=None, fake_add=False):
-    predicted_vote = predict_vote(question.id, answer_text)
+    # effettua una predizione del voto a partire dalla risposta di riferimento data dal docente
+    predicted_vote_from_ref = predict_vote_from_ref(question.id, question.id_docente, answer_text)
+    predicted_vote_from_all = predict_vote(question.id, answer_text)
 
     # Ottieni la data e l'ora correnti
     now = datetime.now()
@@ -661,7 +818,8 @@ def add_answer_to_collection(authenticated_user, question: Question, answer_text
                             "id_docente": question.id_docente,
                             "id_autore": authenticated_user['username'],
                             "voto_docente": -1,
-                            "voto_predetto": predicted_vote,
+                            "voto_predetto": predicted_vote_from_ref,
+                            "voto_predetto_all": predicted_vote_from_all,
                             "commento": "undefined",
                             "source": "application",
                             "data_creazione": iso_format}],
@@ -683,7 +841,8 @@ def add_answer_to_collection(authenticated_user, question: Question, answer_text
         answer_text,
         authenticated_user['username'],
         -1,
-        predicted_vote,
+        predicted_vote_from_ref,
+        predicted_vote_from_all,
         "undefined",
         "application",
         iso_format,
@@ -729,8 +888,9 @@ def add_question_to_collection(authenticated_user, categoria: str, question_text
                             "domanda": question_text,
                             "id_docente": authenticated_user['username'],
                             "id_autore": authenticated_user['username'],
-                            "voto_docente": 5,
+                            "voto_docente": 10,
                             "voto_predetto": -1,
+                            "voto_predetto_all": -1,
                             "commento": "undefined",
                             "source": "application",
                             "data_creazione": iso_format}],

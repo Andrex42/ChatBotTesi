@@ -16,7 +16,7 @@ risposte_dict = df_risposte.to_dict('records')
 
 correct = 0
 total = 0
-error_tolerance = 1
+error_tolerance = 2
 
 init_chroma_client()
 

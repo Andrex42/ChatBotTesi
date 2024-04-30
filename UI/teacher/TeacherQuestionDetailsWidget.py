@@ -1,6 +1,10 @@
+from collections import defaultdict
+
 from PyQt5 import QtCore
+from PyQt5.QtChart import QChart, QChartView, QBarSeries, QBarSet, QBarCategoryAxis, QValueAxis
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QMessageBox, QPushButton, QHBoxLayout, QFrame
+from PyQt5.QtGui import QPainter
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QMessageBox, QPushButton, QFrame
 
 from UI.teacher.TeacherStudentAnswerPreviewItem import TeacherStudentAnswerPreviewItem
 from model.answer_model import Answer
@@ -132,14 +136,165 @@ class QuestionDetailsWidget(QWidget):
 
         self.setLayout(lay)
 
+    def create_unevaluated_chart(self):
+        chart_container = QWidget()
+        chart_container.setObjectName("unevaluated_chart")
+        lay = QVBoxLayout(chart_container)
+        lay.setContentsMargins(0, 0, 0, 0)
+
+        self.unevaluated_chart = QChart()
+        self.unevaluated_chart.setMinimumHeight(350)
+        self.unevaluated_chart.setMaximumHeight(400)
+        self.unevaluated_chart.legend().hide()
+        self.unevaluated_chart.setAnimationOptions(QChart.SeriesAnimations)
+
+        _chart_view = QChartView(self.unevaluated_chart)
+        _chart_view.setRenderHint(QPainter.Antialiasing)
+
+        lay.addWidget(_chart_view)
+
+        return chart_container
+
+    def create_evaluated_chart(self):
+        chart_container = QWidget()
+        chart_container.setObjectName("evaluated_chart")
+        lay = QVBoxLayout(chart_container)
+        lay.setContentsMargins(0, 0, 0, 0)
+
+        self.evaluated_chart = QChart()
+        self.evaluated_chart.setMinimumHeight(350)
+        self.evaluated_chart.setMaximumHeight(400)
+        self.evaluated_chart.legend().hide()
+        self.evaluated_chart.setAnimationOptions(QChart.SeriesAnimations)
+
+        _chart_view = QChartView(self.evaluated_chart)
+        _chart_view.setRenderHint(QPainter.Antialiasing)
+
+        lay.addWidget(_chart_view)
+
+        return chart_container
+
+    def populateUnevaluatedChart(self, not_evaluated_answers: list[Answer]):
+        def count_predictions(answers: list[Answer]) -> dict:
+            occorrenze = defaultdict(int)
+
+            for voto in range(1, 11):
+                occorrenze[str(voto)] = 0
+
+            for answer in answers:
+                voto_predetto_all = answer.voto_predetto_all
+                if voto_predetto_all >= 1 and voto_predetto_all <= 10:
+                    occorrenze[str(voto_predetto_all)] += 1
+
+            return occorrenze
+
+        self.unevaluated_chart.removeAllSeries()
+
+        frequences = []
+        counted_predictions = count_predictions(not_evaluated_answers)
+
+        # counted_predictions["1"] = 2
+        # counted_predictions["7"] = 5
+
+        for key, value in counted_predictions.items():
+            series = QBarSeries()
+            curr_set = QBarSet(str(key))
+            curr_set << value
+            frequences.append(value)
+            series.append(curr_set)
+
+            series.setLabelsVisible(True)
+            series.labelsPosition()
+            self.unevaluated_chart.addSeries(series)
+
+        #create axis
+        self.axisX = QBarCategoryAxis()
+        self.axisX.setLabelsVisible(True)
+        self.axisX.append(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"])
+        self.axisX.setTitleText("Voti")
+
+        num_ticks = 4
+        self.axisY = QValueAxis()
+        self.axisY.setLabelsVisible(True)
+        self.axisY.setMin(0)
+        self.axisY.setMax(max(frequences))
+        self.axisY.setTickCount(num_ticks)
+        self.axisY.setLabelFormat("%.0f")
+        self.axisY.setTitleText("Frequenze")
+
+        # bild the chart
+        self.unevaluated_chart.createDefaultAxes()
+        self.unevaluated_chart.setAxisX(self.axisX)
+        # series.attachAxis(self.axisX)
+
+        self.unevaluated_chart.setAxisY(self.axisY)
+        # series.attachAxis(self.axisY)
+
+    def populateEvaluatedChart(self, evaluated_answers: list[Answer]):
+        def count_votes(answers: list[Answer]) -> dict:
+            occorrenze = defaultdict(int)
+
+            for voto in range(1, 11):
+                occorrenze[str(voto)] = 0
+
+            for answer in answers:
+                voto_docente = answer.voto_docente
+                if voto_docente >= 1 and voto_docente <= 10:
+                    occorrenze[str(voto_docente)] += 1
+
+            return occorrenze
+
+        self.evaluated_chart.removeAllSeries()
+
+        frequences = []
+        counted_votes = count_votes(evaluated_answers)
+
+        for key, value in counted_votes.items():
+            series = QBarSeries()
+            curr_set = QBarSet(str(key))
+            curr_set << value
+            frequences.append(value)
+            series.append(curr_set)
+
+            series.setLabelsVisible(True)
+            series.labelsPosition()
+            self.evaluated_chart.addSeries(series)
+
+        #create axis
+        self.axisX = QBarCategoryAxis()
+        self.axisX.setLabelsVisible(True)
+        self.axisX.append(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"])
+        self.axisX.setTitleText("Voti")
+
+        num_ticks = 4
+
+        self.axisY = QValueAxis()
+        self.axisY.setLabelsVisible(True)
+        self.axisY.setMin(0)
+        self.axisY.setMax(max(frequences))
+        self.axisY.setTickCount(num_ticks)
+        self.axisY.setLabelFormat("%.0f")
+        self.axisY.setTitleText("Frequenze")
+
+        # bild the chart
+        self.evaluated_chart.createDefaultAxes()
+        self.evaluated_chart.setAxisX(self.axisX)
+
+        self.evaluated_chart.setAxisY(self.axisY)
+
     def replaceQuestion(self, question: Question, data_array):
         self.cleanup()
 
         self.id_domanda = question.id
         self.question_label.setText(question.domanda)
 
+        not_evaluated_answers = []
         not_evaluated_answers_count = 0
+        evaluated_answers = []
         evaluated_answers_count = 0
+
+        unevaluated_chart_added = False
+        evaluated_chart_added = False
 
         for answer_dict in data_array:
             answer = Answer(
@@ -149,8 +304,9 @@ class QuestionDetailsWidget(QWidget):
                 answer_dict['id_docente'],
                 answer_dict['document'],
                 answer_dict['id_autore'],
-                answer_dict['voto_docente'],
-                answer_dict['voto_predetto'],
+                int(answer_dict['voto_docente']),
+                int(answer_dict['voto_predetto']),
+                int(answer_dict['voto_predetto_all']),
                 answer_dict['commento'],
                 answer_dict['source'],
                 answer_dict['data_creazione'],
@@ -159,15 +315,39 @@ class QuestionDetailsWidget(QWidget):
             if answer.id_autore == self.authorized_user['username']:
                 self.answer_label.setText(answer.risposta)
             elif answer.voto_docente == -1:
+                if not unevaluated_chart_added:
+                    # creo l'istogramma con le frequenze di voti predetti a partire da tutte le risposte
+                    self.students_answers_not_evaluated_layout.addWidget(self.create_unevaluated_chart())
+                    unevaluated_chart_added = True
+
                 studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
-                    self.threadpool, self.db_worker, self.authorized_user, answer, False)
+                    self.threadpool,
+                    self.db_worker,
+                    self.authorized_user,
+                    question,
+                    answer,
+                    False
+                )
                 self.students_answers_not_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
                 not_evaluated_answers_count += 1
+                not_evaluated_answers.append(answer)
             else:
+                if not evaluated_chart_added:
+                    # creo l'istogramma con le frequenze di voti assegnati dal docente
+                    self.students_answers_evaluated_layout.addWidget(self.create_evaluated_chart())
+                    evaluated_chart_added = True
+
                 studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
-                    self.threadpool, self.db_worker, self.authorized_user, answer, True)
+                    self.threadpool,
+                    self.db_worker,
+                    self.authorized_user,
+                    question,
+                    answer,
+                    True
+                )
                 self.students_answers_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
                 evaluated_answers_count += 1
+                evaluated_answers.append(answer)
 
         not_evaluated_empty_state_label = QLabel("Non sono presenti risposte in attesa di valutazione")
         not_evaluated_empty_state_label.setObjectName("not_evaluated_empty_state")
@@ -176,8 +356,13 @@ class QuestionDetailsWidget(QWidget):
 
         if not_evaluated_answers_count == 0:
             self.students_answers_not_evaluated_layout.addWidget(not_evaluated_empty_state_label)
+        else:
+            self.populateUnevaluatedChart(not_evaluated_answers)
+
         if evaluated_answers_count == 0:
             self.students_answers_evaluated_layout.addWidget(evaluated_empty_state_label)
+        else:
+            self.populateEvaluatedChart(evaluated_answers)
 
         if self.isHidden():
             self.show()
@@ -189,10 +374,10 @@ class QuestionDetailsWidget(QWidget):
             widget = item.widget()
             if isinstance(widget, TeacherStudentAnswerPreviewItem):
                 widget.label_risultato.setText(str(votes[teacherStudentAnswerPreviewItemIndex]))
-                widget.votoCustomSpinBox.setValue(votes[teacherStudentAnswerPreviewItemIndex])
+                # widget.votoCustomSpinBox.setValue(votes[teacherStudentAnswerPreviewItemIndex])
                 teacherStudentAnswerPreviewItemIndex += 1
 
-    def onEvaluatedAnswer(self, answer: Answer):
+    def onEvaluatedAnswer(self, question: Question, answer: Answer):
         def show_confirm():
             message = 'Voto assegnato correttamente.'
             closeMessageBox = QMessageBox(self)
@@ -202,33 +387,6 @@ class QuestionDetailsWidget(QWidget):
             reply = closeMessageBox.exec()
 
         show_confirm()
-
-        should_show_not_evaluated_empty_state_label = True
-
-        for not_evaluated_item_index in range(self.students_answers_not_evaluated_layout.count()):
-            item = self.students_answers_not_evaluated_layout.itemAt(not_evaluated_item_index)
-            widget = item.widget()
-            if widget is not None and isinstance(widget, TeacherStudentAnswerPreviewItem):
-                print(widget)
-                if widget.answer.id == answer.id:
-                    widget.deleteLater()
-                else:
-                    should_show_not_evaluated_empty_state_label = False
-
-        if should_show_not_evaluated_empty_state_label:
-            not_evaluated_empty_state_label = QLabel("Non sono presenti risposte in attesa di valutazione")
-            self.students_answers_not_evaluated_layout.addWidget(not_evaluated_empty_state_label)
-
-        for evaluated_item_index in range(self.students_answers_evaluated_layout.count()):
-            item = self.students_answers_evaluated_layout.itemAt(evaluated_item_index)
-            widget = item.widget()
-            if widget is not None and widget.objectName() == "evaluated_empty_state":
-                widget.deleteLater()
-                break
-
-        studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
-            self.threadpool, self.db_worker, self.authorized_user, answer, True)
-        self.students_answers_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
 
     def cleanup(self):
         # Elimina tutti i widget dal layout tranne l'header della sezione

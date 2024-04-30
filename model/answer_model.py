@@ -9,8 +9,9 @@ class Answer:
     id_docente: str
     risposta: str
     id_autore: str
-    voto_docente: float
-    voto_predetto: float
+    voto_docente: int
+    voto_predetto: int
+    voto_predetto_all: int
     commento: str
     source: str
     data_creazione: str

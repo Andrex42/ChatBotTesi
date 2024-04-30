@@ -2,10 +2,11 @@ from datetime import datetime
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QLineEdit, QDoubleSpinBox, \
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QSpinBox, \
     QSizePolicy, QSpacerItem, QGraphicsOpacityEffect
 
 from model.answer_model import Answer
+from model.question_model import Question
 
 
 class RunnableTask(QtCore.QRunnable):
@@ -20,12 +21,13 @@ class RunnableTask(QtCore.QRunnable):
 
 
 class TeacherStudentAnswerPreviewItem(QWidget):
-    def __init__(self, threadpool, db_worker, authorized_user, answer: Answer, evaluated):
+    def __init__(self, threadpool, db_worker, authorized_user, question: Question, answer: Answer, evaluated):
         super().__init__()
 
         self.db_worker = db_worker
         self.threadpool = threadpool
         self.authorized_user = authorized_user
+        self.question = question
         self.answer = answer
         self.evaluated = evaluated
 
@@ -68,15 +70,40 @@ class TeacherStudentAnswerPreviewItem(QWidget):
         answer_label = QLabel(self.answer.risposta)
         answer_label.setWordWrap(True)
 
-        risultatoLayout = QHBoxLayout()
+        risultatoLayoutV = QVBoxLayout()
+        risultatoLayoutHTop = QHBoxLayout()
+        risultatoLayoutHBottom = QHBoxLayout()
 
         if not self.evaluated:
-            self.label_risultato = QLabel(str(self.answer.voto_predetto))
+            self.label_risultato_ref = QLabel(str(self.answer.voto_predetto))
+            self.label_risultato = QLabel(str(self.answer.voto_predetto_all))
+
+            policy = self.label_risultato_ref.sizePolicy()
+            policy.setHorizontalPolicy(QSizePolicy.Expanding)
+            self.label_risultato_ref.setSizePolicy(policy)
+
             policy = self.label_risultato.sizePolicy()
             policy.setHorizontalPolicy(QSizePolicy.Expanding)
             self.label_risultato.setSizePolicy(policy)
 
-            if self.answer.voto_predetto >= 3:
+            if self.answer.voto_predetto >= 6:
+                self.label_risultato_ref.setStyleSheet('''
+                                    QLabel {
+                                        font-size: 12px; 
+                                        font-weight: bold;
+                                        color: #32a852;
+                                    }
+                                ''')
+            else:
+                self.label_risultato_ref.setStyleSheet('''
+                                    QLabel {
+                                        font-size: 12px; 
+                                        font-weight: bold;
+                                        color: #a83232;
+                                    }
+                                ''')
+
+            if self.answer.voto_predetto >= 6:
                 self.label_risultato.setStyleSheet('''
                                     QLabel {
                                         font-size: 12px; 
@@ -93,11 +120,11 @@ class TeacherStudentAnswerPreviewItem(QWidget):
                                     }
                                 ''')
 
-            self.votoCustomSpinBox = QDoubleSpinBox()
+            self.votoCustomSpinBox = QSpinBox()
             self.votoCustomSpinBox.setValue(self.answer.voto_predetto)
-            self.votoCustomSpinBox.setSingleStep(0.50)
-            self.votoCustomSpinBox.setMinimum(0)
-            self.votoCustomSpinBox.setMaximum(5)
+            self.votoCustomSpinBox.setSingleStep(1)
+            self.votoCustomSpinBox.setMinimum(1)
+            self.votoCustomSpinBox.setMaximum(10)
 
             assegnaVotoBtn = QPushButton("Assegna voto")
 
@@ -109,9 +136,18 @@ class TeacherStudentAnswerPreviewItem(QWidget):
             lay.addWidget(answer_label)
             lay.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
-            risultatoLayout.addWidget(QLabel("Risultato predetto: "))
-            risultatoLayout.addWidget(self.label_risultato)
-            lay.addLayout(risultatoLayout)
+            risultatoLayoutHTop.addWidget(QLabel("Il voto predetto dalla risposta di riferimento è: "))
+            risultatoLayoutHTop.addWidget(self.label_risultato_ref)
+
+            risultatoLayoutHBottom.addWidget(QLabel("Il voto predetto da tutte le risposte già valutate è: "))
+            risultatoLayoutHBottom.addWidget(self.label_risultato)
+
+            risultatoLayoutV.addLayout(risultatoLayoutHTop)
+            risultatoLayoutV.addLayout(risultatoLayoutHBottom)
+            lay.addLayout(risultatoLayoutV)
+
+            lay.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Expanding))
+
             confermaVotoLayout.addWidget(self.votoCustomSpinBox)
             confermaVotoLayout.addWidget(assegnaVotoBtn)
             lay.addLayout(confermaVotoLayout)
@@ -123,7 +159,7 @@ class TeacherStudentAnswerPreviewItem(QWidget):
             policy.setHorizontalPolicy(QSizePolicy.Expanding)
             label_risultato.setSizePolicy(policy)
 
-            if self.answer.voto_docente >= 3:
+            if self.answer.voto_docente >= 6:
                 label_risultato.setStyleSheet('''
                                                 QLabel {
                                                     font-size: 12px; 
@@ -147,13 +183,13 @@ class TeacherStudentAnswerPreviewItem(QWidget):
             lay.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
             voto_finale_lbl = QLabel("Voto finale: ")
-            risultatoLayout.addWidget(voto_finale_lbl)
-            risultatoLayout.addWidget(label_risultato)
-            lay.addLayout(risultatoLayout)
+            risultatoLayoutHTop.addWidget(voto_finale_lbl)
+            risultatoLayoutHTop.addWidget(label_risultato)
+            lay.addLayout(risultatoLayoutHTop)
 
         self.setLayout(lay)
 
     def __assignVote(self):
         if self.db_worker is not None:
-            task = RunnableTask(self.db_worker.assign_vote, self.answer, self.votoCustomSpinBox.value())
+            task = RunnableTask(self.db_worker.assign_vote, self.question, self.answer, self.votoCustomSpinBox.value())
             self.threadpool.start(task)

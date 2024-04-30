@@ -67,6 +67,7 @@ class TeacherWindow(QStackedWidget):
     def __setToolBar(self):
         self.teacherToolBar = QToolBar()
         self.teacherToolBar.setMovable(False)
+        self.teacherToolBar.setStyleSheet("QToolBar > QToolButton { margin-right: 10px; }")
         self.teacherToolBar.addAction(self.__currentUserUsernameAction)
         spacer = QWidget()  # Widget fittizio per creare uno spazio vuoto
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)

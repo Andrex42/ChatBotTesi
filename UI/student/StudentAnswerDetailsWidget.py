@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame, QHBoxLayout, QSizePolicy, QSpacerItem
 from model.answer_model import Answer
 from model.question_model import Question
 
@@ -62,6 +62,8 @@ class AnswerDetailsWidget(QWidget):
         self.student_answer_layout.addWidget(lbl)
         self.student_answer_layout.addWidget(self.answer_label)
 
+        self.student_answer_layout.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Minimum))
+
         lbl = QLabel("RISULTATO")
         lbl.setStyleSheet('''
                                     QLabel {
@@ -70,7 +72,11 @@ class AnswerDetailsWidget(QWidget):
                                     }
                                 ''')
         self.student_answer_layout.addWidget(lbl)
-        self.student_answer_layout.addWidget(self.result_label)
+        hlayout = QHBoxLayout()
+        hlayout.addWidget(self.result_label)
+        hlayout.addWidget(QLabel("/10"))
+        hlayout.addStretch()
+        self.student_answer_layout.addLayout(hlayout)
 
         scroll_vertical_layout = QVBoxLayout()
         scroll = QScrollArea()  # Scroll Area which contains the widgets, set as the centralWidget
@@ -100,7 +106,7 @@ class AnswerDetailsWidget(QWidget):
         self.answer_label.setText(answer.risposta)
         self.result_label.setText("In attesa di valutazione" if answer.voto_docente == -1 else str(answer.voto_docente))
 
-        if answer.voto_docente > -1 and answer.voto_docente >= 3:
+        if answer.voto_docente >= 6:
             self.result_label.setStyleSheet('''
                                 QLabel {
                                     font-size: 12px; 

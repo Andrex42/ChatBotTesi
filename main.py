@@ -50,16 +50,62 @@ class Application(QMainWindow):
 
 def main():
     """Main function
-
-    Returns
-    -------
-    Np.array
-        The tfidf vector representation of the text
     """
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
 
     window = Application(app)
+
+    # setup stylesheet
+    # apply_stylesheet(app, theme='dark_blue.xml')
+    app.setStyleSheet('''
+        QPushButton {
+            color: white;
+            background-color: #4682b4;
+            border-width: 0px;
+            border-style: solid;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            padding-left: 10px;
+            padding-right: 10px;
+            margin: 3px;
+            border-radius: 4px;
+            /* outline: none; */
+            /* min-width: 40px; */
+        }
+        
+        QPushButton:disabled {
+            color: white;
+            background-color: #1c3448;
+            border-width: 0px;
+            border-style: solid;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            padding-left: 10px;
+            padding-right: 10px;
+            margin: 3px;
+            border-radius: 4px;
+            /* outline: none; */
+            /* min-width: 40px; */
+        }
+        
+        QLineEdit {
+            border-radius: 4px;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        
+        QTextEdit, QPlainTextEdit {
+            border-radius:4px; 
+            background-color: palette(base);
+            padding-top: 5px;
+            padding-bottom: 5px;
+            padding-left: 10px;
+            padding-right: 10px;
+        }''')
+
     window.center()
     window.show()
 

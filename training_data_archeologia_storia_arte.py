@@ -825,7 +825,7 @@ risposte += [
         "Chi è accreditato per la scoperta del sito archeologico di Troia?",
         "docente.archeologia",
         "Heinrich Schliemann è accreditato per la scoperta del sito archeologico di Troia negli anni 1870.",
-        5,
+        4,
     ),
     (
         "Chi è accreditato per la scoperta del sito archeologico di Troia?",
