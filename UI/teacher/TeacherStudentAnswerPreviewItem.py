@@ -156,7 +156,7 @@ class TeacherStudentAnswerPreviewItem(QWidget):
         else:
             label_risultato = QLabel(str(self.answer.voto_docente))
             policy = label_risultato.sizePolicy()
-            policy.setHorizontalPolicy(QSizePolicy.Expanding)
+            policy.setHorizontalPolicy(QSizePolicy.Minimum)
             label_risultato.setSizePolicy(policy)
 
             if self.answer.voto_docente >= 6:
@@ -185,6 +185,14 @@ class TeacherStudentAnswerPreviewItem(QWidget):
             voto_finale_lbl = QLabel("Voto finale: ")
             risultatoLayoutHTop.addWidget(voto_finale_lbl)
             risultatoLayoutHTop.addWidget(label_risultato)
+            suffix = QLabel("/10")
+            suffix.setStyleSheet('''
+                                    QLabel {
+                                        color: rgba(225, 225, 225, 50);
+                                    }
+                                ''')
+            risultatoLayoutHTop.addWidget(suffix)
+            risultatoLayoutHTop.addStretch()
             lay.addLayout(risultatoLayoutHTop)
 
         self.setLayout(lay)

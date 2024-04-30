@@ -74,7 +74,13 @@ class AnswerDetailsWidget(QWidget):
         self.student_answer_layout.addWidget(lbl)
         hlayout = QHBoxLayout()
         hlayout.addWidget(self.result_label)
-        hlayout.addWidget(QLabel("/10"))
+        suffix = QLabel("/10")
+        suffix.setStyleSheet('''
+                                            QLabel {
+                                                color: rgba(225, 225, 225, 50);
+                                            }
+                                        ''')
+        hlayout.addWidget(suffix)
         hlayout.addStretch()
         self.student_answer_layout.addLayout(hlayout)
 
