@@ -299,6 +299,11 @@ class StudentQuestionAnswersWidget(QWidget):
     @QtCore.pyqtSlot()
     def on_answer_added(self, question: Question, answer: Answer):
         print("[on_answer_added]", answer)
+        self.__leftSideBarWidget.moveQuestionToAnsweredList(question)
+
+        if self.__leftSideBarWidget.getUnansweredRowCount() == 0:
+            self.__rightSideWidget.hide()
+
         self.hide_loading_dialog()
 
         def show_confirm():
@@ -307,14 +312,9 @@ class StudentQuestionAnswersWidget(QWidget):
             closeMessageBox.setWindowTitle('Risposta inviata con successo')
             closeMessageBox.setText(message)
             closeMessageBox.setStandardButtons(QMessageBox.Close)
-            closeMessageBox.exec()
+            closeMessageBox.show()
 
         show_confirm()
-
-        self.__leftSideBarWidget.moveQuestionToAnsweredList(question)
-
-        if self.__leftSideBarWidget.getUnansweredRowCount() == 0:
-            self.__rightSideWidget.hide()
 
     @QtCore.pyqtSlot()
     def on_answer_details_ready(self, question: Question, answer: Answer):
