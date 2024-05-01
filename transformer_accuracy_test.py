@@ -57,7 +57,7 @@ for idx, item in enumerate(risposte_dict):  # per ogni risposta
 accuracy = correct / total
 
 print("")
-print("Accuracy:", f"{Fore.GREEN if accuracy > 0.5 else Fore.RED}{Style.BRIGHT}{accuracy}{Style.RESET_ALL}")
+print(f"Accuracy: {correct}/{total}", f"{Fore.GREEN if accuracy > 0.5 else Fore.RED}{Style.BRIGHT}{accuracy}{Style.RESET_ALL}")
 
 # initial_threshold = 0.1
 # # Soglia iniziale per i valori più bassi di num_distanze

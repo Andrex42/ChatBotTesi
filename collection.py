@@ -4,10 +4,8 @@ import time
 from typing import Optional
 import chromadb
 import os
-
 import numpy as np
-import torch
-from chromadb import EmbeddingFunction, Documents, Embeddings
+from chromadb.utils import embedding_functions
 from dotenv import load_dotenv
 import pprint
 import pandas as pd
@@ -16,7 +14,6 @@ from datetime import datetime
 from colorama import Fore, Style
 from model.answer_model import Answer
 from nltk.metrics import edit_distance
-from transformers import AutoModel, AutoTokenizer
 from model.question_model import Question
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -25,34 +22,13 @@ load_dotenv()  # This loads environment variables from a .env file, which is goo
 
 pp = pprint.PrettyPrinter(indent=4)  # PrettyPrinter makes dictionary output easier to read
 
-# Initializes the Cohere API key from the environment variables. Raises an error if the key isn't found.
 PRETRAINED_MODEL_NAME = os.getenv("PRETRAINED_MODEL_NAME")
 if PRETRAINED_MODEL_NAME is None:
     raise ValueError("Pretrained model name not found in the environment variables.")
 
-
-tokenizer = AutoTokenizer.from_pretrained(PRETRAINED_MODEL_NAME)
-model = AutoModel.from_pretrained(PRETRAINED_MODEL_NAME)
-
-
-class SentencesEmbeddingFunction(EmbeddingFunction):
-    # Mean Pooling - Take attention mask into account for correct averaging
-    def mean_pooling(self, model_output, attention_mask):
-        token_embeddings = model_output[0]  # First element of model_output contains all token embeddings
-        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
-        return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
-
-    def __call__(self, input: Documents) -> Embeddings:
-        # embed the documents
-        sentences = input
-        encoded_inputs = tokenizer(sentences, padding=True, truncation=True, return_tensors='pt')
-
-        with torch.no_grad():
-            model_output = model(**encoded_inputs)
-
-        sentence_embeddings = self.mean_pooling(model_output, encoded_inputs['attention_mask'])
-
-        return sentence_embeddings.tolist()
+embedding_func = embedding_functions.SentenceTransformerEmbeddingFunction(
+    model_name=PRETRAINED_MODEL_NAME
+)
 
 
 chroma_client: chromadb.ClientAPI
@@ -77,7 +53,7 @@ def get_chroma_q_a_collection():
     q_a_collection = chroma_client.get_or_create_collection(
         name="q_a",
         metadata={"hnsw:space": "cosine"},
-        embedding_function=SentencesEmbeddingFunction())
+        embedding_function=embedding_func)
     return q_a_collection
 
 
@@ -94,7 +70,7 @@ def get_chroma_questions_collection():
     questions_collection = chroma_client.get_or_create_collection(
         name="questions",
         metadata={"hnsw:space": "cosine"},
-        embedding_function=SentencesEmbeddingFunction()
+        embedding_function=embedding_func
     )
     return questions_collection
 
@@ -529,7 +505,8 @@ def predict_vote_from_ref(id_domanda: str, teacher_username: str, sentence_to_co
 
     distances = [round(abs(x), 3) for x in results['distances'][0]]
 
-    sentence_to_compare_embeddings = SentencesEmbeddingFunction().__call__([sentence_to_compare_text])
+    #sentence_to_compare_embeddings = SentencesEmbeddingFunction().__call__([sentence_to_compare_text])
+    sentence_to_compare_embeddings = embedding_func.__call__([sentence_to_compare_text])
     embedding1 = np.array(sentence_to_compare_embeddings[0])
 
     similar_dict_list = []
@@ -657,7 +634,7 @@ def predict_vote(id_domanda: str, sentence_to_compare_text, export_folder='', ex
 
     distances = [round(abs(x), 3) for x in results['distances'][0]]
 
-    sentence_to_compare_embeddings = SentencesEmbeddingFunction().__call__([sentence_to_compare_text])
+    sentence_to_compare_embeddings = embedding_func.__call__([sentence_to_compare_text])
     embedding1 = np.array(sentence_to_compare_embeddings[0])
 
     similar_dict_list = []
