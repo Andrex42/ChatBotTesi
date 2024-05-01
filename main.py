@@ -94,7 +94,73 @@ def main():
             padding-bottom: 5px;
             padding-left: 10px;
             padding-right: 10px;
-        }''')
+        }
+        
+        QSpinBox,
+        QSpinBox:editable,
+        QSpinBox:hover,
+        QSpinBox:pressed {
+          border: none;
+          border-radius: 4px;
+          background-color: rgba(0, 0, 0, 0.2);
+          padding: 5px 4px 4px 4px;
+        }
+        QSpinBox:focus {
+          border: none;
+          border-bottom: 2px solid #4682b4;
+          border-radius: 4px;
+          background-color: rgba(0, 0, 0, 0.2);
+          padding: 5px 4px 4px 4px;
+        }
+        QSpinBox:disabled {
+          border: none;
+          border-bottom: 2px solid #999999;
+          border-radius: 0;
+          background-color: rgba(0, 0, 0, 0.1);
+          padding: 5px 15px 4px 4px;
+        }
+        QSpinBox::up-button {
+          subcontrol-origin: border;
+          subcontrol-position: top right;
+          border: none;
+          border-radius: 4px;
+          padding: 5px;
+          background-color: #4682b4;
+          margin-top: 1px;
+          width: 18px;
+        }
+        QSpinBox::up-button:disabled,
+        QSpinBox::up-button:off {
+          background-color: rgba(70, 130, 180, .3);
+        }
+        QSpinBox::down-button {
+          subcontrol-origin: border;
+          subcontrol-position: bottom right;
+          border: none;
+          border-radius: 4px;
+          padding: 5px;
+          background-color: #4682b4;
+          width: 18px;
+        }
+        QSpinBox::down-button:disabled,
+        QSpinBox::down-button:off  {
+          background-color: rgba(70, 130, 180, .3);
+        }
+        QSpinBox::up-arrow {
+          image: url("resources/icons/chevron-up.svg");
+        }
+        QSpinBox::up-arrow:disabled,
+        QSpinBox::up-arrow:off {
+          image: url("resources/icons/chevron-up.svg");
+        }
+        QSpinBox::down-arrow {
+          image: url("resources/icons/chevron-down.svg");
+        }
+        QSpinBox::down-arrow:disabled,
+        QSpinBox::down-arrow:off {
+          image: url("resources/icons/chevron-down.svg");
+        }
+        ''')
 
     window.center()
     window.show()

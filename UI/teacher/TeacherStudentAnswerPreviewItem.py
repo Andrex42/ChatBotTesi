@@ -125,8 +125,13 @@ class TeacherStudentAnswerPreviewItem(QWidget):
             self.votoCustomSpinBox.setSingleStep(1)
             self.votoCustomSpinBox.setMinimum(1)
             self.votoCustomSpinBox.setMaximum(10)
+            self.votoCustomSpinBox.setMinimumWidth(80)
 
             assegnaVotoBtn = QPushButton("Assegna voto")
+            assegnaVotoBtn.setStyleSheet('''
+                QPushButton {
+                    margin-left: 10px;
+                }''')
 
             confermaVotoLayout = QHBoxLayout()
 
@@ -150,6 +155,8 @@ class TeacherStudentAnswerPreviewItem(QWidget):
 
             confermaVotoLayout.addWidget(self.votoCustomSpinBox)
             confermaVotoLayout.addWidget(assegnaVotoBtn)
+            confermaVotoLayout.addStretch()
+
             lay.addLayout(confermaVotoLayout)
 
             assegnaVotoBtn.clicked.connect(self.__assignVote)

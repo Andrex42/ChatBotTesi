@@ -2,9 +2,8 @@ from datetime import datetime
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPalette
 from PyQt5.QtWidgets import QWidget, QListWidgetItem, QLabel, QVBoxLayout, QHBoxLayout, QListWidget, \
-    QApplication
+    QApplication, QGraphicsOpacityEffect
 
 from UI.dot_widget import DotWidget
 from model.question_model import Question
@@ -29,11 +28,9 @@ class QuestionItemWidget(QWidget):
         upper_label_text += f" - {self.convert_datetime(question.data_creazione)}"
         self.__topicLbl = QLabel(upper_label_text)
 
-        palette = self.__topicLbl.palette()
-        color = palette.color(QPalette.Text)
-        color.setAlpha(127)
-        palette.setColor(QPalette.Text, color)
-        self.__topicLbl.setPalette(palette)
+        effect = QGraphicsOpacityEffect()
+        effect.setOpacity(0.5)
+        self.__topicLbl.setGraphicsEffect(effect)
         self.__questionLbl = QLabel(question.domanda)
 
         lay = QVBoxLayout()

@@ -1,7 +1,7 @@
 import datetime
 import statistics
-from PyQt5.QtCore import Qt, QPointF, QDateTime, QSize
-from PyQt5.QtGui import QPainter, QBrush, QColor
+from PyQt5.QtCore import Qt, QPointF, QDateTime, QSize, QEvent
+from PyQt5.QtGui import QPainter, QBrush, QColor, QPalette
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QScrollArea, QWidget, QHBoxLayout, QListWidget, \
     QListWidgetItem, QSplitter
 from PyQt5 import QtCore
@@ -91,9 +91,17 @@ class StatsDialog(QDialog):
 
         self._chart_view = QChartView(self.chart)
         self._chart_view.setRenderHint(QPainter.Antialiasing)
-        self._chart_view.chart().setTheme(QChart.ChartTheme(2))
-        # self._chart_view.chart().setBackgroundVisible(False)
-        self._chart_view.chart().setBackgroundBrush(QBrush(QColor(225, 225, 225, 25)))
+
+        rgb_bg = self.palette().color(QPalette.Window).getRgb()
+        current_theme = self.is_dark_or_light(rgb_bg[0], rgb_bg[1], rgb_bg[2])
+        print("Palette iniziale", rgb_bg, current_theme)
+
+        if current_theme == "dark":
+            self._chart_view.chart().setTheme(QChart.ChartTheme(2))
+            self._chart_view.chart().setBackgroundBrush(QBrush(QColor(225, 225, 225, 25)))
+        else:
+            self._chart_view.chart().setTheme(QChart.ChartTheme(0))
+            self._chart_view.chart().setBackgroundBrush(QBrush(QColor(0, 0, 0, 15)))
 
         lay.addWidget(self._chart_view)
 
@@ -186,3 +194,29 @@ class StatsDialog(QDialog):
         if self.students_avg_list:
             self.students_avg_list.clear()
             print("Clear success")
+
+    def changeEvent(self, event):
+        if event.type() == QEvent.ApplicationPaletteChange or event.type() == QEvent.PaletteChange:
+            self.handlePaletteChange()
+
+    def is_dark_or_light(self, r, g, b):
+        brightness = (r + g + b) / 3
+        threshold = 127
+        # Se la luminosità è inferiore alla soglia, il colore è scuro, altrimenti è chiaro
+        return "dark" if brightness < threshold else "light"
+
+    def handlePaletteChange(self):
+        # Operazioni da eseguire quando cambia la palette dell'applicazione
+        rgb_bg = self.palette().color(QPalette.Window).getRgb()
+        current_theme = self.is_dark_or_light(rgb_bg[0], rgb_bg[1], rgb_bg[2])
+        print("Palette cambiata", rgb_bg, current_theme)
+
+        try:
+            if current_theme == "dark":
+                self._chart_view.chart().setTheme(QChart.ChartTheme(2))
+                self._chart_view.chart().setBackgroundBrush(QBrush(QColor(225, 225, 225, 25)))
+            else:
+                self._chart_view.chart().setTheme(QChart.ChartTheme(0))
+                self._chart_view.chart().setBackgroundBrush(QBrush(QColor(0, 0, 0, 15)))
+        except AttributeError:
+            pass

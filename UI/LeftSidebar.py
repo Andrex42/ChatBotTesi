@@ -65,6 +65,12 @@ class LeftSideBar(QWidget):
     def addQuestionToList(self, question: Question, hasUnevaluatedAnswers: bool):
         self.__questionListWidget.addQuestion(question, True, hasUnevaluatedAnswers)
 
+    def blockListSignals(self):
+        self.__questionListWidget.blockSignals(True)
+
+    def unblockListSignals(self):
+        self.__questionListWidget.blockSignals(False)
+
     def __addClicked(self):
         self.on_add_question_clicked.emit()
 

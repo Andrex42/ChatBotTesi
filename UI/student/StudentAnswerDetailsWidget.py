@@ -1,5 +1,6 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame, QHBoxLayout, QSizePolicy, QSpacerItem
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame, QHBoxLayout, QSizePolicy, QSpacerItem, \
+    QGraphicsOpacityEffect
 from model.answer_model import Answer
 from model.question_model import Question
 
@@ -66,22 +67,26 @@ class AnswerDetailsWidget(QWidget):
 
         lbl = QLabel("RISULTATO")
         lbl.setStyleSheet('''
-                                    QLabel {
-                                        font-size: 12px; 
-                                        font-weight: 300;
-                                    }
-                                ''')
+            QLabel {
+                font-size: 12px; 
+                font-weight: 300;
+            }
+        ''')
         self.student_answer_layout.addWidget(lbl)
         hlayout = QHBoxLayout()
+        hlayout.setSpacing(0)
+        hlayout.setContentsMargins(0, 0, 0, 0)
         hlayout.addWidget(self.result_label)
-        suffix = QLabel("/10")
-        suffix.setStyleSheet('''
-                                            QLabel {
-                                                color: rgba(225, 225, 225, 50);
-                                            }
-                                        ''')
-        hlayout.addWidget(suffix)
+
+        effect = QGraphicsOpacityEffect()
+        effect.setOpacity(0.5)
+
+        self.result_label_suffix = QLabel()
+        self.result_label_suffix.setGraphicsEffect(effect)
+
+        hlayout.addWidget(self.result_label_suffix)
         hlayout.addStretch()
+
         self.student_answer_layout.addLayout(hlayout)
 
         scroll_vertical_layout = QVBoxLayout()
@@ -110,7 +115,13 @@ class AnswerDetailsWidget(QWidget):
     def replaceAnswer(self, question: Question, answer: Answer):
         self.question_label.setText(question.domanda)
         self.answer_label.setText(answer.risposta)
-        self.result_label.setText("In attesa di valutazione" if answer.voto_docente == -1 else str(answer.voto_docente))
+
+        if answer.voto_docente == -1:
+            self.result_label.setText("In attesa di valutazione")
+            self.result_label_suffix.setText("")
+        else:
+            self.result_label.setText(str(answer.voto_docente))
+            self.result_label_suffix.setText("/10")
 
         if answer.voto_docente >= 6:
             self.result_label.setStyleSheet('''

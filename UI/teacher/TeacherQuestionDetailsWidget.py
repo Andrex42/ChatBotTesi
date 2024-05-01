@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from PyQt5 import QtCore
 from PyQt5.QtChart import QChart, QChartView, QBarSeries, QBarSet, QBarCategoryAxis, QValueAxis
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QPainter, QPalette, QColor, QBrush
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QMessageBox, QPushButton, QFrame
 
@@ -143,18 +143,28 @@ class QuestionDetailsWidget(QWidget):
         lay.setContentsMargins(0, 0, 0, 0)
 
         self.unevaluated_chart = QChart()
-        self.unevaluated_chart.setMinimumHeight(350)
-        self.unevaluated_chart.setMaximumHeight(400)
+        self.unevaluated_chart.setMinimumHeight(300)
+        self.unevaluated_chart.setMaximumHeight(350)
         self.unevaluated_chart.legend().hide()
         self.unevaluated_chart.setAnimationOptions(QChart.SeriesAnimations)
 
-        _chart_view = QChartView(self.unevaluated_chart)
-        _chart_view.setRenderHint(QPainter.Antialiasing)
-        _chart_view.chart().setTheme(QChart.ChartTheme(2))
-        #_chart_view.chart().setBackgroundVisible(False)
-        _chart_view.chart().setBackgroundBrush(QBrush(QColor(225, 225, 225, 25)))
+        self._chart_view = QChartView(self.unevaluated_chart)
+        self._chart_view.setRenderHint(QPainter.Antialiasing)
 
-        lay.addWidget(_chart_view)
+        rgb_bg = self.palette().color(QPalette.Window).getRgb()
+        current_theme = self.is_dark_or_light(rgb_bg[0], rgb_bg[1], rgb_bg[2])
+        print("Palette iniziale", rgb_bg, current_theme)
+
+        if current_theme == "dark":
+            self._chart_view.chart().setTheme(QChart.ChartTheme(2))
+            self._chart_view.chart().setBackgroundBrush(QBrush(QColor(225, 225, 225, 25)))
+        else:
+            self._chart_view.chart().setTheme(QChart.ChartTheme(0))
+            self._chart_view.chart().setBackgroundBrush(QBrush(QColor(0, 0, 0, 15)))
+
+        #_chart_view.chart().setBackgroundVisible(False)
+
+        lay.addWidget(self._chart_view)
 
         return chart_container
 
@@ -165,18 +175,27 @@ class QuestionDetailsWidget(QWidget):
         lay.setContentsMargins(0, 0, 0, 0)
 
         self.evaluated_chart = QChart()
-        self.evaluated_chart.setMinimumHeight(350)
-        self.evaluated_chart.setMaximumHeight(400)
+        self.evaluated_chart.setMinimumHeight(300)
+        self.evaluated_chart.setMaximumHeight(350)
         self.evaluated_chart.legend().hide()
         self.evaluated_chart.setAnimationOptions(QChart.SeriesAnimations)
 
-        _chart_view = QChartView(self.evaluated_chart)
-        _chart_view.setRenderHint(QPainter.Antialiasing)
-        _chart_view.chart().setTheme(QChart.ChartTheme(2))
-        # _chart_view.chart().setBackgroundVisible(False)
-        _chart_view.chart().setBackgroundBrush(QBrush(QColor(225, 225, 225, 25)))
+        self._chart_view2 = QChartView(self.evaluated_chart)
+        self._chart_view2.setRenderHint(QPainter.Antialiasing)
+        # _chart_view2.chart().setBackgroundVisible(False)
 
-        lay.addWidget(_chart_view)
+        rgb_bg = self.palette().color(QPalette.Window).getRgb()
+        current_theme = self.is_dark_or_light(rgb_bg[0], rgb_bg[1], rgb_bg[2])
+        print("Palette iniziale", rgb_bg, current_theme)
+
+        if current_theme == "dark":
+            self._chart_view2.chart().setTheme(QChart.ChartTheme(2))
+            self._chart_view2.chart().setBackgroundBrush(QBrush(QColor(225, 225, 225, 25)))
+        else:
+            self._chart_view2.chart().setTheme(QChart.ChartTheme(0))
+            self._chart_view2.chart().setBackgroundBrush(QBrush(QColor(0, 0, 0, 15)))
+
+        lay.addWidget(self._chart_view2)
 
         return chart_container
 
@@ -393,6 +412,36 @@ class QuestionDetailsWidget(QWidget):
             reply = closeMessageBox.exec()
 
         show_confirm()
+
+    def changeEvent(self, event):
+        if event.type() == QEvent.ApplicationPaletteChange or event.type() == QEvent.PaletteChange:
+            self.handlePaletteChange()
+
+    def is_dark_or_light(self, r, g, b):
+        brightness = (r + g + b) / 3
+        threshold = 127
+        # Se la luminosità è inferiore alla soglia, il colore è scuro, altrimenti è chiaro
+        return "dark" if brightness < threshold else "light"
+
+    def handlePaletteChange(self):
+        # Operazioni da eseguire quando cambia la palette dell'applicazione
+        rgb_bg = self.palette().color(QPalette.Window).getRgb()
+        current_theme = self.is_dark_or_light(rgb_bg[0], rgb_bg[1], rgb_bg[2])
+        print("Palette cambiata", rgb_bg, current_theme)
+
+        try:
+            if current_theme == "dark":
+                self._chart_view.chart().setTheme(QChart.ChartTheme(2))
+                self._chart_view.chart().setBackgroundBrush(QBrush(QColor(225, 225, 225, 25)))
+                self._chart_view2.chart().setTheme(QChart.ChartTheme(2))
+                self._chart_view2.chart().setBackgroundBrush(QBrush(QColor(225, 225, 225, 25)))
+            else:
+                self._chart_view.chart().setTheme(QChart.ChartTheme(0))
+                self._chart_view.chart().setBackgroundBrush(QBrush(QColor(0, 0, 0, 15)))
+                self._chart_view2.chart().setTheme(QChart.ChartTheme(0))
+                self._chart_view2.chart().setBackgroundBrush(QBrush(QColor(0, 0, 0, 15)))
+        except AttributeError:
+            pass
 
     def cleanup(self):
         # Elimina tutti i widget dal layout tranne l'header della sezione

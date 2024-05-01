@@ -581,7 +581,7 @@ def predict_vote_from_ref(id_domanda: str, teacher_username: str, sentence_to_co
     best_similar = similar_dict_list[0]
     levenshtein_distance = edit_distance(sentence_to_compare_text, best_similar['document'])
 
-    print(f"\n\t{Fore.CYAN}Best similarity match{Style.RESET_ALL}:\n"
+    print(f"\n\t{Fore.CYAN}Ref similarity match{Style.RESET_ALL}:\n"
           f"\t\tCosine Distance: {best_similar['cosine_distance']}"
           f"\t\tJaccard Distance: {best_similar['jaccard_distance']}"
           f"\t\tLevenshtein Distance: {levenshtein_distance}"
@@ -592,13 +592,7 @@ def predict_vote_from_ref(id_domanda: str, teacher_username: str, sentence_to_co
     voti = [x['metadata']['voto_docente'] for x in similar_dict_list]
     combined_distances = [x['combined_distance'] for x in similar_dict_list]
 
-    voto_ponderato = round(calcola_voto_finale_ponderato(combined_distances, voti), 1)
-
-    print(
-        f"\t{Fore.LIGHTBLACK_EX}Weighted avg: {Fore.YELLOW}{Style.BRIGHT}{voto_ponderato}{Style.RESET_ALL}"
-    )
-
-    final_score = adjust_score(combined_distances, voto_ponderato)
+    final_score = adjust_score(combined_distances, voti[0])
 
     print("")
 

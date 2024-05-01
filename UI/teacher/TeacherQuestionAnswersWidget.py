@@ -679,6 +679,8 @@ class TeacherQuestionAnswersWidget(QWidget):
     def unevaluated_answers_ids_ready(self, ids: list[str]):
         print("[unevaluated_answers_ids_ready]", ids)
 
+        self.__leftSideBarWidget.blockListSignals()
+
         for q in self.questions:
             question = Question(
                 q['id'],
@@ -690,6 +692,8 @@ class TeacherQuestionAnswersWidget(QWidget):
                 q['data_creazione'],
             )
             self.__leftSideBarWidget.addQuestionToList(question, question.id in ids)
+
+        self.__leftSideBarWidget.unblockListSignals()
 
     @QtCore.pyqtSlot()
     def unevaluated_answers_ids_update_ready(self, ids: list[str]):
