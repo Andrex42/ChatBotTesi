@@ -4,6 +4,7 @@ import time
 from typing import Optional
 import chromadb
 import os
+import sys
 import numpy as np
 from chromadb.utils import embedding_functions
 from dotenv import load_dotenv
@@ -13,12 +14,14 @@ import logging
 from datetime import datetime
 from colorama import Fore, Style
 from model.answer_model import Answer
-from nltk.metrics import edit_distance
 from model.question_model import Question
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
-load_dotenv()  # This loads environment variables from a .env file, which is good for sensitive info like API keys
+extDataDir = os.getcwd()
+if getattr(sys, 'frozen', False):
+    extDataDir = sys._MEIPASS
+load_dotenv(dotenv_path=os.path.join(extDataDir, '.env'))
 
 pp = pprint.PrettyPrinter(indent=4)  # PrettyPrinter makes dictionary output easier to read
 
@@ -560,12 +563,10 @@ def predict_vote_from_ref(id_domanda: str, teacher_username: str, sentence_to_co
     similar_dict_list = sorted(similar_dict_list, key=lambda x: x['combined_distance'])
 
     best_similar = similar_dict_list[0]
-    levenshtein_distance = edit_distance(sentence_to_compare_text, best_similar['document'])
 
     print(f"\n\t{Fore.CYAN}Ref similarity match{Style.RESET_ALL}:\n"
           f"\t\tCosine Distance: {best_similar['cosine_distance']}"
           f"\t\tJaccard Distance: {best_similar['jaccard_distance']}"
-          f"\t\tLevenshtein Distance: {levenshtein_distance}"
           f"\n\t\tRef. Result: {Fore.GREEN if best_similar['metadata']['voto_docente'] >= 6 else Fore.RED}{best_similar['metadata']['voto_docente']}{Style.RESET_ALL}"
           f"\n\t\tDocument: {best_similar['document']}"
           f"\n\t\tAuthor: {best_similar['metadata']['id_autore']}\n")
@@ -699,12 +700,10 @@ def predict_vote(id_domanda: str, sentence_to_compare_text, export_folder='', ex
     similar_dict_list = sorted(similar_dict_list, key=lambda x: x['combined_distance'])
 
     best_similar = similar_dict_list[0]
-    levenshtein_distance = edit_distance(sentence_to_compare_text, best_similar['document'])
 
     print(f"\n\t{Fore.CYAN}Best similarity match{Style.RESET_ALL}:\n"
           f"\t\tCosine Distance: {best_similar['cosine_distance']}"
           f"\t\tJaccard Distance: {best_similar['jaccard_distance']}"
-          f"\t\tLevenshtein Distance: {levenshtein_distance}"
           f"\n\t\tRef. Result: {Fore.GREEN if best_similar['metadata']['voto_docente'] >= 6 else Fore.RED}{best_similar['metadata']['voto_docente']}{Style.RESET_ALL}"
           f"\n\t\tDocument: {best_similar['document']}"
           f"\n\t\tAuthor: {best_similar['metadata']['id_autore']}\n")
