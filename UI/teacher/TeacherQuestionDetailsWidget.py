@@ -193,7 +193,7 @@ class QuestionDetailsWidget(QWidget):
 
         return chart_container
 
-    def populateUnevaluatedChart(self, not_evaluated_answers: list[Answer]):
+    def populate_unevaluated_chart(self, not_evaluated_answers: list[Answer]):
         def count_predictions(answers: list[Answer]) -> dict:
             occorrenze = defaultdict(int)
 
@@ -380,7 +380,7 @@ class QuestionDetailsWidget(QWidget):
         if not_evaluated_answers_count == 0:
             self.students_answers_not_evaluated_layout.addWidget(not_evaluated_empty_state_label)
         else:
-            self.populateUnevaluatedChart(not_evaluated_answers)
+            self.populate_unevaluated_chart(not_evaluated_answers)
 
         if evaluated_answers_count == 0:
             self.students_answers_evaluated_layout.addWidget(evaluated_empty_state_label)
