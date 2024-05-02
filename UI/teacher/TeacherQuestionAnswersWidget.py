@@ -48,7 +48,7 @@ class TeacherWorker(QtCore.QObject):
     archived_questions_event = QtCore.pyqtSignal(list)
     exported_questions_event = QtCore.pyqtSignal(list)
     students_votes_ready_event = QtCore.pyqtSignal(list)
-    recalculated_unevaluated_answers_event = QtCore.pyqtSignal(object)
+    recalculated_unevaluated_answers_event = QtCore.pyqtSignal()
     q_a_ready_event = QtCore.pyqtSignal(object, object)
     unevaluated_answers_ids_ready_event = QtCore.pyqtSignal(list)
     unevaluated_answers_ids_update_ready_event = QtCore.pyqtSignal(list)
@@ -233,9 +233,6 @@ class TeacherWorker(QtCore.QObject):
 
         self.answer_voted_event.emit(question, answer)
 
-        # riottiene le risposte degli studenti alla domanda,
-        # sostituisce al termine la vista aggiornando i dati e gli istogrammi
-        self.get_students_answers(question)
         # ottiene le risposte che richiedono attenzione da parte del docente
         self.getToEvaluateAnswersId(useUpdateEvent=True)
 
@@ -413,7 +410,7 @@ class TeacherWorker(QtCore.QObject):
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
-    def recalc_question_unevaluated_answers_predictions(self, id_domanda: str):
+    def recalc_question_unevaluated_answers_predictions(self, question: Question):
         start = time.time()
 
         init_chroma_client()
@@ -421,7 +418,7 @@ class TeacherWorker(QtCore.QObject):
         q_a_collection = get_chroma_q_a_collection()
 
         unevaluated_answers_result = q_a_collection.get(
-            where={"$and": [{"id_domanda": id_domanda},
+            where={"$and": [{"id_domanda": question.id},
                             {"voto_docente": -1}]},
             include=["documents", "metadatas"]
         )
@@ -431,7 +428,7 @@ class TeacherWorker(QtCore.QObject):
 
             for unevaluated_answers_array_index in range(len(unevaluated_answers_result['ids'])):
                 curr_document = unevaluated_answers_result['documents'][unevaluated_answers_array_index]
-                predicted_vote = predict_vote(id_domanda,
+                predicted_vote = predict_vote(question.id,
                                               curr_document)
                 voti_all_aggiornati.append(predicted_vote)
 
@@ -456,7 +453,11 @@ class TeacherWorker(QtCore.QObject):
 
             print("voti predetti da tutte le risposte aggiornati")
 
-            self.recalculated_unevaluated_answers_event.emit(voti_all_aggiornati)
+        # riottiene le risposte degli studenti alla domanda,
+        # sostituisce al termine la vista aggiornando i dati e gli istogrammi
+        self.get_students_answers(question)
+
+        self.recalculated_unevaluated_answers_event.emit()  # mostra finestra di dialogo con conferma
 
         print(f'Execution time = {time.time() - start} seconds.')
 
@@ -613,7 +614,7 @@ class TeacherQuestionAnswersWidget(QWidget):
                                                                           self.unevaluated_answers_ids_update_ready(ids))
         self.db_worker.question_added_event.connect(lambda question: self.on_question_added(question))
         self.db_worker.answer_voted_event.connect(lambda question, answer: self.on_answer_voted(question, answer))
-        self.db_worker.recalculated_unevaluated_answers_event.connect(lambda votes: self.on_recalculated_unevaluated_answers(votes))
+        self.db_worker.recalculated_unevaluated_answers_event.connect(self.on_recalculated_unevaluated_answers)
         self.db_worker.archived_questions_event.connect(lambda questions: self.on_archived_questions(questions))
         self.db_worker.exported_questions_event.connect(lambda questions: self.on_exported_questions(questions))
 
@@ -722,15 +723,23 @@ class TeacherQuestionAnswersWidget(QWidget):
     def on_answer_voted(self, question: Question, answer: Answer):
         print("[on_answer_voted]", answer)
 
-        self.__questionDetailsWidget.onEvaluatedAnswer(question, answer)
         if self.db_worker is not None:
-            task = RunnableTask(self.db_worker.recalc_question_unevaluated_answers_predictions, answer.id_domanda)
+            task = RunnableTask(self.db_worker.recalc_question_unevaluated_answers_predictions, question)
             self.threadpool.start(task)
 
     @QtCore.pyqtSlot()
-    def on_recalculated_unevaluated_answers(self, votes: list):
-        print("[on_recalculated_unevaluated_answers]", votes)
-        self.__questionDetailsWidget.onRecalulatedVotes(votes)
+    def on_recalculated_unevaluated_answers(self):
+        print("[on_recalculated_unevaluated_answers]")
+        self.hide_loading_dialog()
+        def show_confirm():
+            message = 'Voto assegnato correttamente.'
+            closeMessageBox = QMessageBox(self)
+            closeMessageBox.setWindowTitle('Successo')
+            closeMessageBox.setText(message)
+            closeMessageBox.setStandardButtons(QMessageBox.Close)
+            reply = closeMessageBox.show()
+
+        show_confirm()
 
     @QtCore.pyqtSlot()
     def on_archived_questions(self, archivedQuestions: list[Question]):
@@ -791,7 +800,7 @@ class TeacherQuestionAnswersWidget(QWidget):
             self.threadpool.start(task)
 
     def show_loading_dialog(self):
-        self.loading_dialog.exec()
+        self.loading_dialog.show()
 
     def hide_loading_dialog(self):
         self.loading_dialog.cancel()

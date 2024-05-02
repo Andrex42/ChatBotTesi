@@ -396,7 +396,7 @@ def calcola_voto_finale_ponderato(punteggi, voti):
     return voto_finale_ponderato
 
 
-def adjust_score(distances, score, reduction_start=0.1, reduction_end=0.6) -> int:
+def adjust_score(distances, score, reduction_start=0.06, reduction_end=0.6) -> int:
     """
         Corregge il punteggio basato sulla distanza minima da un punto di riferimento,
         applicando una riduzione proporzionale all'interno di un intervallo definito.
@@ -406,7 +406,7 @@ def adjust_score(distances, score, reduction_start=0.1, reduction_end=0.6) -> in
           la distanza minima per la correzione del punteggio.
         - score (float): Il punteggio originale da correggere basato sulla distanza minima.
         - reduction_start (float, opzionale): La distanza a partire dalla quale iniziare la riduzione
-          del punteggio. Default a 0.15.
+          del punteggio. Default a 0.06.
         - reduction_end (float, opzionale): La distanza oltre la quale il punteggio viene ridotto a 1.
           Default a 0.6.
 
@@ -465,15 +465,18 @@ def calc_jaccard_distance(embedding1, embedding2):
     return jaccard_distance
 
 
-def predict_vote_from_ref(id_domanda: str, teacher_username: str, sentence_to_compare_text, export_folder='', exported_count=0, expected_vote=-1):
+def predict_vote_from_ref(id_domanda: str, teacher_username: str, sentence_to_compare_text, export_folder='', expected_vote=-1, questions_analyzed=None):
+    if questions_analyzed is None:
+        questions_analyzed = []
+
     results = get_ref_sentence(id_domanda, teacher_username, sentence_to_compare_text)
 
     accuracy_output_path = ''
     distances_output_path = ''
 
     if export_folder != '':
-        accuracy_file_name = f"export_ref_only_accuracy_test_{exported_count}.csv"
-        distances_file_name = f"export_ref_only_distances_test_{exported_count}.csv"
+        accuracy_file_name = f"export_ref_only_accuracy_test.csv"
+        distances_file_name = f"export_ref_only_distances_test.csv"
 
         # Percorso completo per il file CSV di output
         accuracy_output_path = os.path.join(export_folder, accuracy_file_name)
@@ -485,7 +488,7 @@ def predict_vote_from_ref(id_domanda: str, teacher_username: str, sentence_to_co
                 # Definisci il writer CSV
                 writer = csv.DictWriter(
                     file,
-                    fieldnames=['question', 'answer', 'most_similar_answer', 'most_similar_answer_author_id', 'cosine_distance', 'jaccard_distance', 'combined_distance', 'most_similar_answer_vote', 'expected_vote', 'predicted_vote', 'result']
+                    fieldnames=['q_short_id', 'question', 'answer', 'most_similar_answer', 'most_similar_answer_author_id', 'cosine_distance', 'jaccard_distance', 'combined_distance', 'most_similar_answer_vote', 'expected_vote', 'predicted_vote', 'result']
                 )
 
                 # Scrivi l'intestazione del CSV
@@ -497,7 +500,7 @@ def predict_vote_from_ref(id_domanda: str, teacher_username: str, sentence_to_co
                 # Definisci il writer CSV
                 writer = csv.DictWriter(
                     file,
-                    fieldnames=['question', 'answer', 'similar_answer', 'similar_answer_author_id', 'cosine_distance', 'jaccard_distance', 'combined_distance', 'similar_answer_vote', 'expected_vote']
+                    fieldnames=['q_short_id', 'question', 'answer', 'similar_answer', 'similar_answer_author_id', 'cosine_distance', 'jaccard_distance', 'combined_distance', 'similar_answer_vote', 'expected_vote']
                 )
 
                 # Scrivi l'intestazione del CSV
@@ -541,13 +544,14 @@ def predict_vote_from_ref(id_domanda: str, teacher_username: str, sentence_to_co
                 writer = csv.writer(file)
 
                 writer.writerow([
+                    f'Q{len(questions_analyzed)}',
                     it_metadata['domanda'],
                     sentence_to_compare_text,
                     doc,
                     it_metadata['id_autore'],
-                    it_distance,
-                    jaccard_distance,
-                    combined_distance,
+                    round(it_distance, 3),
+                    round(jaccard_distance, 3),
+                    round(combined_distance, 3),
                     it_metadata['voto_docente'],
                     expected_vote
                 ])
@@ -574,35 +578,45 @@ def predict_vote_from_ref(id_domanda: str, teacher_username: str, sentence_to_co
     print("")
 
     if accuracy_output_path != '':
+        error_tolerance = 1
+
+        ACCURACY_TEST_ERROR_TOLERANCE = os.getenv("ACCURACY_TEST_ERROR_TOLERANCE")
+        if ACCURACY_TEST_ERROR_TOLERANCE is not None:
+            error_tolerance = int(ACCURACY_TEST_ERROR_TOLERANCE)
+
         with open(accuracy_output_path, mode='a', newline='', encoding='utf-8') as file:  # Apri il file in modalità di aggiunta (append)
             writer = csv.writer(file)
 
             writer.writerow([
+                f"Q{questions_analyzed.index(best_similar['metadata']['domanda']) + 1}",
                 best_similar['metadata']['domanda'],
                 sentence_to_compare_text,
                 best_similar['document'],
                 best_similar['metadata']['id_autore'],
-                best_similar['cosine_distance'],
-                best_similar['jaccard_distance'],
-                best_similar['combined_distance'],
+                round(best_similar['cosine_distance'], 3),
+                round(best_similar['jaccard_distance'], 3),
+                round(best_similar['combined_distance'], 3),
                 best_similar['metadata']['voto_docente'],
                 expected_vote,
                 final_score,
-                "PASSED" if abs(final_score - expected_vote) <= 1 else "FAILED"
+                "PASSED" if abs(final_score - expected_vote) <= error_tolerance else "FAILED"
             ])
 
     return final_score
 
 
-def predict_vote(id_domanda: str, sentence_to_compare_text, export_folder='', exported_count=0, expected_vote=-1):
+def predict_vote(id_domanda: str, sentence_to_compare_text, export_folder='', expected_vote=-1, questions_analyzed=None):
+    if questions_analyzed is None:
+        questions_analyzed = []
+
     results = get_similar_sentences(id_domanda, sentence_to_compare_text)
 
     accuracy_output_path = ''
     distances_output_path = ''
 
     if export_folder != '':
-        accuracy_file_name = f"export_accuracy_test_{exported_count}.csv"
-        distances_file_name = f"export_distances_test_{exported_count}.csv"
+        accuracy_file_name = f"export_accuracy_test.csv"
+        distances_file_name = f"export_distances_test.csv"
 
         # Percorso completo per il file CSV di output
         accuracy_output_path = os.path.join(export_folder, accuracy_file_name)
@@ -614,7 +628,7 @@ def predict_vote(id_domanda: str, sentence_to_compare_text, export_folder='', ex
                 # Definisci il writer CSV
                 writer = csv.DictWriter(
                     file,
-                    fieldnames=['question', 'answer', 'most_similar_answer', 'most_similar_answer_author_id', 'cosine_distance', 'jaccard_distance', 'combined_distance', 'most_similar_answer_vote', 'expected_vote', 'predicted_vote', 'result']
+                    fieldnames=['q_short_id', 'question', 'answer', 'most_similar_answer', 'most_similar_answer_author_id', 'cosine_distance', 'jaccard_distance', 'combined_distance', 'most_similar_answer_vote', 'expected_vote', 'predicted_vote', 'result']
                 )
 
                 # Scrivi l'intestazione del CSV
@@ -626,7 +640,7 @@ def predict_vote(id_domanda: str, sentence_to_compare_text, export_folder='', ex
                 # Definisci il writer CSV
                 writer = csv.DictWriter(
                     file,
-                    fieldnames=['question', 'answer', 'similar_answer', 'similar_answer_author_id', 'cosine_distance', 'jaccard_distance', 'combined_distance', 'similar_answer_vote', 'expected_vote']
+                    fieldnames=['q_short_id', 'question', 'answer', 'similar_answer', 'similar_answer_author_id', 'cosine_distance', 'jaccard_distance', 'combined_distance', 'similar_answer_vote', 'expected_vote']
                 )
 
                 # Scrivi l'intestazione del CSV
@@ -669,13 +683,14 @@ def predict_vote(id_domanda: str, sentence_to_compare_text, export_folder='', ex
                 writer = csv.writer(file)
 
                 writer.writerow([
+                    f'Q{len(questions_analyzed)}',
                     it_metadata['domanda'],
                     sentence_to_compare_text,
                     doc,
                     it_metadata['id_autore'],
-                    it_distance,
-                    jaccard_distance,
-                    combined_distance,
+                    round(it_distance, 3),
+                    round(jaccard_distance, 3),
+                    round(combined_distance, 3),
                     it_metadata['voto_docente'],
                     expected_vote
                 ])
@@ -708,21 +723,28 @@ def predict_vote(id_domanda: str, sentence_to_compare_text, export_folder='', ex
     print("")
 
     if accuracy_output_path != '':
+        error_tolerance = 1
+
+        ACCURACY_TEST_ERROR_TOLERANCE = os.getenv("ACCURACY_TEST_ERROR_TOLERANCE")
+        if ACCURACY_TEST_ERROR_TOLERANCE is not None:
+            error_tolerance = int(ACCURACY_TEST_ERROR_TOLERANCE)
+
         with open(accuracy_output_path, mode='a', newline='', encoding='utf-8') as file:  # Apri il file in modalità di aggiunta (append)
             writer = csv.writer(file)
 
             writer.writerow([
+                f"Q{questions_analyzed.index(best_similar['metadata']['domanda']) + 1}",
                 best_similar['metadata']['domanda'],
                 sentence_to_compare_text,
                 best_similar['document'],
                 best_similar['metadata']['id_autore'],
-                best_similar['cosine_distance'],
-                best_similar['jaccard_distance'],
-                best_similar['combined_distance'],
+                round(best_similar['cosine_distance'], 3),
+                round(best_similar['jaccard_distance'], 3),
+                round(best_similar['combined_distance'], 3),
                 best_similar['metadata']['voto_docente'],
                 expected_vote,
                 final_score,
-                "PASSED" if abs(final_score - expected_vote) <= 1 else "FAILED"
+                "PASSED" if abs(final_score - expected_vote) <= error_tolerance else "FAILED"
             ])
 
     return final_score

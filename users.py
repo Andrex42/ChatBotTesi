@@ -10,6 +10,7 @@ STUDENTS = [
     {'username': 'studente.basidati', 'password': 'tesi123'},
     {'username': 'studente.basidati2', 'password': 'tesi123'},
     {'username': 'studente.basidati3', 'password': 'tesi123'},
+    {'username': 'studente.basidati4', 'password': 'tesi123'},
     {'username': 'studente.tecweb', 'password': 'tesi123'},
     {'username': 'trimarco.francesco', 'password': 'tesi123'},
 ]
@@ -32,6 +33,7 @@ RELATIONS = [
     {'studente.basidati': ['docente.basidati']},
     {'studente.basidati2': ['docente.basidati']},
     {'studente.basidati3': ['docente.basidati']},
+    {'studente.basidati4': ['docente.basidati']},
     {'studente.tecweb': ['docente.tecweb']},
     {'trimarco.francesco': ['docente.tecweb', 'docente.basidati']}
 ]

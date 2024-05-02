@@ -21,15 +21,14 @@ class RunnableTask(QtCore.QRunnable):
 
 
 class TeacherStudentAnswerPreviewItem(QWidget):
-    def __init__(self, threadpool, db_worker, authorized_user, question: Question, answer: Answer, evaluated):
+    def __init__(self, authorized_user, question: Question, answer: Answer, evaluated, assign_vote_clicked=None):
         super().__init__()
 
-        self.db_worker = db_worker
-        self.threadpool = threadpool
         self.authorized_user = authorized_user
         self.question = question
         self.answer = answer
         self.evaluated = evaluated
+        self.assign_vote_clicked = assign_vote_clicked
 
         self.__initUi()
 
@@ -159,7 +158,7 @@ class TeacherStudentAnswerPreviewItem(QWidget):
 
             lay.addLayout(confermaVotoLayout)
 
-            assegnaVotoBtn.clicked.connect(self.__assignVote)
+            assegnaVotoBtn.clicked.connect(self.__assignVoteClicked)
         else:
             label_risultato = QLabel(str(self.answer.voto_docente))
             policy = label_risultato.sizePolicy()
@@ -204,7 +203,6 @@ class TeacherStudentAnswerPreviewItem(QWidget):
 
         self.setLayout(lay)
 
-    def __assignVote(self):
-        if self.db_worker is not None:
-            task = RunnableTask(self.db_worker.assign_vote, self.question, self.answer, self.votoCustomSpinBox.value())
-            self.threadpool.start(task)
+    def __assignVoteClicked(self):
+        if self.assign_vote_clicked is not None:
+            self.assign_vote_clicked(self.question, self.answer, self.votoCustomSpinBox.value())

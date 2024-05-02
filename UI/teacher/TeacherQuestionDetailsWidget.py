@@ -4,7 +4,7 @@ from PyQt5 import QtCore
 from PyQt5.QtChart import QChart, QChartView, QBarSeries, QBarSet, QBarCategoryAxis, QValueAxis
 from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QPainter, QPalette, QColor, QBrush
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QMessageBox, QPushButton, QFrame
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QMessageBox, QPushButton, QFrame, QProgressDialog
 
 from UI.teacher.TeacherStudentAnswerPreviewItem import TeacherStudentAnswerPreviewItem
 from model.answer_model import Answer
@@ -36,7 +36,12 @@ class QuestionDetailsWidget(QWidget):
         self.hide()
 
     def __initUi(self):
-        # self.label = QLabel("")
+        self.loading_dialog = QProgressDialog(self)
+        self.loading_dialog.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        self.loading_dialog.setRange(0, 0)
+        self.loading_dialog.setCancelButton(None)
+        self.hide_loading_dialog()
+
         teacher_question_container = QWidget(self)
         teacher_question_container.setObjectName("teacher_container")  # Setta un ID per il container
         teacher_question_container.setStyleSheet('''
@@ -58,11 +63,6 @@ class QuestionDetailsWidget(QWidget):
 
         self.answer_label = QLabel("-")
         self.answer_label.setWordWrap(True)
-
-        self.btnRecalc = QPushButton("Ricalcola")
-
-        task = RunnableTask(self.db_worker.recalc_question_unevaluated_answers_predictions, self.id_domanda)
-        self.btnRecalc.clicked.connect(lambda: self.threadpool.start(task))
 
         lbl = QLabel("DOMANDA")
         lbl.setStyleSheet('''
@@ -98,7 +98,6 @@ class QuestionDetailsWidget(QWidget):
                 ''')
         self.students_answers_not_evaluated_layout.insertSpacing(10, 20)
         self.students_answers_not_evaluated_layout.addWidget(risposte_studenti_label)
-        #self.students_answers_not_evaluated_layout.addWidget(self.btnRecalc)
 
         risposte_studenti_label = QLabel("RISPOSTE DEGLI STUDENTI GIÀ VALUTATE")
         risposte_studenti_label.setStyleSheet('''
@@ -345,13 +344,19 @@ class QuestionDetailsWidget(QWidget):
                     self.students_answers_not_evaluated_layout.addWidget(self.create_unevaluated_chart())
                     unevaluated_chart_added = True
 
+                def onAnswerVotedCallback(_question: Question, _answer: Answer, vote: int):
+                    if self.db_worker is not None:
+                        task = RunnableTask(self.db_worker.assign_vote, _question, _answer, vote)
+                        self.threadpool.start(task)
+
+                        self.show_loading_dialog()
+
                 studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
-                    self.threadpool,
-                    self.db_worker,
                     self.authorized_user,
                     question,
                     answer,
-                    False
+                    False,
+                    onAnswerVotedCallback
                 )
                 self.students_answers_not_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
                 not_evaluated_answers_count += 1
@@ -363,8 +368,6 @@ class QuestionDetailsWidget(QWidget):
                     evaluated_chart_added = True
 
                 studentAnswerPreviewItemWidget = TeacherStudentAnswerPreviewItem(
-                    self.threadpool,
-                    self.db_worker,
                     self.authorized_user,
                     question,
                     answer,
@@ -391,27 +394,6 @@ class QuestionDetailsWidget(QWidget):
 
         if self.isHidden():
             self.show()
-
-    def onRecalulatedVotes(self, votes: list[float]):
-        teacherStudentAnswerPreviewItemIndex = 0
-        for not_evaluated_item_index in range(self.students_answers_not_evaluated_layout.count()):
-            item = self.students_answers_not_evaluated_layout.itemAt(not_evaluated_item_index)
-            widget = item.widget()
-            if isinstance(widget, TeacherStudentAnswerPreviewItem):
-                widget.label_risultato.setText(str(votes[teacherStudentAnswerPreviewItemIndex]))
-                # widget.votoCustomSpinBox.setValue(votes[teacherStudentAnswerPreviewItemIndex])
-                teacherStudentAnswerPreviewItemIndex += 1
-
-    def onEvaluatedAnswer(self, question: Question, answer: Answer):
-        def show_confirm():
-            message = 'Voto assegnato correttamente.'
-            closeMessageBox = QMessageBox(self)
-            closeMessageBox.setWindowTitle('Successo')
-            closeMessageBox.setText(message)
-            closeMessageBox.setStandardButtons(QMessageBox.Close)
-            reply = closeMessageBox.exec()
-
-        show_confirm()
 
     def changeEvent(self, event):
         if event.type() == QEvent.ApplicationPaletteChange or event.type() == QEvent.PaletteChange:
@@ -442,6 +424,12 @@ class QuestionDetailsWidget(QWidget):
                 self._chart_view2.chart().setBackgroundBrush(QBrush(QColor(0, 0, 0, 15)))
         except AttributeError:
             pass
+
+    def show_loading_dialog(self):
+        self.loading_dialog.exec()
+
+    def hide_loading_dialog(self):
+        self.loading_dialog.cancel()
 
     def cleanup(self):
         # Elimina tutti i widget dal layout tranne l'header della sezione
