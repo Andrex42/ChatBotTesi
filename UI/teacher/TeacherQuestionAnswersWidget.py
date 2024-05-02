@@ -534,14 +534,19 @@ class TeacherQuestionAnswersWidget(QWidget):
         self.__initQuestions()
 
     def __initUi(self, parent: QMainWindow):
-        self.__leftSideBarWidget = LeftSideBar(self.authorized_user)
-        self.__questionDetailsWidget = QuestionDetailsWidget(self.authorized_user, self.threadpool, self.db_worker)
-
         self.loading_dialog = QProgressDialog(self)
         self.loading_dialog.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
         self.loading_dialog.setRange(0, 0)
         self.loading_dialog.setCancelButton(None)
         self.hide_loading_dialog()
+
+        self.__leftSideBarWidget = LeftSideBar(self.authorized_user)
+        self.__questionDetailsWidget = QuestionDetailsWidget(
+            self.authorized_user,
+            self.threadpool,
+            self.db_worker,
+            self.loading_dialog
+        )
 
         mainWidget = QSplitter()
         mainWidget.addWidget(self.__leftSideBarWidget)
@@ -731,6 +736,7 @@ class TeacherQuestionAnswersWidget(QWidget):
     def on_recalculated_unevaluated_answers(self):
         print("[on_recalculated_unevaluated_answers]")
         self.hide_loading_dialog()
+
         def show_confirm():
             message = 'Voto assegnato correttamente.'
             closeMessageBox = QMessageBox(self)
@@ -800,7 +806,7 @@ class TeacherQuestionAnswersWidget(QWidget):
             self.threadpool.start(task)
 
     def show_loading_dialog(self):
-        self.loading_dialog.show()
+        self.loading_dialog.exec()
 
     def hide_loading_dialog(self):
         self.loading_dialog.cancel()

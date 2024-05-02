@@ -24,24 +24,19 @@ class RunnableTask(QtCore.QRunnable):
 
 class QuestionDetailsWidget(QWidget):
 
-    def __init__(self, authorized_user, threadpool, db_worker):
+    def __init__(self, authorized_user, threadpool, db_worker, loading_dialog):
         super().__init__()
 
         self.authorized_user = authorized_user
         self.threadpool = threadpool
         self.db_worker = db_worker
+        self.loading_dialog = loading_dialog
         self.id_domanda = None
 
         self.__initUi()
         self.hide()
 
     def __initUi(self):
-        self.loading_dialog = QProgressDialog(self)
-        self.loading_dialog.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
-        self.loading_dialog.setRange(0, 0)
-        self.loading_dialog.setCancelButton(None)
-        self.hide_loading_dialog()
-
         teacher_question_container = QWidget(self)
         teacher_question_container.setObjectName("teacher_container")  # Setta un ID per il container
         teacher_question_container.setStyleSheet('''
@@ -344,7 +339,7 @@ class QuestionDetailsWidget(QWidget):
                     self.students_answers_not_evaluated_layout.addWidget(self.create_unevaluated_chart())
                     unevaluated_chart_added = True
 
-                def onAnswerVotedCallback(_question: Question, _answer: Answer, vote: int):
+                def assign_vote_clicked_callback(_question: Question, _answer: Answer, vote: int):
                     if self.db_worker is not None:
                         task = RunnableTask(self.db_worker.assign_vote, _question, _answer, vote)
                         self.threadpool.start(task)
@@ -356,7 +351,7 @@ class QuestionDetailsWidget(QWidget):
                     question,
                     answer,
                     False,
-                    onAnswerVotedCallback
+                    assign_vote_clicked_callback
                 )
                 self.students_answers_not_evaluated_layout.addWidget(studentAnswerPreviewItemWidget)
                 not_evaluated_answers_count += 1
