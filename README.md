@@ -49,3 +49,45 @@ Dopo aver configurato correttamente l'ambiente, è possibile eseguire l'applicaz
    python app.py
 ```
 L'applicazione dovrebbe avviarsi correttamente e sarà pronta per l'uso.
+
+## Utenti
+
+Di seguito sono elencate le credenziali valide per l'applicazione:
+
+```
+STUDENTI = [
+    studente.archeologia',
+    studente.archeologia2',
+    studente.archeologia3',
+    studente.archeologia4',
+    studente.archeologia5',
+    studente.archeologia6',
+    studente.archeologia7',
+    studente.basidati.eng',
+    studente.basidati',
+    studente.basidati2',
+    studente.basidati3',
+    studente.basidati4',
+    studente.tecweb',
+    trimarco.francesco
+]
+
+DOCENTI = [
+    docente.archeologia,
+    docente.basidati,
+    docente.tecweb
+]
+
+```
+È possibile modificare gli utenti e le relazioni che intercorrono tra di essi nel file `users.py`
+
+## Settaggi modificabili
+
+È possibile modificare alcuni settaggi dell'applicazione tramite un file `.env`. Le variabili configurabili sono:
+
+- `PRETRAINED_MODEL_NAME`: Il nome del modello utilizzato per la generazione di embedding. Esempio: `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`.
+- `USE_TRAIN_RESPONSES_DATA`: Se impostato su `true`, utilizza i documenti inseriti nella collezione in fase di training.
+- `USE_EXPORT_DATA`: Se impostato su `true`, importa eventuali export delle domande e delle risposte presenti nella cartella `export_data`.
+
+Modificare questi settaggi nel file `.env` secondo le necessità dell'applicazione.
+
