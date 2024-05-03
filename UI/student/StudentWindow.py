@@ -26,9 +26,9 @@ class StudentWindow(QStackedWidget):
         screen_geometry = QDesktopWidget().screenGeometry()
 
         # Imposta le dimensioni della finestra principale
-        window_width = screen_geometry.width() // 2
-        window_height = screen_geometry.height() // 2
-        self.main_window.resize(window_width, window_height)
+        window_width = screen_geometry.width() // 1.33
+        window_height = screen_geometry.height() // 1.33
+        self.main_window.resize(int(window_width), int(window_height))
 
         self.main_window.center()
 

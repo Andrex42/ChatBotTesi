@@ -146,10 +146,10 @@ class TeacherStudentAnswerPreviewItem(QWidget):
             lay.addWidget(answer_label)
             lay.addSpacerItem(QSpacerItem(20, 10, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
-            risultatoLayoutHTop.addWidget(QLabel("Il voto predetto dalla risposta di riferimento è: "))
+            risultatoLayoutHTop.addWidget(QLabel("Il voto predetto dalla tua risposta di riferimento è: "))
             risultatoLayoutHTop.addWidget(self.label_risultato_ref)
 
-            risultatoLayoutHBottom.addWidget(QLabel("Il voto predetto da tutte le risposte già valutate è: "))
+            risultatoLayoutHBottom.addWidget(QLabel("Il voto predetto da tutte le altre risposte valutate è: "))
             risultatoLayoutHBottom.addWidget(self.label_risultato)
 
             risultatoLayoutV.addLayout(risultatoLayoutHTop)
