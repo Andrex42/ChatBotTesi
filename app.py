@@ -20,7 +20,11 @@ class Application(QMainWindow):
 
         self.setup_ui()
 
-        init_model_with_exports()
+        USE_EXPORT_DATA = os.getenv("USE_EXPORT_DATA").lower()
+
+        if USE_EXPORT_DATA == "true":
+            init_model_with_exports()
+
         # init_model()
         # check_answer_records()
         # test_model()
