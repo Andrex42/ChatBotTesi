@@ -1,9 +1,12 @@
-import sys
+import sys, os
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QDesktopWidget
 from UI.LoginFormApp import LoginFormApp
 
 from collection import init_model, init_model_with_exports, check_answer_records
+
+
+os.chdir(sys._MEIPASS)
 
 
 class Application(QMainWindow):
