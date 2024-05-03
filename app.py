@@ -3,7 +3,7 @@ import sys, os
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QDesktopWidget
 from UI.LoginFormApp import LoginFormApp
 
-from collection import init_model, init_model_with_exports, check_answer_records
+from collection import init_model_with_exports
 
 
 extDataDir = os.getcwd()
@@ -25,8 +25,6 @@ class Application(QMainWindow):
         if USE_EXPORT_DATA == "true":
             init_model_with_exports()
 
-        # init_model()
-        # check_answer_records()
         # test_model()
 
     def center(self):

@@ -4,7 +4,7 @@ from PyQt5 import QtCore
 from PyQt5.QtChart import QChart, QChartView, QBarSeries, QBarSet, QBarCategoryAxis, QValueAxis
 from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QPainter, QPalette, QColor, QBrush
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QMessageBox, QPushButton, QFrame, QProgressDialog
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QFrame
 
 from UI.teacher.TeacherStudentAnswerPreviewItem import TeacherStudentAnswerPreviewItem
 from model.answer_model import Answer
@@ -326,6 +326,7 @@ class QuestionDetailsWidget(QWidget):
                 int(answer_dict['voto_docente']),
                 int(answer_dict['voto_predetto']),
                 int(answer_dict['voto_predetto_all']),
+                answer_dict['use_as_ref'],
                 answer_dict['commento'],
                 answer_dict['source'],
                 answer_dict['data_creazione'],
@@ -339,9 +340,9 @@ class QuestionDetailsWidget(QWidget):
                     self.students_answers_not_evaluated_layout.addWidget(self.create_unevaluated_chart())
                     unevaluated_chart_added = True
 
-                def assign_vote_clicked_callback(_question: Question, _answer: Answer, vote: int):
+                def assign_vote_clicked_callback(_question: Question, _answer: Answer, vote: int, use_as_ref=False):
                     if self.db_worker is not None:
-                        task = RunnableTask(self.db_worker.assign_vote, _question, _answer, vote)
+                        task = RunnableTask(self.db_worker.assign_vote, _question, _answer, vote, use_as_ref)
                         self.threadpool.start(task)
 
                         self.show_loading_dialog()

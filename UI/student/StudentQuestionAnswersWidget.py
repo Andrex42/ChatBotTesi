@@ -122,6 +122,7 @@ class StudentWorker(QtCore.QObject):
                 int(answer_data_array[0]['voto_docente']),
                 int(answer_data_array[0]['voto_predetto']),
                 int(answer_data_array[0]['voto_predetto_all']),
+                answer_data_array[0]['use_as_ref'],
                 answer_data_array[0]['commento'],
                 answer_data_array[0]['source'],
                 answer_data_array[0]['data_creazione'],

@@ -12,6 +12,7 @@ class Answer:
     voto_docente: int
     voto_predetto: int
     voto_predetto_all: int
+    use_as_ref: bool
     commento: str
     source: str
     data_creazione: str

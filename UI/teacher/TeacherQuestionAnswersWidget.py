@@ -195,7 +195,7 @@ class TeacherWorker(QtCore.QObject):
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
-    def assign_vote(self, question: Question, answer: Answer, voto: int):
+    def assign_vote(self, question: Question, answer: Answer, voto: int, use_as_ref=False):
         start = time.time()
 
         init_chroma_client()
@@ -222,6 +222,7 @@ class TeacherWorker(QtCore.QObject):
                             "voto_docente": voto,
                             "voto_predetto": answer.voto_predetto,
                             "voto_predetto_all": answer.voto_predetto_all,
+                            "use_as_ref": use_as_ref,
                             "commento": answer.commento,
                             "source": answer.source,
                             "data_creazione": answer.data_creazione}],
@@ -381,7 +382,7 @@ class TeacherWorker(QtCore.QObject):
         # Apri il file CSV in modalità di scrittura
         with open(output_path, mode='w', newline='', encoding='utf-8') as file:
             # Definisci il writer CSV
-            writer = csv.DictWriter(file, fieldnames=['id', 'id_domanda', 'title', 'id_docente', 'text', 'id_autore', 'label', 'voto_predetto', 'voto_predetto_all', 'commento', 'source', 'data_creazione'])
+            writer = csv.DictWriter(file, fieldnames=['id', 'id_domanda', 'title', 'id_docente', 'text', 'id_autore', 'label', 'voto_predetto', 'voto_predetto_all', 'use_as_ref', 'commento', 'source', 'data_creazione'])
 
             # Scrivi l'intestazione del CSV
             writer.writeheader()
@@ -398,6 +399,7 @@ class TeacherWorker(QtCore.QObject):
                     'label': answer_dict['voto_docente'],
                     'voto_predetto': answer_dict['voto_predetto'],
                     'voto_predetto_all': answer_dict['voto_predetto_all'],
+                    'use_as_ref': answer_dict['use_as_ref'],
                     'commento': answer_dict['commento'],
                     'source': answer_dict['source'],
                     'data_creazione': answer_dict['data_creazione'],

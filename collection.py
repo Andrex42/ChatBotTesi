@@ -171,6 +171,7 @@ def init_model_with_exports():
                                 "voto_docente": int(item['label']),
                                 "voto_predetto": int(item['voto_predetto']),
                                 "voto_predetto_all": int(item['voto_predetto_all']),
+                                "use_as_ref": item.get('use_as_ref', False),
                                 "commento": item['commento'],
                                 "source": item['source'],
                                 "data_creazione": item['data_creazione']}],
@@ -185,168 +186,6 @@ def init_model_with_exports():
     print(f"Collections initialized successfully. "
           f"{domande_collection_count} questions. "
           f"{q_a_collection_count} answers.")
-
-
-def init_model():
-    init_chroma_client()
-
-    # Reads the CSV data into pandas DataFrames.
-    df_domande = pd.read_csv('./training_data/domande_archeologia_storia_arte.csv')
-    df_risposte = pd.read_csv('./training_data/risposte_archeologia_storia_arte.csv')
-    df_risposte_docente = pd.read_csv('./training_data/risposte_docente_archeologia_storia_arte.csv')
-
-    # Converts the DataFrames to lists of dictionaries.
-    domande_dict = df_domande.to_dict('records')
-    risposte_dict = df_risposte.to_dict('records')
-    risposte_docente_dict = df_risposte_docente.to_dict('records')
-
-    domande_collection = get_chroma_questions_collection()
-    domande_collection_count = domande_collection.count()
-
-    print(domande_collection_count, "documenti trovati in domande_collection")
-    print(len(domande_dict), "domande trovate nei dati di training")
-
-    q_a_collection = get_chroma_q_a_collection()
-    q_a_collection_count = q_a_collection.count()
-
-    print(q_a_collection_count, "documenti trovati in q_a_collection")
-    print(len(risposte_dict) + len(risposte_docente_dict), "risposte trovate nei dati di training")
-
-    limit_add = None
-
-    # If the number of examples in the collection is less than the number of examples in the questions data,
-    # adds the examples to the collection.
-    if domande_collection_count < len(domande_dict):
-        for idx, item in enumerate(domande_dict[domande_collection_count:]):
-            index = domande_collection_count + idx
-            print("\nAdding question", index, item)
-
-            # Ottieni la data e l'ora correnti
-            now = datetime.now()
-            # Converti in formato ISO 8601
-            iso_format = now.isoformat()
-
-            domande_collection.add(
-                documents=[item['text']],  # aggiunge la domanda ai documenti
-                metadatas=[{"id_domanda": item['id'],
-                            "id_docente": item['id_docente'],
-                            "categoria": item['label'],
-                            "source": "internal__training",
-                            "archived": False,
-                            "data_creazione": iso_format}],
-                ids=[item['id']]
-            )
-
-            if limit_add == idx:
-                break
-
-    # If the number of examples in the collection is less than the number of examples in the q_a data,
-    # adds the examples to the collection.
-    if q_a_collection_count < len(risposte_docente_dict):
-        for idx, item in enumerate(risposte_docente_dict[q_a_collection_count:]):
-            index = q_a_collection_count + idx
-            print("\nAdding risposta docente", index, item)
-
-            # Ottieni la data e l'ora correnti
-            now = datetime.now()
-            # Converti in formato ISO 8601
-            iso_format = now.isoformat()
-
-            q_a_collection.add(
-                documents=[item['text']],  # aggiunge la risposta ai documenti
-                metadatas=[{"id_domanda": item['id_domanda'],
-                            "domanda": item['title'],
-                            "id_docente": item['id_docente'],
-                            "id_autore": item['id_docente'],
-                            "voto_docente": 10,
-                            "voto_predetto": -1,
-                            "voto_predetto_all": -1,
-                            "commento": "undefined",
-                            "source": "internal__training",
-                            "data_creazione": iso_format}],
-                ids=[f"id_{index}"]
-            )
-
-            if limit_add is not None and limit_add == idx:
-                break
-
-    q_a_collection_count = q_a_collection.count()
-
-    # If the number of examples in the collection is less than the number of examples in the q_a data,
-    # adds the examples to the collection.
-
-    if q_a_collection_count < (len(risposte_docente_dict) + len(risposte_dict)):
-        for idx, item in enumerate(risposte_dict[(q_a_collection_count - len(risposte_docente_dict)):]):
-            index = q_a_collection_count + idx
-            print("\nAdding risposta", index, item)
-
-            # Ottieni la data e l'ora correnti
-            now = datetime.now()
-            # Converti in formato ISO 8601
-            iso_format = now.isoformat()
-
-            q_a_collection.add(
-                documents=[item['text']],  # aggiunge la risposta ai documenti
-                metadatas=[{"id_domanda": item['id_domanda'],
-                            "domanda": item['title'],
-                            "id_docente": item['id_docente'],
-                            "id_autore": "undefined",
-                            "voto_docente": int(item['label']),  # voto del docente che va da 1 a 10
-                            "voto_predetto": -1,  # voto non disponibile per i dati di addestramento, default -1
-                            "voto_predetto_all": -1,  # voto non disponibile per i dati di addestramento, default -1
-                            "commento": "undefined",
-                            "source": "internal__training",
-                            "data_creazione": iso_format}],
-                ids=[f"id_{index}"]
-            )
-
-            if limit_add is not None and limit_add == idx:
-                break
-
-
-def check_answer_records():
-    init_chroma_client()
-
-    # Reads the CSV data into pandas DataFrames.
-    df_risposte = pd.read_csv('./training_data/risposte_archeologia_storia_arte.csv')
-    df_risposte_docente = pd.read_csv('./training_data/risposte_docente_archeologia_storia_arte.csv')
-
-    # Converts the DataFrames to lists of dictionaries.
-    risposte_dict = df_risposte.to_dict('records')
-    risposte_docente_dict = df_risposte_docente.to_dict('records')
-
-    q_a_collection = get_chroma_q_a_collection()
-    q_a_collection_count = q_a_collection.count()
-
-    risposte_docente_result = q_a_collection.get(
-        where={"id_autore": {"$ne": "undefined"}}
-    )
-
-    ok = True
-
-    print("len(risposte_docente_result['documents'])", len(risposte_docente_result['documents']))
-    print("len(risposte_docente_dict)", len(risposte_docente_dict))
-
-    if len(risposte_docente_result['documents']) == len(risposte_docente_dict):
-        for idx, item in enumerate(risposte_docente_dict):
-            if item['text'] not in risposte_docente_result['documents']:
-                print(item['text'], "non trovato")
-                ok = False
-
-    risposte_result = q_a_collection.get(
-        where={"id_autore": "undefined"}
-    )
-
-    print("len(risposte_result['documents'])", len(risposte_result['documents']))
-    print("len(risposte_dict)", len(risposte_dict))
-
-    if len(risposte_result['documents']) == len(risposte_dict):
-        for idx, item in enumerate(risposte_dict):
-            if item['text'] not in risposte_result['documents']:
-                print(item['text'], "non trovato")
-                ok = False
-
-    print("check_answer_records", ok)
 
 
 def calcola_voto_finale_ponderato(punteggi, voti):
@@ -757,7 +596,8 @@ def get_similar_sentences(id_domanda: str, sentence_to_compare_text: str):
         query_texts=[sentence_to_compare_text],
         n_results=10,
         where={"$and": [{"id_domanda": id_domanda},
-                        {"voto_docente": {"$gt": -1}}]},  # seleziona solo le risposte valutate dal docente
+                        {"voto_docente": {"$gt": -1}},
+                        {"use_as_ref": True}]},  # seleziona solo le risposte valutate dal docente come di riferimento
         include=["documents", "metadatas", "embeddings", "distances"]
     )
 
@@ -813,6 +653,7 @@ def add_answer_to_collection(authenticated_user, question: Question, answer_text
                             "voto_docente": -1,
                             "voto_predetto": predicted_vote_from_ref,
                             "voto_predetto_all": predicted_vote_from_all,
+                            "use_as_ref": False,  # verrà definita di riferimento dal docente una volta valutata
                             "commento": "undefined",
                             "source": "application",
                             "data_creazione": iso_format}],
@@ -836,6 +677,7 @@ def add_answer_to_collection(authenticated_user, question: Question, answer_text
         -1,
         predicted_vote_from_ref,
         predicted_vote_from_all,
+        False,
         "undefined",
         "application",
         iso_format,
@@ -884,6 +726,7 @@ def add_question_to_collection(authenticated_user, categoria: str, question_text
                             "voto_docente": 10,
                             "voto_predetto": -1,
                             "voto_predetto_all": -1,
+                            "use_as_ref": True,  # la risposta del docente deve essere usata come riferimento
                             "commento": "undefined",
                             "source": "application",
                             "data_creazione": iso_format}],

@@ -132,6 +132,12 @@ class TeacherStudentAnswerPreviewItem(QWidget):
                     margin-left: 10px;
                 }''')
 
+            assegnaVotoEUsaComeRefBtn = QPushButton("Assegna voto e usa come riferimento")
+            assegnaVotoEUsaComeRefBtn.setStyleSheet('''
+                QPushButton {
+                    margin-left: 10px;
+                }''')
+
             confermaVotoLayout = QHBoxLayout()
 
             lay.addWidget(label_id_studente)
@@ -154,11 +160,13 @@ class TeacherStudentAnswerPreviewItem(QWidget):
 
             confermaVotoLayout.addWidget(self.votoCustomSpinBox)
             confermaVotoLayout.addWidget(assegnaVotoBtn)
+            confermaVotoLayout.addWidget(assegnaVotoEUsaComeRefBtn)
             confermaVotoLayout.addStretch()
 
             lay.addLayout(confermaVotoLayout)
 
             assegnaVotoBtn.clicked.connect(self.__assignVoteClicked)
+            assegnaVotoEUsaComeRefBtn.clicked.connect(self.__assignVoteAndUseAsRefClicked)
         else:
             label_risultato = QLabel(str(self.answer.voto_docente))
             policy = label_risultato.sizePolicy()
@@ -206,3 +214,7 @@ class TeacherStudentAnswerPreviewItem(QWidget):
     def __assignVoteClicked(self):
         if self.assign_vote_clicked is not None:
             self.assign_vote_clicked(self.question, self.answer, self.votoCustomSpinBox.value())
+
+    def __assignVoteAndUseAsRefClicked(self):
+        if self.assign_vote_clicked is not None:
+            self.assign_vote_clicked(self.question, self.answer, self.votoCustomSpinBox.value(), True)
