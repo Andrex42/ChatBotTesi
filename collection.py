@@ -7,6 +7,7 @@ import os
 import sys
 import numpy as np
 from chromadb.utils import embedding_functions
+from chromadb.config import Settings
 from dotenv import load_dotenv
 import pprint
 import pandas as pd
@@ -42,7 +43,7 @@ def init_chroma_client():
     # and it should store its data in a directory named 'database'.
     global chroma_client
     if 'chroma_client' not in globals():
-        chroma_client = chromadb.PersistentClient(path="./chroma/data")
+        chroma_client = chromadb.PersistentClient(path="./chroma/data", settings=Settings(anonymized_telemetry=False))
 
 
 def get_chroma_q_a_collection():
