@@ -6,12 +6,11 @@ from UI.LoginFormApp import LoginFormApp
 from collection import init_model, init_model_with_exports, check_answer_records
 
 
-try:
-    base_path = sys._MEIPASS
-    os.chdir(base_path)
-except Exception:
-    pass
+extDataDir = os.getcwd()
+if getattr(sys, 'frozen', False):
+    extDataDir = sys._MEIPASS
 
+os.chdir(extDataDir)
 
 
 class Application(QMainWindow):
