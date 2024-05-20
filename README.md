@@ -33,7 +33,7 @@ Assicurarsi di avere installati i seguenti prerequisiti:
 4. Attivare l'ambiente virtuale:
 - Su Linux/macOS:
    ```bash
-   source .venv/bin/activate
+   source venv/bin/activate
 - Su Windows:
    ```bash
    .venv\Scripts\activate
