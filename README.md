@@ -36,7 +36,7 @@ Assicurarsi di avere installati i seguenti prerequisiti:
    source venv/bin/activate
 - Su Windows:
    ```bash
-   .venv\Scripts\activate
+   venv\Scripts\activate
 
 5. Installare le dipendenze del progetto utilizzando il file requirements.txt:
    ```bash
