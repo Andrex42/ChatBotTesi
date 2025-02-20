@@ -12,7 +12,7 @@ Assicurarsi di avere installati i seguenti prerequisiti:
 
 - Python (versione 3.11)
 - virtualenv
-- Cambiare la key di openai all'interno:
+- Cambiare la key di openai all'interno del file.env
 
 ### Installazione delle dipendenze
 
