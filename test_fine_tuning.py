@@ -36,9 +36,7 @@ for idx, item in enumerate(risposte_dict):
 
     if risposta_riferimento:
         train_examples.append(InputExample(texts=[risposta_riferimento, risposta],
-                                           label=punteggio / 5.0))  # normalizziamo il punteggio nel range 0, 1
-        # print(risposta_riferimento, "|", risposta, "|", punteggio / 5)
-
+                                           label=punteggio / 5.0))  
 
 for idx, item in enumerate(risposte_test_dict):
     domanda = item['title']
@@ -53,7 +51,7 @@ for idx, item in enumerate(risposte_test_dict):
 
     if risposta_riferimento:
         test_dataset.append([risposta_riferimento, risposta, punteggio])
-        # print(risposta_riferimento, "|", risposta, "|", punteggio / 5)
+        
 
 train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=4)
 
@@ -66,12 +64,12 @@ evaluator = evaluation.EmbeddingSimilarityEvaluator(
 
 train_loss = losses.CosineSimilarityLoss(model=model)
 
-# fit the model
+
 num_epochs = 2
 evaluation_steps = 10
 steps_per_epoch = 30
 
-warmup_steps = int(len(train_dataloader) * num_epochs * 0.05)  # 5% of train data
+warmup_steps = int(len(train_dataloader) * num_epochs * 0.05)  
 model.fit(train_objectives=[(train_dataloader, train_loss)],
           evaluator=evaluator,
           evaluation_steps=evaluation_steps,

@@ -1,6 +1,8 @@
 import os
 import time
 
+from typing import List
+
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt, QThreadPool
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QSplitter, QListWidgetItem, QMessageBox, QMainWindow, QProgressDialog
@@ -10,7 +12,8 @@ from UI.student.StudentAnswerDetailsWidget import AnswerDetailsWidget
 from UI.student.StudentLeftSidebar import StudentLeftSideBar
 
 from collection import init_chroma_client, get_collections, get_chroma_q_a_collection, extract_data, \
-    extract_metadata_from_get_result, add_answer_to_collection
+    extract_metadata_from_get_result, add_answers_to_collection
+
 from model.answer_model import Answer
 from model.question_model import Question
 from users import RELATIONS
@@ -122,6 +125,7 @@ class StudentWorker(QtCore.QObject):
                 int(answer_data_array[0]['voto_docente']),
                 int(answer_data_array[0]['voto_predetto']),
                 int(answer_data_array[0]['voto_predetto_all']),
+                int(answer_data_array[0]['chat_gpt_rating']),
                 answer_data_array[0]['use_as_ref'],
                 answer_data_array[0]['commento'],
                 answer_data_array[0]['source'],
@@ -133,23 +137,20 @@ class StudentWorker(QtCore.QObject):
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
-    def add_answer(self, question: Question, answer_text: str):
+    def add_answers(self, question: Question, answer_texts: List[str]):
         start = time.time()
 
-        # init_chroma_client()
+        print(f"Aggiunta di {len(answer_texts)} risposte per la domanda: {question.id}")
 
-        print("adding answer", answer_text)
+        answers = add_answers_to_collection(self.authorized_user, question, responses=answer_texts)
 
-        answer = add_answer_to_collection(self.authorized_user,
-                                          question, answer_text,
-                                          error_callback=self.on_error,
-                                          fake_add=os.getenv("FAKE_ADD").lower() == "true")
-
-        if answer is not None:
-            print("[add_answer]", "answer added", answer)
-            self.answer_added_event.emit(question, answer)
+        if answers:
+            for answer in answers:
+                print("[add_answers]", "Risposta aggiunta:", answer)
+                self.answer_added_event.emit(question, answer)
 
         print(f'Execution time = {time.time() - start} seconds.')
+
 
 
 class StudentQuestionAnswersWidget(QWidget):
@@ -299,23 +300,30 @@ class StudentQuestionAnswersWidget(QWidget):
 
     @QtCore.pyqtSlot()
     def on_answer_added(self, question: Question, answer: Answer):
+        """Aggiorna l'interfaccia quando una risposta viene aggiunta."""
         print("[on_answer_added]", answer)
         self.__leftSideBarWidget.moveQuestionToAnsweredList(question)
 
-        if self.__leftSideBarWidget.getUnansweredRowCount() == 0:
-            self.__rightSideWidget.hide()
+        if not hasattr(self, "answers_saved"):
+            self.answers_saved = 0  
 
-        self.hide_loading_dialog()
+        self.answers_saved += 1  
 
-        def show_confirm():
-            message = 'Risposta inviata correttamente. Puoi verificare lo stato della valutazione nella sezione "Già risposte"'
-            closeMessageBox = QMessageBox(self)
-            closeMessageBox.setWindowTitle('Risposta inviata con successo')
-            closeMessageBox.setText(message)
-            closeMessageBox.setStandardButtons(QMessageBox.Close)
-            closeMessageBox.show()
+        
+        if self.answers_saved == self.total_answers:
+            self.hide_loading_dialog()
+            self.answers_saved = 0  
 
-        show_confirm()
+            def show_confirm():
+                message = f'Tutte le {self.total_answers} risposte sono state inviate correttamente.'
+                closeMessageBox = QMessageBox(self)
+                closeMessageBox.setWindowTitle('Risposte inviate con successo')
+                closeMessageBox.setText(message)
+                closeMessageBox.setStandardButtons(QMessageBox.Close)
+                closeMessageBox.show()
+
+            show_confirm()
+
 
     @QtCore.pyqtSlot()
     def on_answer_details_ready(self, question: Question, answer: Answer):
@@ -326,7 +334,6 @@ class StudentQuestionAnswersWidget(QWidget):
         if item:
             question: Question = item.data(Qt.UserRole)
             print("changed", question.id, question.domanda)
-            # Inserisci un controllo nel caso in cui si sia inserita una risposta, se una risposta è presente,
             # avvisa l'utente che potrebbe perdere i progressi fatti # TODO
             self.__answerToQuestionWidget.replaceQuestion(question)
         else:
@@ -338,14 +345,23 @@ class StudentQuestionAnswersWidget(QWidget):
     def hide_loading_dialog(self):
         self.loading_dialog.cancel()
 
-    def __onSendAnswerClicked(self, question: Question, answer_text: str):
-        print("Domanda", question)
-        print("Risposta", answer_text)
+    def __onSendAnswerClicked(self, question: Question, answers: list):
+        print("Domanda:", question)
+        print("Risposte ricevute:", answers)
+
+        if not answers:
+            print("Errore: devono esserci almeno una risposta.")
+            return
+
         if self.db_worker is not None:
-            task = RunnableTask(self.db_worker.add_answer, question, answer_text)
+            self.answers_saved = 0  
+            self.total_answers = len(answers)  
+            task = RunnableTask(self.db_worker.add_answers, question, answers)
             self.threadpool.start(task)
 
             self.show_loading_dialog()
+
+
 
     def __answeredQuestionSelectionChanged(self, item: QListWidgetItem):
         if item:

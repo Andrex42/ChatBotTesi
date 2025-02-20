@@ -75,13 +75,13 @@ class LeftSideBar(QWidget):
         self.on_add_question_clicked.emit()
 
     def __archiveClicked(self):
-        # get the ID of row, not actual index (because list is in a stacked form)
+        
         rows = self.__questionListWidget.getCheckedRowsIds()
         self.deleteRowsClicked.emit(rows)
         self.__allCheckBox.setChecked(False)
 
     def __saveClicked(self):
-        # get the ID of row, not actual index (because list is in a stacked form)
+        
         rows = self.__questionListWidget.getCheckedRowsIds()
         self.exportRowsClicked.emit(rows)
         self.__allCheckBox.setChecked(False)

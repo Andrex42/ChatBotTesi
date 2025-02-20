@@ -25,8 +25,7 @@ class Application(QMainWindow):
         if USE_EXPORT_DATA == "true":
             init_model_with_exports()
 
-        # test_model()
-
+       
     def center(self):
         qr = self.frameGeometry()
         cp = QDesktopWidget().availableGeometry().center()
@@ -40,7 +39,7 @@ class Application(QMainWindow):
         closeMessageBox.setText(message)
         closeMessageBox.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
         reply = closeMessageBox.exec()
-        # Cancel
+        
         if reply == QMessageBox.Cancel:
             return True
         elif reply == QMessageBox.Yes:
@@ -65,8 +64,6 @@ def main():
 
     window = Application(app)
 
-    # setup stylesheet
-    # apply_stylesheet(app, theme='dark_blue.xml')
     app.setStyleSheet('''
         QPushButton {
             color: white;

@@ -8,7 +8,7 @@ from collection import init_chroma_client, predict_vote_from_ref, predict_vote
 
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
 
-pp = pprint.PrettyPrinter(indent=4)  # PrettyPrinter makes dictionary output easier to read
+pp = pprint.PrettyPrinter(indent=4) 
 
 export_folder = "export_accuracy_test"
 df_risposte = pd.read_csv('training_data/risposte_test.csv')
@@ -30,7 +30,7 @@ def test_ref_answer_predictions():
 
     questions_analyzed = []
 
-    for idx, item in enumerate(risposte_dict):  # per ogni risposta
+    for idx, item in enumerate(risposte_dict):  
         id_domanda = item['id_domanda']
         voto_giudice = item['label']
 
@@ -87,7 +87,7 @@ def test_multi_answers_predictions():
 
     questions_analyzed = []
 
-    for idx, item in enumerate(risposte_dict):  # per ogni risposta
+    for idx, item in enumerate(risposte_dict):  
         id_domanda = item['id_domanda']
         voto_giudice = item['label']
 
@@ -133,11 +133,8 @@ try:
     test_folders_count = sum(os.path.isdir(os.path.join(export_folder, el)) for el in list_dir)
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    # Crea il nome della nuova cartella con il timestamp
     test_folder = f"test_{timestamp}"
-    # Crea il percorso completo per la nuova cartella
     test_export_folder = os.path.join(export_folder, test_folder)
-    # Crea la nuova cartella
     os.mkdir(test_export_folder)
 
     test_multi_answers_predictions()

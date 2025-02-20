@@ -22,10 +22,10 @@ class TeacherWindow(QStackedWidget):
         self.__setActions()
         self.__setToolBar()
 
-        # Ottieni le dimensioni dello schermo
+       
         screen_geometry = QDesktopWidget().screenGeometry()
 
-        # Imposta le dimensioni della finestra principale
+        
         window_width = screen_geometry.width() // 1.33
         window_height = screen_geometry.height() // 1.33
         self.main_window.resize(int(window_width), int(window_height))
@@ -39,7 +39,7 @@ class TeacherWindow(QStackedWidget):
         self.activeWorkers.append(worker)
 
     def __setActions(self):
-        # toolbar action
+       
         self.__currentUserUsernameAction = QWidgetAction(self)
         self.__currentUserUsernameLabel = QLabel(self.authorized_user['username'])
         self.__currentUserUsernameLabel.setStyleSheet("QLabel {padding: 0px 0px 0px 5px;}")
@@ -86,7 +86,7 @@ class TeacherWindow(QStackedWidget):
         self.teacherToolBar = QToolBar()
         self.teacherToolBar.setMovable(False)
         self.teacherToolBar.addAction(self.__currentUserUsernameAction)
-        spacer = QWidget()  # Widget fittizio per creare uno spazio vuoto
+        spacer = QWidget() 
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.teacherToolBar.addWidget(spacer)
         self.teacherToolBar.addAction(self.__archivedAction)
@@ -102,11 +102,7 @@ class TeacherWindow(QStackedWidget):
         self.__teacherQuestionAnswersWidget.open_archived_window()
 
     def logout(self):
-        # for worker in self.activeWorkers:
-        #     thread = worker.thread()
-        #     if thread is not None:
-        #         thread.quit()
-        #         thread.deleteLater()
+        
 
         self.activeWorkers = []
 

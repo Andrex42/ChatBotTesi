@@ -31,7 +31,6 @@ class StatsDialog(QDialog):
             }
             ''')
 
-        # horizontal_layout = QHBoxLayout()
 
         self.students_avg_list = QListWidget()
         self.students_avg_list.currentItemChanged.connect(self.changed)
@@ -41,7 +40,7 @@ class StatsDialog(QDialog):
 
         self.scroll_area = QScrollArea()
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        #        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        
         self.scroll_container = QWidget()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.scroll_container)
@@ -53,22 +52,6 @@ class StatsDialog(QDialog):
 
         mainWidget.addWidget(self.scroll_area)
 
-        # self.scroll_vertical_layout = QVBoxLayout()
-        # scroll = QScrollArea()  # Scroll Area which contains the widgets, set as the centralWidget
-        # scroll.setFrameShape(QFrame.NoFrame)
-#
-        # scroll_widget = QWidget()
-#
-        # scroll_widget.setLayout(self.scroll_vertical_layout)
-        # scroll.setWidget(scroll_widget)
-        # # Scroll Area Properties
-        # scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        # scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        # scroll.setWidgetResizable(True)
-#
-        # lay = QVBoxLayout()
-        # lay.setContentsMargins(0, 0, 0, 0)
-        # lay.addWidget(scroll)
 
         lay = QVBoxLayout()
         lay.addWidget(mainWidget)
@@ -78,11 +61,11 @@ class StatsDialog(QDialog):
         self.setLayout(lay)
 
     def create_chart(self):
-        self.chart_container = QWidget()                                          # +++
-        lay = QVBoxLayout(self.chart_container)                                   # +++
-        lay.setContentsMargins(0, 0, 0, 0)                             # +++
+        self.chart_container = QWidget()                                          
+        lay = QVBoxLayout(self.chart_container)                                  
+        lay.setContentsMargins(0, 0, 0, 0)                             
 
-        self.scroll_layout.addWidget(self.chart_container)                        # +++
+        self.scroll_layout.addWidget(self.chart_container)                        
         self.chart_container.setMinimumWidth(800)
 
         self.chart = QChart()
@@ -106,7 +89,7 @@ class StatsDialog(QDialog):
         lay.addWidget(self._chart_view)
 
     def convert_datetime(self, datetime_str):
-        # Converte la stringa datetime nel formato desiderato
+        
         datetime_obj = QDateTime.fromString(datetime_str, "yyyy-MM-ddTHH:mm:ss.zzzzzz")
         return datetime_obj.toString("dd/MM/yyyy HH:mm")
 
@@ -169,7 +152,7 @@ class StatsDialog(QDialog):
 
             grouped[key].append([vote, date])
 
-        # Ordina l'array di valori per data crescente
+        
         for key in grouped:
             grouped[key] = sorted(grouped[key], key=lambda x: x[1])
 
@@ -185,10 +168,6 @@ class StatsDialog(QDialog):
 
             self.students_avg_list.addItem(item)
             self.students_avg_list.setItemWidget(item, widget)
-            #
-            #self.scroll_vertical_layout.addWidget(lbl)
-
-        #self.scroll_vertical_layout.addStretch()
 
     def clear_list(self, event):
         if self.students_avg_list:
@@ -202,11 +181,11 @@ class StatsDialog(QDialog):
     def is_dark_or_light(self, r, g, b):
         brightness = (r + g + b) / 3
         threshold = 127
-        # Se la luminosità è inferiore alla soglia, il colore è scuro, altrimenti è chiaro
+        
         return "dark" if brightness < threshold else "light"
 
     def handlePaletteChange(self):
-        # Operazioni da eseguire quando cambia la palette dell'applicazione
+        
         rgb_bg = self.palette().color(QPalette.Window).getRgb()
         current_theme = self.is_dark_or_light(rgb_bg[0], rgb_bg[1], rgb_bg[2])
         print("Palette cambiata", rgb_bg, current_theme)

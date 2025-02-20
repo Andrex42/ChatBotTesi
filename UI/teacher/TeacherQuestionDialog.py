@@ -4,7 +4,6 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QLabel, QScrollArea, QWidget
 from collection import extract_data
 
 
-# Definizione di una finestra di dialogo per mostrare il testo della domanda
 from model.question_model import Question
 
 
@@ -20,7 +19,7 @@ class QuestionDialog(QDialog):
         self.teacher_answer_layout = QVBoxLayout()
         self.dialog_main_layout.addLayout(self.teacher_answer_layout)
 
-        # Adding question label fixed on top
+        
         question_label = QLabel(question.domanda)
         question_label.setWordWrap(True)
         self.teacher_answer_layout.addWidget(question_label)
@@ -28,13 +27,13 @@ class QuestionDialog(QDialog):
 
         scroll_vertical_layout = QVBoxLayout()
 
-        scroll = QScrollArea()  # Scroll Area which contains the widgets, set as the centralWidget
+        scroll = QScrollArea()  
         scroll_widget = QWidget()
         scroll_widget.setLayout(scroll_vertical_layout)
 
         scroll.setWidget(scroll_widget)
 
-        # Scroll Area Properties
+        
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setWidgetResizable(True)
@@ -57,7 +56,7 @@ class QuestionDialog(QDialog):
         self.dialog_main_layout.addWidget(scroll)
         self.setLayout(self.dialog_main_layout)
 
-        # Collega il segnale 'finished' del QDialog alla funzione che si occupa di eliminare i widget e il layout
+        
         self.finished.connect(self.cleanup)
 
     @QtCore.pyqtSlot()
@@ -84,12 +83,12 @@ class QuestionDialog(QDialog):
     def cleanup(self):
         print("cleanup dialog")
 
-        # Elimina tutti i widget dal layout
+        
         while self.dialog_main_layout.count():
             item = self.dialog_main_layout.takeAt(0)
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
 
-        # Elimina il layout dal QDialog
+       
         self.dialog_main_layout = None

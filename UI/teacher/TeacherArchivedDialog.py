@@ -20,7 +20,7 @@ class ArchivedDialog(QDialog):
         self.closeEvent = self.clear_list
 
         lay = QVBoxLayout()
-        # lay.addWidget(mainWidget)
+
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(0)
 

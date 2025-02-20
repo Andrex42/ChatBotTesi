@@ -17,7 +17,7 @@ class AnswerDetailsWidget(QWidget):
 
     def __initUi(self):
         teacher_question_container = QWidget(self)
-        teacher_question_container.setObjectName("teacher_container")  # Setta un ID per il container
+        teacher_question_container.setObjectName("teacher_container")  
         teacher_question_container.setStyleSheet('''
             #teacher_container {
                 background-color: rgba(52, 143, 235, 0.1);
@@ -90,14 +90,14 @@ class AnswerDetailsWidget(QWidget):
         self.student_answer_layout.addLayout(hlayout)
 
         scroll_vertical_layout = QVBoxLayout()
-        scroll = QScrollArea()  # Scroll Area which contains the widgets, set as the centralWidget
+        scroll = QScrollArea()  
         scroll.setFrameShape(QFrame.NoFrame)
 
         scroll_widget = QWidget()
 
         scroll_widget.setLayout(scroll_vertical_layout)
         scroll.setWidget(scroll_widget)
-        # Scroll Area Properties
+        
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setWidgetResizable(True)

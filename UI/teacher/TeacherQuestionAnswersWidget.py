@@ -77,8 +77,6 @@ class TeacherWorker(QtCore.QObject):
     def add_question(self, categoria, question_text, ref_answer_text):
         start = time.time()
 
-        # init_chroma_client()
-
         print("adding question", question_text, ref_answer_text)
 
         question = add_question_to_collection(
@@ -98,8 +96,6 @@ class TeacherWorker(QtCore.QObject):
     @QtCore.pyqtSlot()
     def get_students_votes(self):
         start = time.time()
-
-        # init_chroma_client()
 
         q_a_collection = get_chroma_q_a_collection()
 
@@ -129,7 +125,7 @@ class TeacherWorker(QtCore.QObject):
                  for metadata in result['metadatas']]
 
         self.students_votes_ready_event.emit(votes)
-        # print(query_result)
+
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
@@ -161,7 +157,6 @@ class TeacherWorker(QtCore.QObject):
 
         start = time.time()
 
-        # init_chroma_client()
 
         q_a_collection = get_chroma_q_a_collection()
 
@@ -191,7 +186,7 @@ class TeacherWorker(QtCore.QObject):
                 )
 
         self.q_a_ready_event.emit(question, query_result)
-        # print(query_result)
+
         print(f'Execution time = {time.time() - start} seconds.')
 
     @QtCore.pyqtSlot()
@@ -234,7 +229,6 @@ class TeacherWorker(QtCore.QObject):
 
         self.answer_voted_event.emit(question, answer)
 
-        # ottiene le risposte che richiedono attenzione da parte del docente
         self.getToEvaluateAnswersId(useUpdateEvent=True)
 
         print(f'Execution time = {time.time() - start} seconds.')
@@ -306,29 +300,22 @@ class TeacherWorker(QtCore.QObject):
 
         q_a_collection = get_chroma_q_a_collection()
 
-        # Determina il numero di esportazioni già effettuate
         export_count = len([name for name in os.listdir("export_data")
                             if name.startswith(f"export_domande_{self.authorized_user['username']}_")])
 
-        # Incrementa il numero di esportazioni per ottenere il nome del file
         export_count += 1
         file_name = f"export_domande_{self.authorized_user['username']}_{export_count}.csv"
 
-        # Percorso completo per il file CSV di output
         output_path = os.path.join("export_data", file_name)
 
-        # Apri il file CSV in modalità di scrittura
         with open(output_path, mode='w', newline='', encoding='utf-8') as file:
-            # Definisci il writer CSV
             writer = csv.DictWriter(
                 file,
                 fieldnames=['id', 'text', 'label', 'id_docente', 'source', 'archived', 'data_creazione']
             )
 
-            # Scrivi l'intestazione del CSV
             writer.writeheader()
 
-            # Scrivi i dati delle domande nel file CSV
             for question in questions:
                 writer.writerow({
                     'id': question.id,
@@ -368,26 +355,19 @@ class TeacherWorker(QtCore.QObject):
         data_array = extract_data(query_result)
         print("data converted", data_array)
 
-        # Determina il numero di esportazioni già effettuate
         export_count = len([name for name in os.listdir("export_data")
                             if name.startswith(f"export_risposte_{self.authorized_user['username']}_")])
 
-        # Incrementa il numero di esportazioni per ottenere il nome del file
         export_count += 1
         file_name = f"export_risposte_{self.authorized_user['username']}_{export_count}.csv"
 
-        # Percorso completo per il file CSV di output
         output_path = os.path.join("export_data", file_name)
 
-        # Apri il file CSV in modalità di scrittura
         with open(output_path, mode='w', newline='', encoding='utf-8') as file:
-            # Definisci il writer CSV
             writer = csv.DictWriter(file, fieldnames=['id', 'id_domanda', 'title', 'id_docente', 'text', 'id_autore', 'label', 'voto_predetto', 'voto_predetto_all', 'use_as_ref', 'commento', 'source', 'data_creazione'])
 
-            # Scrivi l'intestazione del CSV
             writer.writeheader()
 
-            # Scrivi i dati delle domande nel file CSV
             for answer_dict in data_array:
                 writer.writerow({
                     'id': answer_dict['id'],
@@ -455,11 +435,9 @@ class TeacherWorker(QtCore.QObject):
 
             print("voti predetti da tutte le risposte aggiornati")
 
-        # riottiene le risposte degli studenti alla domanda,
-        # sostituisce al termine la vista aggiornando i dati e gli istogrammi
         self.get_students_answers(question)
 
-        self.recalculated_unevaluated_answers_event.emit()  # mostra finestra di dialogo con conferma
+        self.recalculated_unevaluated_answers_event.emit() 
 
         print(f'Execution time = {time.time() - start} seconds.')
 
@@ -795,8 +773,6 @@ class TeacherQuestionAnswersWidget(QWidget):
                     task = RunnableTask(self.db_worker.archiveQuestions, id_lst)
                     self.threadpool.start(task)
 
-        # for id in id_lst:
-        #     print("delete question", id)
         showAreYouSureDialog()
 
     def __onExportQuestionsClicked(self, questions: list[Question]):

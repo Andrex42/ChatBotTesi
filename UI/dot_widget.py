@@ -12,9 +12,9 @@ class DotWidget(QWidget):
 
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)  # Anti-aliasing per un bordo più fluido
+        painter.setRenderHint(QPainter.Antialiasing)  
 
         painter.setBrush(QColor(8, 155, 204))
 
-        painter.setPen(Qt.NoPen)  # Nasconde il pennello del contorno
+        painter.setPen(Qt.NoPen)  
         painter.drawEllipse(0, 0, self.size, self.size)

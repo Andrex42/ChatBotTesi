@@ -3,7 +3,6 @@ from pathlib import Path
 
 import pandas as pd
 
-# Definizione delle domande e delle etichette
 domande = [
     ("Quali sono le caratteristiche principali dell'arte egizia?", "Arte Egizia", "docente.archeologia"),
     ("Come si sono evolute le tecniche di costruzione nel periodo romano?", "Architettura Romana", "docente.archeologia"),

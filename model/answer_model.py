@@ -12,6 +12,7 @@ class Answer:
     voto_docente: int
     voto_predetto: int
     voto_predetto_all: int
+    chat_gpt_rating: int
     use_as_ref: bool
     commento: str
     source: str

@@ -38,7 +38,7 @@ class QuestionDetailsWidget(QWidget):
 
     def __initUi(self):
         teacher_question_container = QWidget(self)
-        teacher_question_container.setObjectName("teacher_container")  # Setta un ID per il container
+        teacher_question_container.setObjectName("teacher_container")  
         teacher_question_container.setStyleSheet('''
             #teacher_container {
                 background-color: rgba(52, 143, 235, 0.1);
@@ -105,14 +105,14 @@ class QuestionDetailsWidget(QWidget):
         self.students_answers_evaluated_layout.addWidget(risposte_studenti_label)
 
         scroll_vertical_layout = QVBoxLayout()
-        scroll = QScrollArea()  # Scroll Area which contains the widgets, set as the centralWidget
+        scroll = QScrollArea()  
         scroll.setFrameShape(QFrame.NoFrame)
 
         scroll_widget = QWidget()
 
         scroll_widget.setLayout(scroll_vertical_layout)
         scroll.setWidget(scroll_widget)
-        # Scroll Area Properties
+        
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         scroll.setWidgetResizable(True)
@@ -156,7 +156,6 @@ class QuestionDetailsWidget(QWidget):
             self._chart_view.chart().setTheme(QChart.ChartTheme(0))
             self._chart_view.chart().setBackgroundBrush(QBrush(QColor(0, 0, 0, 15)))
 
-        #_chart_view.chart().setBackgroundVisible(False)
 
         lay.addWidget(self._chart_view)
 
@@ -176,7 +175,6 @@ class QuestionDetailsWidget(QWidget):
 
         self._chart_view2 = QChartView(self.evaluated_chart)
         self._chart_view2.setRenderHint(QPainter.Antialiasing)
-        # _chart_view2.chart().setBackgroundVisible(False)
 
         rgb_bg = self.palette().color(QPalette.Window).getRgb()
         current_theme = self.is_dark_or_light(rgb_bg[0], rgb_bg[1], rgb_bg[2])
@@ -212,9 +210,6 @@ class QuestionDetailsWidget(QWidget):
         frequences = []
         counted_predictions = count_predictions(not_evaluated_answers)
 
-        # counted_predictions["1"] = 2
-        # counted_predictions["7"] = 5
-
         for key, value in counted_predictions.items():
             series = QBarSeries()
             curr_set = QBarSet(str(key))
@@ -226,7 +221,6 @@ class QuestionDetailsWidget(QWidget):
             series.labelsPosition()
             self.unevaluated_chart.addSeries(series)
 
-        #create axis
         self.axisX = QBarCategoryAxis()
         self.axisX.setLabelsVisible(True)
         self.axisX.append(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"])
@@ -241,13 +235,10 @@ class QuestionDetailsWidget(QWidget):
         self.axisY.setLabelFormat("%.0f")
         self.axisY.setTitleText("Frequenze")
 
-        # bild the chart
         self.unevaluated_chart.createDefaultAxes()
         self.unevaluated_chart.setAxisX(self.axisX)
-        # series.attachAxis(self.axisX)
 
         self.unevaluated_chart.setAxisY(self.axisY)
-        # series.attachAxis(self.axisY)
 
     def populateEvaluatedChart(self, evaluated_answers: list[Answer]):
         def count_votes(answers: list[Answer]) -> dict:
@@ -295,7 +286,6 @@ class QuestionDetailsWidget(QWidget):
         self.axisY.setLabelFormat("%.0f")
         self.axisY.setTitleText("Frequenze")
 
-        # bild the chart
         self.evaluated_chart.createDefaultAxes()
         self.evaluated_chart.setAxisX(self.axisX)
 
@@ -326,17 +316,19 @@ class QuestionDetailsWidget(QWidget):
                 int(answer_dict['voto_docente']),
                 int(answer_dict['voto_predetto']),
                 int(answer_dict['voto_predetto_all']),
+                int(answer_dict['chat_gpt_rating']),
                 answer_dict['use_as_ref'],
                 answer_dict['commento'],
                 answer_dict['source'],
-                answer_dict['data_creazione'],
+                answer_dict['data_creazione'],  
             )
+
 
             if answer.id_autore == self.authorized_user['username']:
                 self.answer_label.setText(answer.risposta)
             elif answer.voto_docente == -1:
                 if not unevaluated_chart_added:
-                    # creo l'istogramma con le frequenze di voti predetti a partire da tutte le risposte
+                    
                     self.students_answers_not_evaluated_layout.addWidget(self.create_unevaluated_chart())
                     unevaluated_chart_added = True
 
@@ -359,7 +351,7 @@ class QuestionDetailsWidget(QWidget):
                 not_evaluated_answers.append(answer)
             else:
                 if not evaluated_chart_added:
-                    # creo l'istogramma con le frequenze di voti assegnati dal docente
+
                     self.students_answers_evaluated_layout.addWidget(self.create_evaluated_chart())
                     evaluated_chart_added = True
 
@@ -398,11 +390,11 @@ class QuestionDetailsWidget(QWidget):
     def is_dark_or_light(self, r, g, b):
         brightness = (r + g + b) / 3
         threshold = 127
-        # Se la luminosità è inferiore alla soglia, il colore è scuro, altrimenti è chiaro
+
         return "dark" if brightness < threshold else "light"
 
     def handlePaletteChange(self):
-        # Operazioni da eseguire quando cambia la palette dell'applicazione
+       
         rgb_bg = self.palette().color(QPalette.Window).getRgb()
         current_theme = self.is_dark_or_light(rgb_bg[0], rgb_bg[1], rgb_bg[2])
         print("Palette cambiata", rgb_bg, current_theme)
@@ -428,7 +420,7 @@ class QuestionDetailsWidget(QWidget):
         self.loading_dialog.cancel()
 
     def cleanup(self):
-        # Elimina tutti i widget dal layout tranne l'header della sezione
+        
         while self.students_answers_not_evaluated_layout.count() > 2:
             item = self.students_answers_not_evaluated_layout.takeAt(2)
             widget = item.widget()
