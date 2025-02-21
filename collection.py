@@ -297,29 +297,27 @@ def calc_jaccard_distance(embedding1, embedding2):
     return jaccard_distance
 
 def get_chatgpt_rating(question_text, answer_text):
-    """
-    Valuta la risposta fornita in base alla domanda, restituendo un voto da 1 a 10.
-    """
-    prompt = f"Valuta la seguente risposta in base alla domanda associata su una scala da 1 a 10 senza fornire spiegazioni.\n\n" \
-             f"Domanda: {question_text}\n" \
-             f"Risposta: {answer_text}"
-    print(f"Valutazione richiesta per la domanda: '{question_text}' e la risposta: '{answer_text}'")
+
+    prompt = (
+        f"Valuta la seguente risposta in base alla domanda associata su una scala da 1 a 10, "
+        f"seguendo i seguenti criteri di valutazione:\n{evaluation_criteria}\n\n"
+        f"Domanda: {question_text}\n"
+        f"Risposta: {answer_text}\n\n"
+        f"Fornisci solo il voto numerico senza spiegazioni."
+    )
+
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[ 
-                {"role": "system", "content": "Sei un valutatore imparziale che assegna un voto da 1 a 10 basato sulla qualità delle risposte in relazione alle domande."},
+                {"role": "system", "content": "Sei un valutatore imparziale che assegna un voto da 1 a 10 basato sui criteri di valutazione specificati."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=5,
             temperature=0.0
         )
+
         valutazione = response['choices'][0]['message']['content'].strip()
-        
-        
-        if valutazione.lower().startswith("voto:"):
-            valutazione = valutazione.split(":")[1].strip()
-        
         return int(valutazione)
     except openai.error.OpenAIError as e:
         print(f"Errore nell'invio della richiesta a ChatGPT: {e}")
